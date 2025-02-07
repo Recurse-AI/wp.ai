@@ -4,21 +4,38 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 
 export default function SignUp() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Password validation: At least 8 characters, 1 uppercase, 1 lowercase, and 1 number
+  const isPasswordStrong = (password: string) => {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match!");
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      setError("Password must be at least 8 characters, include 1 uppercase, 1 lowercase, and 1 number.");
+      return;
+    }
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ fullName, email, password }),
       });
 
       if (!res.ok) throw new Error("Sign-up failed");
@@ -45,6 +62,14 @@ export default function SignUp() {
 
         <form onSubmit={handleSignUp} className="space-y-4">
           <input
+            type="text"
+            placeholder="Full Name"
+            className="w-full p-3 rounded-lg bg-gray-800 text-white focus:ring focus:ring-blue-500 focus:outline-none"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
+          <input
             type="email"
             placeholder="Email"
             className="w-full p-3 rounded-lg bg-gray-800 text-white focus:ring focus:ring-blue-500 focus:outline-none"
@@ -58,6 +83,14 @@ export default function SignUp() {
             className="w-full p-3 rounded-lg bg-gray-800 text-white focus:ring focus:ring-blue-500 focus:outline-none"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            className="w-full p-3 rounded-lg bg-gray-800 text-white focus:ring focus:ring-blue-500 focus:outline-none"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
           <button

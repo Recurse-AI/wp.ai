@@ -56,6 +56,11 @@ export default function SignIn() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <div className="flex justify-between items-center">
+            <a href="/forgot-password" className="text-sm text-blue-400 hover:underline">
+              Forgot Password?
+            </a>
+          </div>
           <button
             type="submit"
             className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg"
