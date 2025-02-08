@@ -17,11 +17,11 @@ export default function SignUp() {
 
   // 🔹 Save token in localStorage after login
     useEffect(() => {
-      // if (session?.user?.backendToken) {
-      //   console.log(session?.user?.backendToken);
-      //   console.log("🔹 Storing backend token in localStorage...");
-      //   localStorage.setItem("authToken", session.user.backendToken);
-      // }
+      if (session?.user?.backendToken) {
+        console.log(session?.user?.backendToken);
+        console.log("🔹 Storing backend token in localStorage...");
+        localStorage.setItem("authToken", session.user.backendToken);
+      }
       const token = localStorage.getItem("authToken");
       if (token) {
         console.log("🔹 Token found in localStorage. Redirecting to home...");
@@ -132,8 +132,8 @@ export default function SignUp() {
 
         <div className="flex flex-col space-y-3">
           <button
-            // onClick={() => signIn("google")}
-            onClick={() => signOut()}
+            onClick={() => signIn("google")}
+            // onClick={() => signOut()}
             className="w-full flex items-center justify-center p-3 border border-white/20 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all"
           >
             <img src="https://img.icons8.com/?size=100&id=17949&format=png&color=000000" alt="Google" className="w-5 h-5 mr-2" />

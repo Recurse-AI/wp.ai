@@ -1,24 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FaUser, FaSignOutAlt, FaCogs, FaInfoCircle, FaCrown } from "react-icons/fa"; // Icons
 
 export default function Navbar() {
+  const { data: session } = useSession(); // ✅ Track NextAuth session
   const pathname = usePathname();
+  const router = useRouter(); 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "Unayes Khan", image: "https://avatars.githubusercontent.com/u/106924262?v=4" });
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // 🔹 Check if user is logged in (Check localStorage "authToken")
+  // ✅ Check Auth Status when Path Changes
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (token) {
+    if (token && session) {
       setIsLoggedIn(true);
 
-      // TODO: Fetch user details from API (Replace static data)
+      // ✅ Fetch user details from API
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-user`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -28,14 +31,21 @@ export default function Navbar() {
           setUser({ name: data.name, image: data.image });
         })
         .catch(() => console.error("Error fetching user data"));
+    } else {
+      setIsLoggedIn(false);
     }
-  }, []);
+  }, [pathname, session]); // ✅ Runs when session changes
 
-  // 🔹 Logout Function
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
+  // 🔹 Logout Function (Fix NextAuth Session Persistence)
+  const handleLogout = async () => {
+    setShowDropdown(false);
+    localStorage.removeItem("authToken"); // ✅ Clear token
+
+    await signOut({ redirect: false }); // ✅ Sign out from NextAuth, but don't auto redirect
+
     setIsLoggedIn(false);
-    window.location.href = "/signin"; // Redirect to Sign In
+    router.push("/"); // ✅ Redirect manually
+    // setTimeout(() => window.location.reload(), 500); // ✅ Ensure session is cleared
   };
 
   // 🔹 Hide Navbar on /signin & /signup
@@ -43,12 +53,11 @@ export default function Navbar() {
 
   return (
     <nav className="bg-gray-900 text-white py-4 px-6 flex justify-between items-center shadow-lg">
-      {/* Left: Logo & Name */}
+      {/* Left: Website Name */}
       <Link href="/" className="flex items-center gap-2">
         <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-            WP.ai
+          WP.ai
         </span>
-
       </Link>
 
       {/* Right: Authentication Options */}
@@ -92,7 +101,7 @@ export default function Navbar() {
                   <FaInfoCircle /> About
                 </div>
               </Link>
-              <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400">
+              <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-50 cursor-pointer text-red-400">
                 <FaSignOutAlt /> Sign Out
               </div>
             </div>
