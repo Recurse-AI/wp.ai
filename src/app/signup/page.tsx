@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { useState } from "react";
 
 export default function SignUp() {
@@ -105,7 +105,8 @@ export default function SignUp() {
 
         <div className="flex flex-col space-y-3">
           <button
-            onClick={() => signIn("google")}
+            // onClick={() => signIn("google")}
+            onClick={() => signOut()}
             className="w-full flex items-center justify-center p-3 border border-white/20 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all"
           >
             <img src="https://img.icons8.com/?size=100&id=17949&format=png&color=000000" alt="Google" className="w-5 h-5 mr-2" />

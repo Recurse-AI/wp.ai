@@ -1,12 +1,39 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { signIn, useSession, signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const router = useRouter();
+
+  const { data: session } = useSession();
+
+  // 🔹 Save token in localStorage after login
+  useEffect(() => {
+    if (session?.user?.backendToken) {
+      console.log(session?.user?.backendToken);
+      console.log("🔹 Storing backend token in localStorage...");
+      localStorage.setItem("authToken", session.user.backendToken);
+    }
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      console.log("🔹 Token found in localStorage. Redirecting to home...");
+      router.push("/");
+    }
+  }, [session]);
+
+  // 🔹 Check if a token exists in localStorage and redirect to home if found
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      console.log("🔹 Token found in localStorage. Redirecting to home...");
+      router.push("/");
+    }
+  }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +48,14 @@ export default function SignIn() {
 
       if (!res.ok) throw new Error("Invalid email or password");
 
-      window.location.href = "/dashboard";
+      const data = await res.json();
+      const token = data.token || "sample-debug-token"; // 🔹 Use sample token if missing
+
+      console.log("🔹 Received token:", token);
+      localStorage.setItem("authToken", token);
+
+      // Redirect to dashboard after successful login
+      router.push("/");
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -73,21 +107,22 @@ export default function SignIn() {
 
         <div className="flex flex-col space-y-3">
           <button
-            onClick={() => signIn("google")}
+            onClick={() => signIn("google", { prompt: "select_account" })}
+            //onClick={() => signOut()}
             className="w-full flex items-center justify-center p-3 border border-white/20 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all"
           >
             <img src="https://img.icons8.com/?size=100&id=17949&format=png&color=000000" alt="Google" className="w-5 h-5 mr-2" />
             Sign in with Google
           </button>
           <button
-            onClick={() => signIn("github")}
+            onClick={() => signIn("github",{ prompt: "select_account" })}
             className="w-full flex items-center justify-center p-3 border border-white/20 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all"
           >
             <img src="https://img.icons8.com/?size=100&id=AZOZNnY73haj&format=png&color=000000" alt="GitHub" className="w-5 h-5 mr-2" />
             Sign in with GitHub
           </button>
           <button
-            onClick={() => signIn("wordpress")}
+            onClick={() => signIn("wordpress", { prompt: "select_account" })}
             className="w-full flex items-center justify-center p-3 border border-white/20 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all"
           >
             <img src="https://img.icons8.com/?size=100&id=13664&format=png&color=000000" alt="WordPress" className="w-5 h-5 mr-2" />
