@@ -1,7 +1,8 @@
 "use client";
 
-import { signIn, signOut } from "next-auth/react";
-import { useState } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignUp() {
   const [fullName, setFullName] = useState("");
@@ -10,6 +11,32 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const router = useRouter();
+
+  const { data: session } = useSession();
+
+  // 🔹 Save token in localStorage after login
+    useEffect(() => {
+      // if (session?.user?.backendToken) {
+      //   console.log(session?.user?.backendToken);
+      //   console.log("🔹 Storing backend token in localStorage...");
+      //   localStorage.setItem("authToken", session.user.backendToken);
+      // }
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        console.log("🔹 Token found in localStorage. Redirecting to home...");
+        router.push("/");
+      }
+    }, [session]);
+  
+    // 🔹 Check if a token exists in localStorage and redirect to home if found
+    useEffect(() => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        console.log("🔹 Token found in localStorage. Redirecting to home...");
+        router.push("/");
+      }
+    }, [router]);
 
   // Password validation: At least 8 characters, 1 uppercase, 1 lowercase, and 1 number
   const isPasswordStrong = (password: string) => {
