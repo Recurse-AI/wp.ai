@@ -12,7 +12,7 @@ export default function Chatbox() {
   const [files, setFiles] = useState<{ id: number; type: string; url: string }[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // 🔹 Scroll chat to bottom on new message
+  // 🔹 Auto-scroll to latest message
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -45,23 +45,20 @@ export default function Chatbox() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-gray-800">
+    <div className="flex flex-col h-screen w-full bg-gray-900">
       {/* 🔹 Chat Header (Fixed) */}
-      <div className="p-4 bg-gray-900 text-center font-bold text-xl sticky top-0 z-10">
-        Chat with WP.ai
+      <div className="p-4 text-center font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        Chat with <span className="text-yellow-400">WP.ai</span>
       </div>
 
       {/* 🔹 Chat Messages (Scrollable) */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 h-full">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`p-3 rounded-lg ${
-                msg.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-700"
-              } max-w-xs sm:max-w-md`}
+                msg.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"
+              } max-w-xs sm:max-w-md text-sm sm:text-base`}
             >
               {msg.text}
             </div>
@@ -72,7 +69,7 @@ export default function Chatbox() {
         {files.map((file) => (
           <div key={file.id} className="flex justify-end">
             {file.type === "image" ? (
-              <img src={file.url} alt="Uploaded" className="rounded-lg max-w-[200px]" />
+              <img src={file.url} alt="Uploaded" className="rounded-lg max-w-[200px] sm:max-w-[300px] shadow-lg" />
             ) : (
               <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
                 📄 View PDF
@@ -83,27 +80,31 @@ export default function Chatbox() {
       </div>
 
       {/* 🔹 Chat Input Box (Fixed at Bottom) */}
-      <div className="p-4 bg-gray-900 flex items-center gap-2 sticky bottom-0 z-10">
-        <input
-          type="text"
-          className="flex-1 p-3 rounded-md bg-gray-700 text-white outline-none"
+      <div className="p-4 bg-gray-900 flex items-center gap-2 border-t border-gray-800">
+        <textarea
+          className="flex-1 p-3 rounded-md bg-gray-700 text-white outline-none text-sm sm:text-base resize-none h-12 overflow-hidden"
           placeholder="Type your message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
         />
-        <button className="p-3 bg-blue-600 hover:bg-blue-700 rounded-md" onClick={sendMessage}>
+        <button className="p-3 bg-blue-600 hover:bg-blue-700 rounded-md transition-all" onClick={sendMessage}>
           <FaPaperPlane />
         </button>
 
         {/* Image Upload */}
-        <label className="p-3 bg-green-600 hover:bg-green-700 rounded-md cursor-pointer">
+        <label className="p-3 bg-green-600 hover:bg-green-700 rounded-md cursor-pointer transition-all">
           <FaImage />
           <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, "image")} />
         </label>
 
         {/* PDF Upload */}
-        <label className="p-3 bg-red-600 hover:bg-red-700 rounded-md cursor-pointer">
+        <label className="p-3 bg-red-600 hover:bg-red-700 rounded-md cursor-pointer transition-all">
           <FaFilePdf />
           <input type="file" className="hidden" accept="application/pdf" onChange={(e) => handleFileUpload(e, "pdf")} />
         </label>
