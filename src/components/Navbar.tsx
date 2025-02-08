@@ -45,69 +45,74 @@ export default function Navbar() {
 
     setIsLoggedIn(false);
     router.push("/"); // ✅ Redirect manually
-    // setTimeout(() => window.location.reload(), 500); // ✅ Ensure session is cleared
   };
 
   // 🔹 Hide Navbar on /signin & /signup
   if (pathname === "/signin" || pathname === "/signup") return null;
 
   return (
-    <nav className="bg-gray-900 text-white py-4 px-6 flex justify-between items-center shadow-lg">
-      {/* Left: Website Name */}
-      <Link href="/" className="flex items-center gap-2">
-        <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-          WP.ai
-        </span>
-      </Link>
+    <>
+      {/* Fixed Navbar */}
+      <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white py-4 px-6 flex justify-between items-center shadow-lg z-50">
+        {/* Left: Website Name */}
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-transparent bg-clip-text">
+            WP.ai
+          </span>
+        </Link>
 
-      {/* Right: Authentication Options */}
-      {!isLoggedIn ? (
-        <div className="flex gap-4">
-          <Link href="/signin">
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Sign In</button>
-          </Link>
-          <Link href="/signup">
-            <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">Sign Up</button>
-          </Link>
-        </div>
-      ) : (
-        <div className="relative">
-          {/* Profile Section */}
-          <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2">
-            <Image src={user.image} alt="Profile" width={40} height={40} className="rounded-full border-2 border-gray-600" />
-            <span className="font-semibold">{user.name}</span>
-          </button>
+        {/* Right: Authentication Options */}
+        {!isLoggedIn ? (
+          <div className="flex gap-4">
+            <Link href="/signin">
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Sign In</button>
+            </Link>
+            <Link href="/signup">
+              <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">Sign Up</button>
+            </Link>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Profile Section */}
+            <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2">
+              <Image src={user.image} alt="Profile" width={40} height={40} className="rounded-full border-2 border-gray-600" />
+              <span className="font-semibold">{user.name}</span>
+            </button>
 
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-              <Link href="/profile">
-                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                  <FaUser /> Profile
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                <Link href="/profile">
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                    <FaUser /> Profile
+                  </div>
+                </Link>
+                <Link href="/pricing">
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                    <FaCrown /> Pricing
+                  </div>
+                </Link>
+                <Link href="/settings">
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                    <FaCogs /> Settings
+                  </div>
+                </Link>
+                <Link href="/about">
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
+                    <FaInfoCircle /> About
+                  </div>
+                </Link>
+                <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-50 cursor-pointer text-red-400">
+                  <FaSignOutAlt /> Sign Out
                 </div>
-              </Link>
-              <Link href="/pricing">
-                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                  <FaCrown /> Pricing
-                </div>
-              </Link>
-              <Link href="/settings">
-                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                  <FaCogs /> Settings
-                </div>
-              </Link>
-              <Link href="/about">
-                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                  <FaInfoCircle /> About
-                </div>
-              </Link>
-              <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-50 cursor-pointer text-red-400">
-                <FaSignOutAlt /> Sign Out
               </div>
-            </div>
-          )}
-        </div>
-      )}
-    </nav>
+            )}
+          </div>
+        )}
+      </nav>
+
+      {/* 🔹 Add padding so content doesn't get hidden behind navbar */}
+      <div className="pt-16"></div>
+    </>
   );
 }
