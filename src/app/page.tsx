@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Chatbox from "@/components/Chatbox";
+// import Sidebar from "@/components/Sidebar";
+// import Chatbox from "@/components/Chatbox";
 import { Menu } from "lucide-react";
 
 export default function Home() {
@@ -16,7 +16,7 @@ export default function Home() {
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Sidebar onClose={() => setIsSidebarOpen(false)} />
+        {/* <Sidebar onClose={() => setIsSidebarOpen(false)} /> */}
       </div>
 
       {/* Chatbox Section (Scrolls Inside) */}
@@ -25,7 +25,7 @@ export default function Home() {
 
         {/* Chatbox (Full-screen but scrolls inside) */}
         <div className="h-full w-full flex flex-col overflow-hidden">
-          <Chatbox />
+          {/* <Chatbox /> */}
         </div>
       </div>
     </div>
