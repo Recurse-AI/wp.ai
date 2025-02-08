@@ -7,23 +7,23 @@ import { FaCommentDots } from "react-icons/fa";
 
 const Sidebar = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
+  interface Chat {
+    id: number;
+    title: string;
+  }
+
+  const [chatHistory, setChatHistory] = useState<Chat[]>([]);
 
   // Fetch chat history (currently static but can be replaced with API call)
   useEffect(() => {
     async function fetchChatHistory() {
       try {
-        // Replace this URL with your actual API endpoint
-        const response = await fetch('/api/chat-history');
+        // Replace this URL with your actual API endpoint '/api/chat-history'
+        const response = await fetch('/chatHistory.json');
         const data = await response.json();
         setChatHistory(data);
       } catch (error) {
         console.error('Failed to fetch chat history', error);
-        setChatHistory([
-          { id: 1, title: 'Chat with WP.ai' },
-          { id: 2, title: 'WordPress Plugin Support' },
-          { id: 3, title: 'Debugging WP Theme' },
-        ]); // Dummy data fallback
       }
     }
 

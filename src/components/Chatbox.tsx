@@ -57,9 +57,6 @@ export default function Chatbox() {
   return (
     <div className="flex flex-col h-full w-full bg-gray-800">
       {/* 🔹 Chat Header (Fixed) */}
-      {/* <div className="p-4 bg-gray-900 text-center font-bold text-xl sticky top-0 z-10">
-        Chat with WP.ai
-      </div> */}
       <div className="p-4 bg-gray-900 text-center font-bold text-xl fixed top-15 left-20 w-full z-10">
         Chat with WP.ai
       </div>
