@@ -5,23 +5,24 @@ import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FaUser, FaSignOutAlt, FaCogs, FaInfoCircle, FaCrown } from "react-icons/fa"; // Icons
+import { FaUser, FaSignOutAlt, FaCogs, FaInfoCircle, FaCrown, FaSun, FaMoon, FaDesktop } from "react-icons/fa";
+import { useTheme } from "@/context/ThemeProvider";
 
 export default function Navbar() {
-  const { data: session } = useSession(); // ✅ Track NextAuth session
+  const { data: session } = useSession();
   const pathname = usePathname();
-  const router = useRouter(); 
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "Unayes Khan", image: "https://avatars.githubusercontent.com/u/106924262?v=4" });
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
 
-  // ✅ Check Auth Status when Path Changes
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token && session) {
       setIsLoggedIn(true);
-
-      // ✅ Fetch user details from API
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-user`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -34,26 +35,21 @@ export default function Navbar() {
     } else {
       setIsLoggedIn(false);
     }
-  }, [pathname, session]); // ✅ Runs when session changes
+  }, [pathname, session]);
 
-  // 🔹 Logout Function (Fix NextAuth Session Persistence)
   const handleLogout = async () => {
     setShowDropdown(false);
-    localStorage.removeItem("authToken"); // ✅ Clear token
-
-    await signOut({ redirect: false }); // ✅ Sign out from NextAuth, but don't auto redirect
-
+    localStorage.removeItem("authToken");
+    await signOut({ redirect: false });
     setIsLoggedIn(false);
-    router.push("/"); // ✅ Redirect manually
+    router.push("/");
   };
 
-  // 🔹 Hide Navbar on /signin & /signup
   if (pathname === "/signin" || pathname === "/signup") return null;
 
   return (
     <>
-      {/* Fixed Navbar */}
-      <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white py-4 px-6 flex justify-between items-center shadow-lg z-50">
+      <nav className="fixed top-0 left-0 w-full bg-white dark:bg-gray-900 text-black dark:text-white py-4 px-6 flex justify-between items-center shadow-lg z-50">
         {/* Left: Website Name */}
         <Link href="/" className="flex items-center gap-2">
           <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-transparent bg-clip-text">
@@ -61,57 +57,102 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Right: Authentication Options */}
-        {!isLoggedIn ? (
-          <div className="flex gap-4">
-            <Link href="/signin">
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Sign In</button>
-            </Link>
-            <Link href="/signup">
-              <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">Sign Up</button>
-            </Link>
-          </div>
-        ) : (
+        {/* Right: Theme & Authentication */}
+        <div className="flex gap-4 items-center relative">
+          {/* 🔹 Theme Dropdown Button */}
           <div className="relative">
-            {/* Profile Section */}
-            <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2">
-              <Image src={user.image} alt="Profile" width={40} height={40} className="rounded-full border-2 border-gray-600" />
-              <span className="font-semibold">{user.name}</span>
+            <button
+              onClick={() => setShowThemeDropdown(!showThemeDropdown)}
+              className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-all"
+            >
+              {theme === "light" && <FaSun className="text-yellow-400" />}
+              {theme === "dark" && <FaMoon className="text-gray-900" />}
+              {theme === "system" && <FaDesktop className="text-gray-500" />}
             </button>
 
-            {/* Dropdown Menu */}
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-                <Link href="/profile">
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                    <FaUser /> Profile
-                  </div>
-                </Link>
-                <Link href="/pricing">
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                    <FaCrown /> Pricing
-                  </div>
-                </Link>
-                <Link href="/settings">
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                    <FaCogs /> Settings
-                  </div>
-                </Link>
-                <Link href="/about">
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-700 cursor-pointer">
-                    <FaInfoCircle /> About
-                  </div>
-                </Link>
-                <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-50 cursor-pointer text-red-400">
-                  <FaSignOutAlt /> Sign Out
-                </div>
+            {/* 🔹 Theme Selection Dropdown (Properly Positioned Below Button) */}
+            {showThemeDropdown && (
+              <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
+                <button
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
+                  onClick={() => {
+                    setTheme("light");
+                    setShowThemeDropdown(false);
+                  }}
+                >
+                  <FaSun className="text-yellow-400" /> Light Mode
+                </button>
+                <button
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
+                  onClick={() => {
+                    setTheme("dark");
+                    setShowThemeDropdown(false);
+                  }}
+                >
+                  <FaMoon className="text-gray-900" /> Dark Mode
+                </button>
+                <button
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
+                  onClick={() => {
+                    setTheme("system");
+                    setShowThemeDropdown(false);
+                  }}
+                >
+                  <FaDesktop className="text-gray-500" /> System Default
+                </button>
               </div>
             )}
           </div>
-        )}
-      </nav>
 
-      {/* 🔹 Add padding so content doesn't get hidden behind navbar */}
+          {/* 🔹 Authentication */}
+          {!isLoggedIn ? (
+            <>
+              <Link href="/signin">
+                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Sign In</button>
+              </Link>
+              <Link href="/signup">
+                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">Sign Up</button>
+              </Link>
+            </>
+          ) : (
+            <div className="relative">
+              <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2">
+                <Image src={user.image} alt="Profile" width={40} height={40} className="rounded-full border-2 border-gray-600" />
+                <span className="font-semibold">{user.name}</span>
+              </button>
+
+              {/* 🔹 Profile Dropdown */}
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
+                  <Link href="/profile">
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaUser /> Profile
+                    </div>
+                  </Link>
+                  <Link href="/pricing">
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaCrown /> Pricing
+                    </div>
+                  </Link>
+                  <Link href="/settings">
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaCogs /> Settings
+                    </div>
+                  </Link>
+                  <Link href="/about">
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaInfoCircle /> About
+                    </div>
+                  </Link>
+                  <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400">
+                    <FaSignOutAlt /> Sign Out
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </nav>
       <div className="pt-16"></div>
     </>
   );
