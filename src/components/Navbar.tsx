@@ -155,7 +155,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
                   <Link href="/profile">
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaUser /> Profile
+                      <FaUser /> General
                     </div>
                   </Link>
                   <Link href="/pricing">
