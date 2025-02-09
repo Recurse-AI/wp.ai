@@ -170,7 +170,7 @@ export default function Navbar() {
                   </Link> */}
 
                   {/* Settings Button opening a dialogBox rather than going to new url (many gpt follow this)*/}
-                  <button
+                  {/* <button
                     onClick={() => setIsSettingsOpen(true)}
                     className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
                   >
@@ -184,14 +184,14 @@ export default function Navbar() {
                       <FaCogs />
                       <span>Settings</span>
                     </div>
-                  </button>
+                  </button> */}
 
                   {/* Settings Dialog */}
-                  <SettingsDialog
+                  {/* <SettingsDialog
                     isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}
                     content={<MySettings />} // ✅ Correctly pass JSX inside curly braces
-                  />
+                  /> */}
 
                   <Link href="/about">
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
