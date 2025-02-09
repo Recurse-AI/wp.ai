@@ -5,8 +5,18 @@ import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FaUser, FaSignOutAlt, FaCogs, FaInfoCircle, FaCrown, FaSun, FaMoon, FaDesktop } from "react-icons/fa";
+import {
+  FaUser,
+  FaSignOutAlt,
+  FaCogs,
+  FaInfoCircle,
+  FaCrown,
+  FaSun,
+  FaMoon,
+  FaDesktop,
+} from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
+import SettingsDialog from "@/myUi/SettingsDialog";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -15,7 +25,10 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: "Unayes Khan", image: "https://avatars.githubusercontent.com/u/106924262?v=4" });
+  const [user, setUser] = useState({
+    name: "Unayes Khan",
+    image: "https://avatars.githubusercontent.com/u/106924262?v=4",
+  });
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
 
@@ -46,6 +59,8 @@ export default function Navbar() {
   };
 
   if (pathname === "/signin" || pathname === "/signup") return null;
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <>
@@ -108,16 +123,29 @@ export default function Navbar() {
           {!isLoggedIn ? (
             <>
               <Link href="/signin">
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">Sign In</button>
+                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                  Sign In
+                </button>
               </Link>
               <Link href="/signup">
-                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">Sign Up</button>
+                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                  Sign Up
+                </button>
               </Link>
             </>
           ) : (
             <div className="relative">
-              <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2">
-                <Image src={user.image} alt="Profile" width={40} height={40} className="rounded-full border-2 border-gray-600" />
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center gap-2"
+              >
+                <Image
+                  src={user.image}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-gray-600"
+                />
                 <span className="font-semibold">{user.name}</span>
               </button>
 
@@ -134,17 +162,44 @@ export default function Navbar() {
                       <FaCrown /> Pricing
                     </div>
                   </Link>
-                  <Link href="/settings">
+                  {/* <Link href="/settings">
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaCogs /> Settings
                     </div>
-                  </Link>
+                  </Link> */}
+
+                  {/* Settings Button opening a dialogBox rather than going to new url (many gpt follow this)*/}
+                  <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <FaCogs />
+                      <span>Settings</span>
+                    </div>
+                  </button>
+
+                  {/* Settings Dialog */}
+                  <SettingsDialog
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                  />
+
                   <Link href="/about">
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaInfoCircle /> About
                     </div>
                   </Link>
-                  <div onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400">
+                  <div
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400"
+                  >
                     <FaSignOutAlt /> Sign Out
                   </div>
                 </div>
