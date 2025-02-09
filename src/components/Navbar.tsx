@@ -17,6 +17,7 @@ import {
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
 import SettingsDialog from "@/myUi/SettingsDialog";
+import MySettings from "@/myUi/MySettings";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -189,6 +190,7 @@ export default function Navbar() {
                   <SettingsDialog
                     isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}
+                    content={<MySettings />} // ✅ Correctly pass JSX inside curly braces
                   />
 
                   <Link href="/about">
