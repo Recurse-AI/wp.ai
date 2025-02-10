@@ -25,6 +25,7 @@ export default function Navbar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
 
+  /** ✅ Always Declare Hooks at the Top */
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({
     name: "Unayes Khan",
@@ -32,7 +33,9 @@ export default function Navbar() {
   });
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // ✅ Moved to top
 
+  /** ✅ useEffect should be called unconditionally */
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token && session) {
@@ -60,8 +63,6 @@ export default function Navbar() {
   };
 
   if (pathname === "/signin" || pathname === "/signup") return null;
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <>
@@ -163,35 +164,6 @@ export default function Navbar() {
                       <FaCrown /> Pricing
                     </div>
                   </Link>
-                  {/* <Link href="/settings">
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaCogs /> Settings
-                    </div>
-                  </Link> */}
-
-                  {/* Settings Button opening a dialogBox rather than going to new url (many gpt follow this)*/}
-                  {/* <button
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <FaCogs />
-                      <span>Settings</span>
-                    </div>
-                  </button> */}
-
-                  {/* Settings Dialog */}
-                  {/* <SettingsDialog
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    content={<MySettings />} // ✅ Correctly pass JSX inside curly braces
-                  /> */}
 
                   <Link href="/about">
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">

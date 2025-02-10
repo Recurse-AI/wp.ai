@@ -70,3 +70,14 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes wiggle {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-wiggle {
+  animation: wiggle 1s infinite ease-in-out;
+}
+
