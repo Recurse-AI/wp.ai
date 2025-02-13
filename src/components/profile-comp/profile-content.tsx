@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useTheme } from "@/context/ThemeProvider";
 import { Button } from "@/components/ui/button"
@@ -12,8 +13,7 @@ import { UploadCloud, Lock, Sun, Moon, Laptop, AlertTriangle } from "lucide-reac
 import ChangePasswordModal from "./change-password-modal"
 import DeleteAccountModal from "./delete-account-modal"
 
-// Dummy data - replace with API call in production
-const userData = {
+const fallbackUserData = {
   name: "Jane Doe",
   email: "jane.doe@example.com",
   avatarUrl: "https://avatars.githubusercontent.com/u/106924262?v=4",
@@ -23,26 +23,24 @@ const userData = {
 }
 
 export default function ProfileContent() {
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
-  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false)
+  const [userData, setUserData] = useState(fallbackUserData);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Handle avatar upload
-    console.log("Avatar change:", event.target.files?.[0])
-    // In production, make an API call to upload the image
-  }
-
-  const handlePremiumUpgrade = () => {
-    // Handle premium upgrade
-    console.log("Upgrade premium clicked")
-    // In production, redirect to upgrade page or open upgrade modal
-  }
-
-  const handleThemeChange = (newTheme: "dark" | "light" | "system") => {
-    setTheme(newTheme)
-    // In production, save theme preference to user settings via API
-  }
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user/profile"); // Replace with actual API endpoint
+        if (!response.ok) throw new Error("Failed to fetch user data");
+        const data = await response.json();
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   return (
     <Tabs defaultValue="profile" className="w-full">
@@ -67,32 +65,11 @@ export default function ProfileContent() {
                   height={100}
                   className="rounded-full"
                 />
-                <label
-                  htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer"
-                >
-                  <UploadCloud className="h-4 w-4" />
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                  />
-                </label>
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{userData.name}</h2>
                 <p className="text-muted-foreground">{userData.email}</p>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" value={userData.name} readOnly />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={userData.email} readOnly />
             </div>
           </CardContent>
         </Card>
@@ -115,7 +92,7 @@ export default function ProfileContent() {
                 <p>You are on the free plan.</p>
               )}
             </div>
-            <Button onClick={handlePremiumUpgrade}>{userData.isPremium ? "Change Plan" : "Upgrade to Premium"}</Button>
+            <Button onClick={() => console.log("Upgrade premium clicked")}>{userData.isPremium ? "Change Plan" : "Upgrade to Premium"}</Button>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Password</h3>
               <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)}>
@@ -141,21 +118,17 @@ export default function ProfileContent() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Theme</h3>
               <div className="flex space-x-4">
-                <Button variant={theme === "light" ? "default" : "outline"} onClick={() => handleThemeChange("light")}>
+                <Button variant={theme === "light" ? "default" : "outline"} onClick={() => setTheme("light")}>
                   <Sun className="mr-2 h-4 w-4" /> Light
                 </Button>
-                <Button variant={theme === "dark" ? "default" : "outline"} onClick={() => handleThemeChange("dark")}>
+                <Button variant={theme === "dark" ? "default" : "outline"} onClick={() => setTheme("dark")}>
                   <Moon className="mr-2 h-4 w-4" /> Dark
                 </Button>
-                <Button
-                  variant={theme === "system" ? "default" : "outline"}
-                  onClick={() => handleThemeChange("system")}
-                >
+                <Button variant={theme === "system" ? "default" : "outline"} onClick={() => setTheme("system")}>
                   <Laptop className="mr-2 h-4 w-4" /> System
                 </Button>
               </div>
             </div>
-            {/* Add more preference options here */}
           </CardContent>
         </Card>
       </TabsContent>
@@ -164,4 +137,3 @@ export default function ProfileContent() {
     </Tabs>
   )
 }
-

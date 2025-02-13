@@ -10,6 +10,7 @@ export default function SignIn() {
   const { theme } = useTheme(); // ✅ Get Current Theme
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -27,6 +28,7 @@ export default function SignIn() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login`, {
@@ -45,6 +47,8 @@ export default function SignIn() {
       router.push("/");
     } catch (err) {
       toast.error("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,8 +87,9 @@ export default function SignIn() {
           <button
             type="submit"
             className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg"
+            disabled={loading}
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
@@ -113,13 +118,14 @@ export default function SignIn() {
             Sign in with WordPress
           </button>
         </div>
-
-        <p className={`text-sm text-center mt-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-          Don't have an account?{" "}
-          <a href="/signup" className="text-blue-500 hover:underline">
-            Sign Up
-          </a>
-        </p>
+        <div>
+          <p className={`text-sm text-center mt-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+            Don't have an account?{" "}
+            <a href="/signup" className="text-blue-500 hover:underline">
+              Sign Up
+            </a>
+          </p>
+      </div>
       </div>
     </div>
   );

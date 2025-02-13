@@ -14,6 +14,7 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const router = useRouter();
   const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
 
   // 🔹 Store Token in localStorage
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match!");
@@ -46,18 +48,24 @@ export default function SignUp() {
     }
 
     try {
+      setLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, password }),
+        body: JSON.stringify({ fullName, email, password, provider: "manual" }),
       });
 
-      if (!res.ok) throw new Error("Sign-up failed");
-
+      if (!res.ok) {
+        // setLoading(false);
+        throw new Error("Sign-up failed");
+      }
       toast.success("Account created! Redirecting to Sign In...");
       setTimeout(() => router.push("/signin"), 2000);
     } catch (err) {
+      // setLoading(false);
       toast.error("Sign-up failed. Please try again.");
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -107,8 +115,9 @@ export default function SignUp() {
           <button
             type="submit"
             className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg"
+            disabled={loading}
           >
-            Sign Up
+            {loading ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
 
