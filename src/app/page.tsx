@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeProvider";
-import { CheckCircle, ArrowRight, MessageSquare, DollarSign } from "lucide-react";
+import { CheckCircle, ArrowRight, MessageSquare, DollarSign, Rocket, Gauge, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import toast from "react-hot-toast";
 
 // Pricing Plans
 const plans = [
@@ -33,9 +34,39 @@ const plans = [
   },
 ];
 
+// Unique features for "Why Choose WP.ai?"
+const features = [
+  {
+    title: "AI-Powered SEO",
+    description: "Automatically optimizes your content and metadata for better Google rankings.",
+    icon: Rocket,
+  },
+  {
+    title: "Faster Load Times",
+    description: "Reduce WordPress page load times with intelligent caching and asset optimization.",
+    icon: Gauge,
+  },
+  {
+    title: "Auto Optimization",
+    description: "Detects issues and fixes them instantly to keep your site running at peak performance.",
+    icon: Wrench,
+  },
+];
+
 export default function LandingPage() {
-  const router = useRouter(); // ✅ Next.js Router
+  const router = useRouter();
   const { theme } = useTheme();
+  const [feedback, setFeedback] = useState("");
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = () => {
+    if (feedback.trim() === "") {
+      toast.error("Please enter your feedback!");
+      return;
+    }
+    toast.success("Thanks for your feedback!");
+    setFeedback(""); // Clear input after submission
+  };
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
@@ -56,15 +87,13 @@ export default function LandingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <p>
-            WP.ai supercharges your WordPress site with cutting-edge <strong>AI automation</strong> and <strong>SEO enhancements</strong>, giving you the fastest and smartest website possible.
-          </p>
-
+          WP.ai supercharges your WordPress site with <strong>AI automation</strong> and <strong>SEO enhancements</strong>, making your website smarter and faster.
         </motion.p>
         <div className="mt-8 flex gap-4">
           <motion.button
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold flex items-center gap-2"
             whileHover={{ scale: 1.05 }}
+            onClick={() => router.push("/chat")}
           >
             Try it Now <ArrowRight size={18} />
           </motion.button>
@@ -77,12 +106,11 @@ export default function LandingPage() {
           </motion.button>
         </div>
 
-        {/* Animated Hero Image */}
+        {/* ✅ Animated Hero Image (Slow Rotation Fix) */}
         <motion.div
           className="mt-12"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9 }}
+          animate={{ rotate: 360 }} // ✅ Corrected rotation
+          transition={{ repeat: Infinity, duration: 15, ease: "linear" }} // ✅ Slower rotation speed
         >
           <Image src="/wp.webp" width={600} height={400} alt="AI-powered hero" className="rounded-lg shadow-lg" />
         </motion.div>
@@ -92,18 +120,19 @@ export default function LandingPage() {
       <section className="py-20 px-6">
         <h2 className="text-4xl font-bold text-center">Why Choose WP.ai?</h2>
         <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-5xl mx-auto">
-          {["AI-powered SEO", "Faster Load Times", "Auto Optimization"].map((feature, index) => (
+          {features.map((feature, index) => (
             <motion.div
               key={index}
               className={`p-6 border rounded-2xl shadow-lg transition-all duration-300 ${
                 theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"
               }`}
-              whileHover={{ scale: 1.05 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.2 }}
             >
-              <h3 className="text-xl font-semibold">{feature}</h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">
-                WP.ai **automatically enhances** your WordPress experience, making it **smarter, faster, and more efficient**.
-              </p>
+              <feature.icon className="text-blue-500" size={36} />
+              <h3 className="text-xl font-semibold mt-2">{feature.title}</h3>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">{feature.description}</p>
             </motion.div>
           ))}
         </div>
@@ -133,9 +162,6 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <button className="mt-6 w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all">
-                Get Started
-              </button>
             </motion.div>
           ))}
         </div>
@@ -146,8 +172,18 @@ export default function LandingPage() {
         <h2 className="text-4xl font-bold">We Value Your Feedback</h2>
         <p className="text-gray-500 dark:text-gray-400 mt-2">Share your thoughts to help us improve WP.ai.</p>
         <div className="mt-6 max-w-xl mx-auto">
-          <textarea className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white" placeholder="Write your feedback..."></textarea>
-          <button className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold">Submit Feedback</button>
+          <textarea
+            className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+            placeholder="Write your feedback..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+          ></textarea>
+          <button
+            onClick={handleFeedbackSubmit}
+            className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold"
+          >
+            Submit Feedback
+          </button>
         </div>
       </section>
 

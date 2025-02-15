@@ -53,6 +53,7 @@ export default function Navbar() {
           if (res.status === 200) {
             return res.json(); // ✅ Proceed only if status is 200
           } else {
+            localStorage.removeItem("authToken");
             throw new Error("Unauthorized"); // ✅ Trigger error handling
           }
         })
@@ -83,7 +84,7 @@ export default function Navbar() {
     router.push("/");
   };
 
-  if (pathname === "/signin" || pathname === "/signup") return null;
+  if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat") return null;
 
   return (
     <>

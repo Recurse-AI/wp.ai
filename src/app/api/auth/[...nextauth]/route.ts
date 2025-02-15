@@ -78,12 +78,14 @@ export const authOptions: NextAuthOptions = {
               image: token.image,
               provider: account?.provider,
             }),
+            credentials: "include",
           });
 
           if (response.ok) {
             console.log("🔹 Backend API responded successfully.");
             const data = await response.json();
             token.backendToken = data.token; // Store backend token in NextAuth token
+            localStorage.setItem("authToken", String(token.backendToken));
           } else {
             console.error("❌ Backend /authLogin API failed");
           }
