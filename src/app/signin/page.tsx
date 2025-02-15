@@ -31,16 +31,18 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       if (!res.ok) throw new Error("Invalid email or password");
 
       const data = await res.json();
-      const token = data.token || "sample-debug-token"; // 🔹 Use sample token if missing
+      console.log(data.jwt)
+      const token = data.jwt || "sample-debug-token"; // 🔹 Use sample token if missing
       localStorage.setItem("authToken", token);
 
       toast.success("Login successful! Redirecting...");

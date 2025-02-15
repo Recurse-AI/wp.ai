@@ -7,6 +7,13 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/context/ThemeProvider"; // ✅ Import ThemeProvider
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { twMerge } from "tailwind-merge";
+import { DM_Sans } from "next/font/google";
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,7 +62,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased theme-transition`}>
+      <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden`)}>
         <ThemeProvider> {/* ✅ Dark Mode System */}
           <SessionProvider>
             <Navbar />

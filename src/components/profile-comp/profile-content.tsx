@@ -27,20 +27,21 @@ export default function ProfileContent() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const storedUser = JSON.parse(localStorage.getItem("userData") || "{}");
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch("/api/user/profile"); // Replace with actual API endpoint
-        if (!response.ok) throw new Error("Failed to fetch user data");
-        const data = await response.json();
-        setUserData(data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchUserData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchUserData = async () => {
+  //     try {
+  //       const response = await fetch("/api/user/profile"); // Replace with actual API endpoint
+  //       if (!response.ok) throw new Error("Failed to fetch user data");
+  //       const data = await response.json();
+  //       setUserData(data);
+  //     } catch (error) {
+  //       console.error("Error fetching user data:", error);
+  //     }
+  //   };
+  //   fetchUserData();
+  // }, []);
 
   return (
     <Tabs defaultValue="profile" className="w-full">
@@ -67,8 +68,8 @@ export default function ProfileContent() {
                 />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{userData.name}</h2>
-                <p className="text-muted-foreground">{userData.email}</p>
+                <h2 className="text-2xl font-bold">{ storedUser.user.full_name }</h2>
+                <p className="text-muted-foreground">{ storedUser.user.email }</p>
               </div>
             </div>
           </CardContent>
@@ -83,7 +84,7 @@ export default function ProfileContent() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Premium Status</h3>
-              {userData.isPremium ? (
+              {(storedUser.user_profile.is_premium || true) ? (
                 <div>
                   <p>You have a {userData.premiumType} premium plan.</p>
                   <p>Expires on: {userData.premiumExpireDate}</p>

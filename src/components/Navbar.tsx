@@ -29,8 +29,8 @@ export default function Navbar() {
   /** ✅ Always Declare Hooks at the Top */
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({
-    name: "Unayes Khan",
-    image: "https://avatars.githubusercontent.com/u/106924262?v=4",
+    name: "",
+    image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
   });
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
@@ -39,15 +39,21 @@ export default function Navbar() {
   /** ✅ useEffect should be called unconditionally */
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (token && session) {
+
+    if (token) {
       setIsLoggedIn(true);
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-user`, {
+
+      fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "set-cookie": document.cookie },
+        credentials: "include",  // ✅ Ensures cookies are sent
       })
         .then((res) => res.json())
         .then((data) => {
-          setUser({ name: data.name, image: data.image });
+          console.log(data);
+          // ✅ Save full user data in localStorage
+          localStorage.setItem("userData", JSON.stringify(data));
+          setUser({ name: data.user.full_name, image: data.profile_pic });
         })
         .catch(() => console.error("Error fetching user data"));
     } else {

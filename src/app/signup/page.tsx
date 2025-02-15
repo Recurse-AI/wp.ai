@@ -49,16 +49,16 @@ export default function SignUp() {
 
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/signup`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/signup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, password, provider: "manual" }),
+        body: JSON.stringify({ full_name: fullName, email, password, provider: "manual" }),
       });
 
-      if (!res.ok) {
-        // setLoading(false);
+      if (res.status !== 201) {
         throw new Error("Sign-up failed");
       }
+      
       toast.success("Account created! Redirecting to Sign In...");
       setTimeout(() => router.push("/signin"), 2000);
     } catch (err) {
