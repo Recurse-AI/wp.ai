@@ -42,7 +42,7 @@ export default function RootLayout({
   }, []);
 
   // ✅ Pages that should NOT show the Navbar
-  const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check"];
+  const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check", "/chat"];
 
   return (
     <html lang="en">
