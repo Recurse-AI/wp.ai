@@ -5,15 +5,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/context/ThemeProvider"; // ✅ Import ThemeProvider
+import { usePathname } from "next/navigation"; // ✅ Import usePathname
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { twMerge } from "tailwind-merge";
-import { DM_Sans } from "next/font/google";
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const pathname = usePathname(); // ✅ Get the current page route
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -38,40 +34,32 @@ export default function RootLayout({
       if (!authToken) {
         setIsAuthenticated(false);
         return;
-      }
-      else{
+      } else {
         setIsAuthenticated(true);
       }
-      // try {
-      //   const response = await fetch("/check", {
-      //     method: "GET",
-      //     headers: {
-      //       Authorization: `Bearer ${authToken}`,
-      //     },
-      // //   });
-      //   const data = await response.json();
-      //   if(data.success === false) localStorage.removeItem("authToken");
-      //   setIsAuthenticated(data.success);
-      // } catch (error) {
-      //   console.error("Error checking authentication:", error);
-      //   setIsAuthenticated(false);
-      // }
     };
     checkAuth();
   }, []);
+
+  // ✅ Pages that should NOT show the Navbar
+  const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check"];
 
   return (
     <html lang="en">
       <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden`)}>
         <ThemeProvider> {/* ✅ Dark Mode System */}
           <SessionProvider>
-            <Navbar />
+            {/* ✅ Show Navbar only if the page is NOT in the hideNavbarPages list */}
+            {!hideNavbarPages.includes(pathname) && <Navbar />}
+            
             {isAuthenticated === null ? (
               <div className="flex items-center justify-center min-h-screen">
                 <p className="text-lg font-semibold">Checking authentication...</p>
               </div>
-            ) :
-              <>{children}</>}
+            ) : (
+              <>{children}</>
+            )}
+            
             <Toaster position="bottom-right" reverseOrder={false} />
           </SessionProvider>
         </ThemeProvider>

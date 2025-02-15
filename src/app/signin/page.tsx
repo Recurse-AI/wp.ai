@@ -14,17 +14,17 @@ export default function SignIn() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // 🔹 Store Token in localStorage
-  useEffect(() => {
-    if (session?.user?.backendToken) {
-      localStorage.setItem("authToken", session.user.backendToken);
-    }
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      toast.success("You are logged in now!");
-      router.push("/");
-    }
-  }, [session, router]);
+  // // 🔹 Store Token in localStorage
+  // useEffect(() => {
+  //   if (session?.user?.backendToken) {
+  //     localStorage.setItem("authToken", session.user.backendToken);
+  //   }
+  //   const token = localStorage.getItem("authToken");
+  //   if (token) {
+  //     toast.success("You are logged in now!");
+  //     router.push("/");
+  //   }
+  // }, [session, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

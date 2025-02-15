@@ -60,7 +60,7 @@ export default function ProfileContent() {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <Image
-                  src={userData.avatarUrl || "/placeholder.svg"}
+                  src={storedUser.profile_pic || "/placeholder.svg"}
                   alt="Profile picture"
                   width={100}
                   height={100}

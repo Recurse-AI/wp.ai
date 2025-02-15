@@ -16,17 +16,17 @@ export default function SignUp() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Store Token in localStorage
-  useEffect(() => {
-    if (session?.user?.backendToken) {
-      localStorage.setItem("authToken", session.user.backendToken);
-    }
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      toast.success("You are logged in now!");
-      router.push("/");
-    }
-  }, [session, router]);
+  // // 🔹 Store Token in localStorage
+  // useEffect(() => {
+  //   if (session?.user?.backendToken) {
+  //     localStorage.setItem("authToken", session.user.backendToken);
+  //   }
+  //   const token = localStorage.getItem("authToken");
+  //   if (token) {
+  //     toast.success("You are logged in now!");
+  //     router.push("/");
+  //   }
+  // }, [session, router]);
 
   // 🔹 Password Validation
   const isPasswordStrong = (password: string) => {

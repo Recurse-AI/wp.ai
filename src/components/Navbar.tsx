@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import toast from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -39,27 +40,40 @@ export default function Navbar() {
   /** ✅ useEffect should be called unconditionally */
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-
+  
     if (token) {
       setIsLoggedIn(true);
-
+  
       fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
         method: "GET",
-        headers: { "Content-Type": "application/json", "set-cookie": document.cookie },
-        credentials: "include",  // ✅ Ensures cookies are sent
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ Ensures cookies are sent
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (res.status === 200) {
+            return res.json(); // ✅ Proceed only if status is 200
+          } else {
+            throw new Error("Unauthorized"); // ✅ Trigger error handling
+          }
+        })
         .then((data) => {
           console.log(data);
           // ✅ Save full user data in localStorage
           localStorage.setItem("userData", JSON.stringify(data));
           setUser({ name: data.user.full_name, image: data.profile_pic });
         })
-        .catch(() => console.error("Error fetching user data"));
+        .catch((error) => {
+          console.error("Error fetching user data:", error);
+          toast.error("You are not logged in, please log in first!"); // ✅ Show error toast
+          router.push("/"); // ✅ Redirect to sign-in page
+        });
     } else {
       setIsLoggedIn(false);
+      toast.error("You are not logged in, please log in first!"); // ✅ Show toast if no token
+      router.push("/"); // ✅ Redirect to sign-in page
     }
   }, [pathname, session]);
+  
 
   const handleLogout = async () => {
     setShowDropdown(false);
@@ -161,18 +175,18 @@ export default function Navbar() {
               {/* 🔹 Profile Dropdown */}
               {showDropdown && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
-                  <Link href="/profile">
+                  <Link href="/profile" onClick={() => setShowDropdown(!showDropdown)}>
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaUser /> General
                     </div>
                   </Link>
-                  <Link href="/pricing">
+                  <Link href="/pricing" onClick={() => setShowDropdown(!showDropdown)}>
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaCrown /> Pricing
                     </div>
                   </Link>
 
-                  <Link href="/about">
+                  <Link href="/about" onClick={() => setShowDropdown(!showDropdown)}>
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaInfoCircle /> About
                     </div>
