@@ -21,7 +21,7 @@ export default function AboutPage() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
+    <div className={`min-h-screen flex flex-col items-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
       {/* 🔹 Hero Section */}
       <motion.div
         className="w-full text-center py-20 px-4"

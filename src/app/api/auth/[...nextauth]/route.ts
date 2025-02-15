@@ -65,33 +65,7 @@ export const authOptions: NextAuthOptions = {
         if (profile && account?.provider === "google") {
           token.name = `${(profile as any).given_name} ${(profile as any).family_name}`;
         }
-
-        // 🔹 Call backend API `/authLogin` to get a custom token
-        try {
-          console.log("🔹 Calling Backend API /authLogin...");
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/authLogin`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: token.email,
-              name: token.name,
-              image: token.image,
-              provider: account?.provider,
-            }),
-            credentials: "include",
-          });
-
-          if (response.ok) {
-            console.log("🔹 Backend API responded successfully.");
-            const data = await response.json();
-            token.backendToken = data.token; // Store backend token in NextAuth token
-            localStorage.setItem("authToken", String(token.backendToken));
-          } else {
-            console.error("❌ Backend /authLogin API failed");
-          }
-        } catch (err) {
-          console.error("❌ Error calling /authLogin:", err);
-        }
+        token.provider = account?.provider || "manual";
       }
       return token;
     },
@@ -101,7 +75,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string;
         session.user.image = token.image as string;
         session.user.name = token.name as string;
-        session.user.backendToken = token.backendToken ? token.backendToken : "sample-debug-token"; // Add backend token to session
+        session.user.provider = token.provider as string;
       }
 
       return session;

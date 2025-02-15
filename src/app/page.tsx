@@ -58,6 +58,31 @@ export default function LandingPage() {
   const { theme } = useTheme();
   const [feedback, setFeedback] = useState("");
 
+  const handleUpgrade = async (planId) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-plan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({ planId }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        toast.success(`Successfully upgraded to ${data.planName}!`);
+      } else {
+        toast.error(data.message || "Upgrade failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error upgrading plan:", error);
+      toast.error("Something went wrong. Try again later.");
+    }
+  };
+  
+
   // Handle feedback submission
   const handleFeedbackSubmit = () => {
     if (feedback.trim() === "") {
@@ -69,7 +94,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
+    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
       
       {/* ✅ Hero Section */}
       <section className="relative flex flex-col items-center justify-center text-center py-20 px-6">
@@ -90,20 +115,48 @@ export default function LandingPage() {
           WP.ai supercharges your WordPress site with <strong>AI automation</strong> and <strong>SEO enhancements</strong>, making your website smarter and faster.
         </motion.p>
         <div className="mt-8 flex gap-4">
-          <motion.button
-            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold flex items-center gap-2"
+        <motion.button
+            className="relative px-6 py-3 text-white rounded-lg text-lg font-semibold flex items-center gap-2 overflow-hidden bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
             whileHover={{ scale: 1.05 }}
             onClick={() => router.push("/chat")}
           >
+            {/* Flowing Effect Layer */}
+            <motion.div
+              className="absolute inset-0 bg-white opacity-10"
+              animate={{
+                x: ["-100%", "100%"],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.5,
+                ease: "linear",
+              }}
+            />
+            
             Try it Now <ArrowRight size={18} />
           </motion.button>
+
           <motion.button
-            className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+            className="relative px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold overflow-hidden"
             whileHover={{ scale: 1.05 }}
             onClick={() => router.push("/about")}
           >
+            {/* Flowing Effect Layer */}
+            <motion.div
+              className="absolute inset-0 bg-white opacity-10"
+              animate={{
+                x: ["-100%", "100%"],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.5,
+                ease: "linear",
+              }}
+            />
+            
             Learn More
           </motion.button>
+
         </div>
 
         {/* ✅ Animated Hero Image (Slow Rotation Fix) */}
@@ -112,7 +165,7 @@ export default function LandingPage() {
           animate={{ rotate: 360 }} // ✅ Corrected rotation
           transition={{ repeat: Infinity, duration: 15, ease: "linear" }} // ✅ Slower rotation speed
         >
-          <Image src="/wp.webp" width={600} height={400} alt="AI-powered hero" className="rounded-lg shadow-lg" />
+          <Image src="/wp.webp" width={600} height={400} alt="AI-powered hero" className="rounded-lg" />
         </motion.div>
       </section>
 
@@ -123,33 +176,70 @@ export default function LandingPage() {
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              className={`p-6 border rounded-2xl shadow-lg transition-all duration-300 ${
-                theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"
-              }`}
+              className={`relative p-6 border rounded-2xl shadow-lg transition-all duration-300 overflow-hidden
+                ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.2 }}
+              whileHover={{
+                scale: 1.05,
+                boxShadow: "0px 10px 20px rgba(0,0,0,0.1)",
+                transition: { duration: 0.3 },
+              }}
             >
-              <feature.icon className="text-blue-500" size={36} />
-              <h3 className="text-xl font-semibold mt-2">{feature.title}</h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">{feature.description}</p>
+              {/* ✅ Line Drawing Effect */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl border-2 border-transparent pointer-events-none"
+                initial={{ borderColor: "transparent", clipPath: "inset(100% 0% 0% 0%)" }}
+                animate={{ borderColor: "#3b82f6", clipPath: "inset(0% 0% 0% 0%)" }}
+                transition={{ duration: 10, ease: "easeInOut" }}
+                whileHover={{ borderWidth: "4px", transition: { duration: 0.3 } }}
+              />
+
+              {/* ✅ Background Glow Effect */}
+              <motion.div
+                className="absolute inset-0 bg-blue-500 opacity-10 scale-125 blur-2xl"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 0.3 }}
+                transition={{ duration: 0.3 }}
+              />
+
+              {/* ✅ Feature Content */}
+              <div className="relative z-10">
+                <feature.icon className="text-blue-500" size={36} />
+                <h3 className="text-xl font-semibold mt-2">{feature.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">{feature.description}</p>
+              </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ✅ Pricing Section */}
+
+      {/* ✅ Pricing Section - Added Star Badge & Upgrade Now Button */}
       <section className="py-20 px-6">
         <h2 className="text-4xl font-bold text-center">Choose Your Plan</h2>
         <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-5xl mx-auto">
           {plans.map((plan) => (
             <motion.div
               key={plan.id}
-              className={`p-6 border rounded-2xl shadow-lg transition-all duration-300 ${
-                plan.best ? "border-blue-500 scale-105 shadow-xl" : "border-gray-300 dark:border-gray-700"
-              } ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+              className={`relative p-6 border rounded-2xl shadow-lg transition-all duration-300
+                ${plan.best ? "border-blue-500 scale-105 shadow-xl" : "border-gray-300 dark:border-gray-700"}
+                ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
               whileHover={{ scale: 1.05 }}
             >
+              {/* ⭐ Star Badge for Best Plan */}
+              {plan.best && (
+                <motion.div
+                  className="absolute top-2 right-2 bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 0.5 }}
+                >
+                  ⭐ Best Popular
+                </motion.div>
+              )}
+
               <h3 className="text-2xl font-semibold">{plan.title}</h3>
               <p className="flex items-center gap-2 text-4xl font-bold mt-3">
                 <DollarSign size={24} /> {plan.price}
@@ -162,6 +252,21 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+
+              {/* ✅ Upgrade Now Button */}
+              <motion.button
+                onClick={() => handleUpgrade(plan.id)}
+                className="mt-6 w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all relative overflow-hidden"
+                whileHover={{ scale: 1.05 }}
+              >
+                Upgrade Now
+                {/* 🔹 Flowing Light Effect */}
+                <motion.div
+                  className="absolute inset-0 bg-white opacity-10"
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                />
+              </motion.button>
             </motion.div>
           ))}
         </div>
@@ -169,22 +274,50 @@ export default function LandingPage() {
 
       {/* ✅ Feedback Section */}
       <section className="py-20 px-6 text-center">
-        <h2 className="text-4xl font-bold">We Value Your Feedback</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">Share your thoughts to help us improve WP.ai.</p>
-        <div className="mt-6 max-w-xl mx-auto">
+        <motion.h2
+          className="text-4xl font-bold"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          We Value Your Feedback
+        </motion.h2>
+        <motion.p
+          className="text-gray-500 dark:text-gray-400 mt-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+        >
+          Share your thoughts to help us improve WP.ai.
+        </motion.p>
+
+        <motion.div
+          className="mt-6 max-w-xl mx-auto"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
           <textarea
             className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
             placeholder="Write your feedback..."
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
           ></textarea>
-          <button
+
+          <motion.button
             onClick={handleFeedbackSubmit}
-            className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold"
+            className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
           >
             Submit Feedback
-          </button>
-        </div>
+            {/* Flowing Light Effect */}
+            <motion.div
+              className="absolute inset-0 bg-white opacity-10"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+            />
+          </motion.button>
+        </motion.div>
       </section>
 
       {/* ✅ Footer */}
