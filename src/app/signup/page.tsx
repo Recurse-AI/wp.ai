@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
+import { motion } from "framer-motion";
 
 export default function SignUp() {
   const { theme } = useTheme(); // ✅ Get Current Theme
@@ -15,18 +16,53 @@ export default function SignUp() {
   const router = useRouter();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
 
-  // // 🔹 Store Token in localStorage
-  // useEffect(() => {
-  //   if (session?.user?.backendToken) {
-  //     localStorage.setItem("authToken", session.user.backendToken);
-  //   }
-  //   const token = localStorage.getItem("authToken");
-  //   if (token) {
-  //     toast.success("You are logged in now!");
-  //     router.push("/");
-  //   }
-  // }, [session, router]);
+  // 🔹 Store Token in localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      toast.success("You are logged in now!");
+      router.push("/");
+      setIsLoggedIn(true);
+    }
+    else{
+      const authenticateUser = async () => {
+        if (session?.user?.name) {
+          try {
+            console.log("🔹 Calling Backend API /authLogin...");
+            const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login-auth/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: session.user.email,
+                name: session.user.name,
+                image: session.user.image,
+                provider: session.user.provider,
+              }),
+              credentials: "include",
+            });
+  
+            if (response.ok) {
+              console.log("🔹 Backend API responded successfully.");
+              const data = await response.json();
+              // console.log(data.jwt)
+              localStorage.setItem("authToken", data.jwt); // Save backend token
+              toast.success("You are logged in now!");
+              router.push("/");
+              setIsLoggedIn(true);
+            } else {
+              console.error("❌ Backend /authLogin API failed");
+            }
+          } catch (err) {
+            console.error("❌ Error calling /authLogin:", err);
+          }
+        }
+      };
+  
+      authenticateUser();
+    }
+  }, [session, router]);
 
   // 🔹 Password Validation
   const isPasswordStrong = (password: string) => {
@@ -71,11 +107,22 @@ export default function SignUp() {
   };
 
   return (
-    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
-      <div className={`shadow-lg p-8 rounded-2xl w-full max-w-md border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
-        <h2 className={`text-2xl font-semibold text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+      <motion.div
+        className={`shadow-lg p-8 rounded-2xl w-full max-w-md border
+          ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} transition-all`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.h2
+          className={`text-2xl font-semibold text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           Create an Account
-        </h2>
+        </motion.h2>
         <p className={`text-sm text-center mb-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
           Sign up with email or use a social account
         </p>
@@ -84,7 +131,7 @@ export default function SignUp() {
           <input
             type="text"
             placeholder="Full Name"
-            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
+            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -92,7 +139,7 @@ export default function SignUp() {
           <input
             type="email"
             placeholder="Email"
-            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
+            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -100,7 +147,7 @@ export default function SignUp() {
           <input
             type="password"
             placeholder="Password"
-            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
+            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -108,44 +155,57 @@ export default function SignUp() {
           <input
             type="password"
             placeholder="Confirm Password"
-            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
+            className={`w-full p-3 rounded-lg ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-black"} focus:ring focus:ring-blue-500 focus:outline-none`}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          <button
+
+          {/* ✅ Animated Sign-Up Button */}
+          <motion.button
             type="submit"
-            className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg"
+            className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             disabled={loading}
           >
             {loading ? "Signing Up..." : "Sign Up"}
-          </button>
+            {/* Flowing Light Effect */}
+            <motion.div
+              className="absolute inset-0 bg-white opacity-10"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+            />
+          </motion.button>
         </form>
 
         <div className={`text-center my-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>OR</div>
 
         <div className="flex flex-col space-y-3">
-          <button
-            onClick={() => signIn("google")}
-            className={`w-full flex items-center justify-center p-3 border rounded-lg transition-all ${theme === "dark" ? "border-gray-500 bg-gray-700 hover:bg-gray-600 text-white" : "border-gray-300 bg-white hover:bg-gray-200 text-black"}`}
-          >
-            <img src="https://img.icons8.com/?size=100&id=17949&format=png&color=000000" alt="Google" className="w-5 h-5 mr-2" />
-            Sign up with Google
-          </button>
-          <button
-            onClick={() => signIn("github")}
-            className={`w-full flex items-center justify-center p-3 border rounded-lg transition-all ${theme === "dark" ? "border-gray-500 bg-gray-700 hover:bg-gray-600 text-white" : "border-gray-300 bg-white hover:bg-gray-200 text-black"}`}
-          >
-            <img src="https://img.icons8.com/?size=100&id=AZOZNnY73haj&format=png&color=000000" alt="GitHub" className="w-5 h-5 mr-2" />
-            Sign up with GitHub
-          </button>
-          <button
-            onClick={() => signIn("wordpress")}
-            className={`w-full flex items-center justify-center p-3 border rounded-lg transition-all ${theme === "dark" ? "border-gray-500 bg-gray-700 hover:bg-gray-600 text-white" : "border-gray-300 bg-white hover:bg-gray-200 text-black"}`}
-          >
-            <img src="https://img.icons8.com/?size=100&id=13664&format=png&color=000000" alt="WordPress" className="w-5 h-5 mr-2" />
-            Sign up with WordPress
-          </button>
+          {/* ✅ Animated OAuth Buttons */}
+          {[
+            { provider: "google", text: "Sign up with Google", img: "https://img.icons8.com/?size=100&id=17949&format=png&color=000000" },
+            { provider: "github", text: "Sign up with GitHub", img: "https://img.icons8.com/?size=100&id=AZOZNnY73haj&format=png&color=000000" },
+            { provider: "wordpress", text: "Sign up with WordPress", img: "https://img.icons8.com/?size=100&id=13664&format=png&color=000000" },
+          ].map((btn, index) => (
+            <motion.button
+              key={btn.provider}
+              onClick={() => signIn(btn.provider)}
+              className={`w-full flex items-center justify-center p-3 border rounded-lg transition-all relative overflow-hidden
+                ${theme === "dark" ? "border-gray-500 bg-gray-700 hover:bg-gray-600 text-white" : "border-gray-300 bg-white hover:bg-gray-200 text-black"}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <img src={btn.img} alt={btn.provider} className="w-5 h-5 mr-2" />
+              {btn.text}
+              {/* Flowing Light Effect */}
+              <motion.div
+                className="absolute inset-0 bg-white opacity-10"
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+              />
+            </motion.button>
+          ))}
         </div>
 
         <p className={`text-sm text-center mt-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
@@ -154,7 +214,8 @@ export default function SignUp() {
             Sign In
           </a>
         </p>
-      </div>
+      </motion.div>
     </div>
+
   );
 }

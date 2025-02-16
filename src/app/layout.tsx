@@ -44,14 +44,14 @@ export default function RootLayout({
   // ✅ Pages that should NOT show the Navbar
   const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check", "/chat"];
   const isChatRoute = (path: string) => path.startsWith("/chat/");
-
+  
   return (
     <html lang="en">
       <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden`)}>
         <ThemeProvider> {/* ✅ Dark Mode System */}
           <SessionProvider>
             {/* ✅ Show Navbar only if the page is NOT in the hideNavbarPages list */}
-            {!hideNavbarPages.includes(pathname) && !isChatRoute && <Navbar />}
+            {!hideNavbarPages.includes(pathname) && !isChatRoute(pathname) && <Navbar />}
             
             {isAuthenticated === null ? (
               <div className="flex items-center justify-center min-h-screen">
