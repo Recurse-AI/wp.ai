@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
+import { getUser } from "@/utils/getUser";
 import {
   FaUser,
   FaSignOutAlt,
@@ -56,49 +57,49 @@ export default function Navbar() {
   }, []);
 
   /** ✅ useEffect should be called unconditionally */
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    console.log(token)
+  // useEffect(() => {
+  //   const token = localStorage.getItem("authToken");
+  //   console.log(token)
   
-    if (token) {
-      setIsLoggedIn(true);
+  //   if (token) {
+  //     setIsLoggedIn(true);
   
-      fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ Ensures cookies are sent
-      })
-        .then((res) => {
-          if (res.status === 200) {
-            return res.json(); // ✅ Proceed only if status is 200
-          } else {
-            // localStorage.removeItem("authToken");
-            // setIsLoggedIn(false);
-            throw new Error("Unauthorized"); // ✅ Trigger error handling
-          }
-        })
-        .then((data) => {
-          console.log(data);
-          // ✅ Save full user data in localStorage
-          localStorage.setItem("userData", JSON.stringify(data));
-          setUser({ name: data.user.full_name, image: data.profile_pic });
-        })
-        .catch((error) => {
-          console.error("Error fetching user data:", error);
-          // toast.error("You are not logged in, please log in first!"); // ✅ Show error toast
-          // localStorage.removeItem("authToken");
-          // setIsLoggedIn(false);
-          if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
-          router.push("/"); // ✅ Redirect to sign-in page
-        });
-    } else {
-      // localStorage.removeItem("authToken");
-      // setIsLoggedIn(false);
-      // toast.error("You are not logged in, please log in first!"); // ✅ Show toast if no token
-      if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
-      router.push("/"); // ✅ Redirect to sign-in page
-    }
-  }, [pathname, session]);
+  //     fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
+  //       method: "GET",
+  //       headers: { "Content-Type": "application/json" },
+  //       credentials: "include", // ✅ Ensures cookies are sent
+  //     })
+  //       .then((res) => {
+  //         if (res.status === 200) {
+  //           return res.json(); // ✅ Proceed only if status is 200
+  //         } else {
+  //           // localStorage.removeItem("authToken");
+  //           setIsLoggedIn(false);
+  //           throw new Error("Unauthorized"); // ✅ Trigger error handling
+  //         }
+  //       })
+  //       .then((data) => {
+  //         console.log(data);
+  //         // ✅ Save full user data in localStorage
+  //         localStorage.setItem("userData", JSON.stringify(data));
+  //         setUser({ name: data.user.full_name, image: data.profile_pic });
+  //       })
+  //       .catch((error) => {
+  //         console.error("Error fetching user data:", error);
+  //         // toast.error("You are not logged in, please log in first!"); // ✅ Show error toast
+  //         // localStorage.removeItem("authToken");
+  //         setIsLoggedIn(false);
+  //         if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
+  //         router.push("/"); // ✅ Redirect to sign-in page
+  //       });
+  //   } else {
+  //     // localStorage.removeItem("authToken");
+  //     setIsLoggedIn(false);
+  //     // toast.error("You are not logged in, please log in first!"); // ✅ Show toast if no token
+  //     if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
+  //     router.push("/"); // ✅ Redirect to sign-in page
+  //   }
+  // }, [pathname, session]);
   
 
   const handleLogout = async () => {
@@ -108,6 +109,14 @@ export default function Navbar() {
     setIsLoggedIn(false);
     router.push("/");
   };
+
+  useEffect(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
+  }, []);
+
+  // if (!isLoggedIn) {
+  //   return <p>Loading...</p>; // ✅ Show a loader while checking authentication
+  // }
 
   if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat") return null;
 

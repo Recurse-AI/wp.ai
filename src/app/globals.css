@@ -81,3 +81,14 @@ body {
   animation: wiggle 1s infinite ease-in-out;
 }
 
+/* ✅ Light Mode Grid */
+.bg-grid-light {
+  background-image: radial-gradient(rgba(163, 24, 24, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ✅ Dark Mode Grid */
+.dark .bg-grid-dark {
+  background-image: radial-gradient(rgba(220, 18, 18, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

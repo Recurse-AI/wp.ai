@@ -2,10 +2,11 @@
 
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
+import { getUser } from "@/utils/getUser";
 
 export default function SignUp() {
   const { theme } = useTheme(); // ✅ Get Current Theme
@@ -13,56 +14,55 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const router = useRouter();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
-
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ name: "", image: "" });
+  
+  const router = useRouter(); // ✅ Get router instance
+  const pathname = usePathname(); // ✅ Get current pathname
   // 🔹 Store Token in localStorage
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      toast.success("You are logged in now!");
-      router.push("/");
-      setIsLoggedIn(true);
-    }
-    else{
-      const authenticateUser = async () => {
-        if (session?.user?.name) {
-          try {
-            console.log("🔹 Calling Backend API /authLogin...");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login-auth/`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: session.user.email,
-                name: session.user.name,
-                image: session.user.image,
-                provider: session.user.provider,
-              }),
-              credentials: "include",
-            });
-  
-            if (response.ok) {
-              console.log("🔹 Backend API responded successfully.");
-              const data = await response.json();
-              // console.log(data.jwt)
-              localStorage.setItem("authToken", data.jwt); // Save backend token
-              toast.success("You are logged in now!");
-              router.push("/");
-              setIsLoggedIn(true);
-            } else {
-              console.error("❌ Backend /authLogin API failed");
-            }
-          } catch (err) {
-            console.error("❌ Error calling /authLogin:", err);
+    const authenticateUser = async () => {
+      if (session?.user?.name) {
+        try {
+          console.log("🔹 Calling Backend API /authLogin...");
+          const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login-auth/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: session.user.email,
+              name: session.user.name,
+              image: session.user.image,
+              provider: session.user.provider,
+            }),
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            console.log("🔹 Backend API responded successfully.");
+            const data = await response.json();
+            // console.log(data.jwt)
+            localStorage.setItem("authToken", data.jwt); // Save backend token
+            toast.success("You are logged in now!");
+            router.push("/");
+            setIsLoggedIn(true);
+          } else {
+            console.error("❌ Backend /authLogin API failed");
           }
+        } catch (err) {
+          console.error("❌ Error calling /authLogin:", err);
         }
-      };
+      }
+    };
+
+    authenticateUser();
   
-      authenticateUser();
-    }
-  }, [session, router]);
+}, [session, router]);
+
+useEffect(() => {
+  getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
+}, []);
 
   // 🔹 Password Validation
   const isPasswordStrong = (password: string) => {
@@ -107,7 +107,17 @@ export default function SignUp() {
   };
 
   return (
-    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+    <div className={`flex relative min-h-screen bg-transparent items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+      {/* ✅ Fixed Background Circles */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* 🔵 Large Circles */}
+        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
+        {/* <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        {/* <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" /> */}
+        {/* <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+      </div>
+      
       <motion.div
         className={`shadow-lg p-8 rounded-2xl w-full max-w-md border
           ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} transition-all`}

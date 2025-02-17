@@ -1,14 +1,14 @@
-"use client"; // ✅ Mark as a Client Component
-
+"use client";
 import { useState, useEffect } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "@/context/ThemeProvider"; // ✅ Import ThemeProvider
-import { usePathname } from "next/navigation"; // ✅ Import usePathname
-import "./globals.css";
+import { ThemeProvider } from "@/context/ThemeProvider"; 
+import { usePathname } from "next/navigation"; 
+import "./globals.css"; 
 import Navbar from "@/components/Navbar";
 import { twMerge } from "tailwind-merge";
+import { motion } from "framer-motion"; // ✅ Import Framer Motion
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,50 +20,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const pathname = usePathname(); // ✅ Get the current page route
+  const pathname = usePathname(); 
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const authToken = localStorage.getItem("authToken");
-      if (!authToken) {
-        setIsAuthenticated(false);
-        return;
-      } else {
-        setIsAuthenticated(true);
-      }
-    };
-    checkAuth();
+    const authToken = localStorage.getItem("authToken");
+    setIsAuthenticated(authToken ? true : false);
   }, []);
 
-  // ✅ Pages that should NOT show the Navbar
   const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check", "/chat"];
-  const isChatRoute = (path: string) => path.startsWith("/chat/");
-  
+
   return (
     <html lang="en">
-      <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden`)}>
-        <ThemeProvider> {/* ✅ Dark Mode System */}
+      <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative`)}>
+        
+        
+        <ThemeProvider>
           <SessionProvider>
-            {/* ✅ Show Navbar only if the page is NOT in the hideNavbarPages list */}
-            {!hideNavbarPages.includes(pathname) && !isChatRoute(pathname) && <Navbar />}
-            
+            {!hideNavbarPages.includes(pathname) && <Navbar />}
             {isAuthenticated === null ? (
               <div className="flex items-center justify-center min-h-screen">
                 <p className="text-lg font-semibold">Checking authentication...</p>
               </div>
             ) : (
-              <>{children}</>
+              <div className="relative z-10">{children}</div>
             )}
             
             <Toaster position="bottom-right" reverseOrder={false} />
           </SessionProvider>
         </ThemeProvider>
+
       </body>
     </html>
   );

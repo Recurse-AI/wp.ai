@@ -21,7 +21,17 @@ export default function AboutPage() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
+    <div className={`relative min-h-screen bg-transparent flex flex-col items-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
+      {/* ✅ Fixed Background Circles */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* 🔵 Large Circles */}
+        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
+        {/* <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        {/* <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" /> */}
+        {/* <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+      </div>
+      
       {/* 🔹 Hero Section */}
       <motion.div
         className="w-full text-center py-20 px-4"
