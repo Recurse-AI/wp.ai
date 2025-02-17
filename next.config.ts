@@ -22,6 +22,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "media.istockphoto.com", // WordPress Profile Pictures
       },
+      {
+        protocol: "https",
+        hostname: "img.freepik.com", // WordPress Profile Pictures
+      },
     ],
   },
 };

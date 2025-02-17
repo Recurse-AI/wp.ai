@@ -94,8 +94,27 @@ export default function LandingPage() {
   };
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
+    <div className={`relative min-h-screen bg-transparent ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
       
+      {/* <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('https://www.google.com/url?sa=i&url=https%3A%2F%2Fpicsvg.com%2F&psig=AOvVaw3uh8dXkfw57q-_E8xxMz1L&ust=1739881446717000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCJj2q9LZyosDFQAAAAAdAAAAABAJ')",
+          opacity: 0.2,
+        }}
+      /> */}
+
+      {/* ✅ Fixed Background Circles */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* 🔵 Large Circles */}
+        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" />
+        <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+      </div>
+
+
       {/* ✅ Hero Section */}
       <section className="relative flex flex-col items-center justify-center text-center py-20 px-6">
         <motion.h1
@@ -297,20 +316,23 @@ export default function LandingPage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
+          {/* ✅ Feedback Textarea */}
           <textarea
-            className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
             placeholder="Write your feedback..."
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-          ></textarea>
+            value={feedback} // ✅ Controlled Input
+            onChange={(e) => setFeedback(e.target.value)} // ✅ Handles changes correctly
+          />
 
+          {/* ✅ Submit Button with Animation */}
           <motion.button
             onClick={handleFeedbackSubmit}
             className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold relative overflow-hidden"
             whileHover={{ scale: 1.05 }}
           >
             Submit Feedback
-            {/* Flowing Light Effect */}
+
+            {/* 🔹 Flowing Light Effect */}
             <motion.div
               className="absolute inset-0 bg-white opacity-10"
               animate={{ x: ["-100%", "100%"] }}
@@ -322,7 +344,7 @@ export default function LandingPage() {
 
       {/* ✅ Footer */}
       <footer className="py-6 text-center bg-gray-100 dark:bg-gray-800">
-        <p className="text-gray-500 dark:text-gray-400">©️ 2024 WP.ai - All rights reserved.</p>
+        <p className="text-gray-500 dark:text-gray-400">© 2024 WP.ai - All rights reserved.</p>
       </footer>
     </div>
   );

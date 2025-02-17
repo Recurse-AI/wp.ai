@@ -2,7 +2,8 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { getUser } from "@/utils/getUser";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
@@ -12,18 +13,14 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { data: session } = useSession();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ name: "", image: "" });
 
+  const router = useRouter(); // ✅ Get router instance
+  const pathname = usePathname(); // ✅ Get current pathname
+  
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      toast.success("You are logged in now!");
-      router.push("/");
-      setIsLoggedIn(true);
-    }
-    else{
       const authenticateUser = async () => {
         if (session?.user?.name) {
           try {
@@ -58,14 +55,9 @@ export default function SignIn() {
       };
   
       authenticateUser();
-    }
+    
   }, [session, router]);
 
-
-  // 🔹 Store Token in localStorage
-  // useEffect(() => {
-    
-  // }, [session, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,16 +87,27 @@ export default function SignIn() {
     }
   };
 
-  // useEffect(() => {
-  //   if (isLoggedIn) {
-  //     toast.success("You are logged in now!");
-  //     router.push("/");
-  //   }
-  // }, [session, router]);
+  useEffect(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
+  }, []);
+
+  // if (!isLoggedIn) {
+  //   return <p>Loading...</p>; // ✅ Show a loader while checking authentication
+  // }
 
 
   return (
-    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+    <div className={`flex relative min-h-screen bg-transparent items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+      {/* ✅ Fixed Background Circles */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* 🔵 Large Circles */}
+        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
+        {/* <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        {/* <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" /> */}
+        {/* <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+      </div>
+      
       <motion.div
         className={`shadow-lg p-8 rounded-2xl w-full max-w-md border
           ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} transition-all`}
