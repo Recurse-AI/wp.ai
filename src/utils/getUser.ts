@@ -31,9 +31,9 @@ export const getUser = async (
     setIsLoggedIn(false);
 
     // ✅ Redirect only if the user is not on allowed public pages
-    if (!["/signin", "/signup", "/about", "/pricing"].includes(pathname)) {
-      router.push("/");
-    }
+    // if (!["/signin", "/signup", "/about", "/pricing", "/chat"].includes(pathname)) {
+    //   router.push("/");
+    // }
     return false; // ✅ User is not logged in
   }
 };

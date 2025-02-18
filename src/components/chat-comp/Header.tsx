@@ -1,38 +1,28 @@
 "use client";
 
-import React from "react";
-import { useSession, signOut } from "next-auth/react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
-import { useRouter } from "next/navigation";
-import SignUp from "./signUpButton";
+import { useRouter, usePathname } from "next/navigation";
+import { getUser } from "@/utils/getUser";
 
 const Header = ({ ml }: { ml: string }) => {
-  // const { data: session, status } = useSession();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ name: "", image: "" });
+
   const router = useRouter();
+  const pathname = usePathname();
 
-  const session = {
-    user: {
-      email: "test@example.com",
-      name: "Test User",
-      image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=", // Mock user avatar
-      id: "user_12345", // Mock user ID
-    },
-  };
-
-  console.log(session)
-
-  // ✅ Prevent rendering when session is loading
-  if (status === "loading") {
-    return <div className="p-3 text-white">Loading...</div>;
-  }
-
+  useEffect(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname);
+  }, []);
 
   return (
     <div
       className={`flex items-center justify-between m-2
     absolute w-full top-0 left-0 pl-3 pr-1 ${ml}`}
     >
+      {/* WP.AI Dropdown Button */}
       <button
         className="flex items-center gap-1 bg-[#212121]
         hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300"
@@ -42,23 +32,34 @@ const Header = ({ ml }: { ml: string }) => {
         </div>
       </button>
 
+      {/* User Profile OR Sign-In Button */}
       <div className="flex text-base mr-10">
-        {session?.user ? (
-          <div className="flex flex-row gap-1 hover:opacity-80">
+        {isLoggedIn ? (
+          <div className="flex flex-row gap-2 hover:opacity-80">
+            {/* Profile Picture */}
             <Image
-              key={session.user.image} // ✅ Force re-render if image changes
-              src={session.user.image || "/default-avatar.png"}
+              key={user.image}
+              src={user.image || "/default-avatar.png"} // Default avatar if no image
               alt="User Image"
               height={40}
               width={40}
-              className="px-1 rounded-full object-cover"
+              className="px-1 rounded-full object-cover cursor-pointer"
+              onClick={() => router.push("/profile")} // Redirect to profile page
             />
-            <p className="flex font-semibold items-center justify-center">
-              {session.user.name}
+
+            {/* User Name (Hidden in Mobile Mode) */}
+            <p className="font-semibold items-center justify-center hidden sm:flex">
+              {user.name}
             </p>
           </div>
         ) : (
-          <SignUp />
+          // Sign-In Button
+          <button
+            onClick={() => router.push("/signin")}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Sign In
+          </button>
         )}
       </div>
     </div>
