@@ -8,9 +8,18 @@ import { useRouter } from "next/navigation";
 import SignUp from "./signUpButton";
 
 const Header = ({ ml }: { ml: string }) => {
-  const { data: session, status } = useSession();
+  // const { data: session, status } = useSession();
   const router = useRouter();
-  console.log("session: ")
+
+  const session = {
+    user: {
+      email: "test@example.com",
+      name: "Test User",
+      image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=", // Mock user avatar
+      id: "user_12345", // Mock user ID
+    },
+  };
+
   console.log(session)
 
   // ✅ Prevent rendering when session is loading
@@ -42,17 +51,11 @@ const Header = ({ ml }: { ml: string }) => {
               alt="User Image"
               height={40}
               width={40}
-              className="w-full h-full rounded-full object-cover"
+              className="px-1 rounded-full object-cover"
             />
             <p className="flex font-semibold items-center justify-center">
               {session.user.name}
             </p>
-            <button
-              onClick={() => signOut()}
-              className="hover:text-white font-semibold tracking-wide px-3 py-2 duration-300"
-            >
-              Sign Out
-            </button>
           </div>
         ) : (
           <SignUp />
