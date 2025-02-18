@@ -1,5 +1,6 @@
 import React from "react";
 import Head from "next/head";
+import ChatInput from "@/components/chat-comp/chatInput"
 
 const page = () => {
   return (
@@ -16,8 +17,8 @@ const page = () => {
             How can i help you?
           </h2>
         </div>
-        {/* <ChatInput id={""}/>
-      <ChatHelp /> */}
+        <ChatInput id={""}/>
+      {/* <ChatHelp /> */}
       </div>
     </>
   );
