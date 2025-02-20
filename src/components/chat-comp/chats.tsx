@@ -12,9 +12,9 @@ const chat = ({ id }: { id: string }) => {
 
   // Static messages for testing
   const messages = [
-    { id: "1", text: "Hello, how can I help you?", createdAt: new Date() },
-    { id: "2", text: "I need some information on Next.js.", createdAt: new Date() },
-    { id: "3", text: "Sure! Next.js is a React framework for production.", createdAt: new Date() },
+    { id: "1", text: "Hello, how can I help you?", createdAt: new Date(), user: { _id: "1", name: "Support", avatar: "support-avatar.png" } },
+    { id: "2", text: "I need some information on Next.js.", createdAt: new Date(), user: { _id: "2", name: "User", avatar: "user-avatar.png" } },
+    { id: "3", text: "Sure! Next.js is a React framework for production.", createdAt: new Date(), user: { _id: "1", name: "Support", avatar: "support-avatar.png" } },
   ];
 
   return (
