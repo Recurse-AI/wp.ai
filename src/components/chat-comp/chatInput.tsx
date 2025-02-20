@@ -52,6 +52,8 @@ const ChatInput = ({ id }: { id: string }) => {
 
       if (res.ok) {
         toast.success("Message sent!"); // ✅ Show success message
+        const id = data.group;
+        router.push(`/chat/${id}`);
         setPrompt(""); // ✅ Clear input after sending
       } else {
         toast.error(data.message || "Failed to send message."); // Show error from backend
