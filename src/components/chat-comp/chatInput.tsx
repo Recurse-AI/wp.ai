@@ -9,6 +9,8 @@ import { MdImage, MdSmartToy } from "react-icons/md";
 import { TbPaperclip } from "react-icons/tb";
 import { fetchMessages } from "@/utils/fetchMessages";
 import toast from "react-hot-toast"; // ✅ For success & error messages
+import ProcessingMessage from "./processingMessage";
+
 
 const ChatInput = ({
   id,
@@ -24,6 +26,7 @@ const ChatInput = ({
   const { data: session } = useSession();
   const userEmail = session?.user?.email || "anonymous";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showProcessing, setShowProcessing] = useState(false); 
 
   // ✅ Handle text input & auto-expand textarea
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -36,7 +39,7 @@ const ChatInput = ({
     }
   };
 
-  // ✅ Handle sending message
+  // ✅ Handle chat submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   
@@ -44,15 +47,36 @@ const ChatInput = ({
   
     console.log("Prompt:", prompt);
     console.log("Chat ID:", id ? "id ase" : "id nai");
+
+    // ✅ Show ProcessingMessage if it's a new chat
+    if (!id) {
+      setShowProcessing(true);
+    }
   
-    // ✅ Prepare request body based on ID existence
+    // ✅ Temporary Message Object (Shows Immediately)
+    const tempMessage = {
+      message_id: "temp_" + new Date().getTime(), // Unique ID for temp message
+      group: id || "new_chat",
+      owner_name: "You", // User who sent the prompt
+      user_prompt: prompt,
+      ai_response: "Loading...", // ✅ Show this until API responds
+      created_at: new Date().toISOString(),
+      parent_message: localStorage.getItem("lastMessageId") || null,
+    };
+  
+    // ✅ Add Temporary Message to UI
+    if(id){
+      setMessages((prevMessages) => [...prevMessages, tempMessage]);
+    }
+  
+    // ✅ Prepare Request Body
     const requestBody = id
       ? {
           prompt: prompt,
-          group_id: id, // ✅ Use `id` as `group_id`
-          parent_message_id: localStorage.getItem("lastMessageId") || null, // ✅ Use stored `lastMessageId`
+          group_id: id,
+          parent_message_id: localStorage.getItem("lastMessageId") || null,
         }
-      : { prompt: prompt }; // ✅ If no ID, only send prompt
+      : { prompt: prompt };
   
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/chat/`, {
@@ -67,35 +91,48 @@ const ChatInput = ({
       const data = await res.json();
   
       if (res.ok) {
-        toast.success("Message sent!"); // ✅ Show success message
+        toast.success("Message sent!");
+  
         const newChatId = data.chat_group.group_id;
-        setMessages((prevMessages) => {
-          console.log("🔹 Previous Messages:", prevMessages); // ✅ Log previous state
-          console.log("🆕 New Message from API:", data.chat_message); // ✅ Log new message from API
-        
-          const updatedMessages = [...prevMessages, data.chat_message];
-        
-          console.log("✅ Updated Messages:", updatedMessages); // ✅ Log final updated state
-        
-          return updatedMessages; // ✅ Return the new state
-        });
-        
-        fetchMessages();
-        router.push(`/chat/${newChatId}`); // ✅ Redirect only if a new chat was created
-        
-        setPrompt(""); // ✅ Clear input after sending
+  
+        if(id){
+          setMessages((prevMessages) => {
+            // ✅ Remove Temporary Message
+            const updatedMessages = prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id);
+    
+            console.log("🔹 Previous Messages Without Temp:", updatedMessages);
+            console.log("🆕 New Message from API:", data.chat_message);
+    
+            // ✅ Add the real message from API response
+            return [...updatedMessages, data.chat_message];
+          });
+          fetchMessages(); // ✅ Ensure full refresh of messages
+        }
+  
+        setShowProcessing(false);
+        router.push(`/chat/${newChatId}`); // ✅ Redirect if it's a new chat
+  
+        setPrompt(""); // ✅ Clear input field
       } else {
-        toast.error(data.message || "Failed to send message."); // Show error from backend
+        toast.error(data.message || "Failed to send message.");
+  
+        // ✅ Remove Temporary Message on Error
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id));
       }
     } catch (error) {
       console.error("❌ Error sending message:", error);
       toast.error("Something went wrong. Try again later.");
+  
+      // ✅ Remove Temporary Message on Error
+      setMessages((prevMessages) => prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id));
     }
   };
+  
   
 
   return (
     <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto pt-3 px-4">
+      {showProcessing && <ProcessingMessage />}
       <form onSubmit={handleSubmit} className="bg-[#2A2A2A] rounded-2xl flex items-center px-5 py-4 w-full relative">
         {/* Input Field Wrapper */}
         <div className="relative w-full flex flex-col space-y-2">

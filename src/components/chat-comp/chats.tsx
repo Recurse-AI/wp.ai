@@ -22,53 +22,6 @@ const Chat = ({ id, messages, setMessages, fetchMessages }: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // useEffect(() => {
-  //   const fetchMessages = async () => {
-  //     console.log("🔹 Fetching messages...");
-  //     if (!id) {
-  //       console.warn("❌ No ID provided, skipping API call.");
-  //       return;
-  //     }
-
-  //     setLoading(true); // ✅ Show loading before API call
-  //     setError(false);  // ✅ Reset error before making the request
-
-  //     try {
-  //       console.log("🔹 Fetching messages for ID:", id);
-
-  //       const response = await fetch(
-  //         `${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-all-message?id=${id}`,
-  //         {
-  //           method: "GET",
-  //           credentials: "include",
-  //         }
-  //       );
-
-  //       if (!response.ok) throw new Error("Failed to fetch messages");
-
-  //       const data = await response.json();
-  //       console.log("✅ Messages fetched:", data);
-
-  //       setMessages(data.length ? data : defaultMessages);
-
-  //       // ✅ Save last message_id to localStorage
-  //       if (data.length > 0) {
-  //         const lastMessage = data[data.length - 1]; // Get the last message
-  //         localStorage.setItem("lastMessageId", lastMessage.message_id);
-  //         console.log("💾 Saved lastMessageId:", lastMessage.message_id);
-  //       }
-  //     } catch (error) {
-  //       console.error("❌ Error fetching messages:", error);
-  //       setError(true);
-  //       setMessages(defaultMessages);
-  //     } finally {
-  //       setLoading(false); // ✅ Hide loading after request completes
-  //     }
-  //   };
-
-  //   fetchMessages();
-  // }, [id]); // ✅ Runs every time `id` changes
-
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);

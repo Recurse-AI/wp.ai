@@ -87,8 +87,11 @@ const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: {
       >
         <div className="flex items-center gap-2">
           <IoChatboxOutline />
+          {/* ✅ Truncate long titles */}
           <div className="hidden md:inline-flex flex-1">
-            <p className="truncate text-sm font-medium tracking-wide">{name}</p>
+            <p className="truncate text-sm font-medium tracking-wide">
+              {name.length > 20 ? name.slice(0, 17) + "..." : name}
+            </p>
           </div>
         </div>
       </Link>
