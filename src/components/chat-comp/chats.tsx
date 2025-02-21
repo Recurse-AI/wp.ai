@@ -4,77 +4,81 @@ import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useRef } from "react";
 import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
+import { fetchMessages } from "@/utils/fetchMessages"; // ✅ Import from utils
+import router from "next/router";
 
-const Chat = ({ id }: { id: string }) => {
+const Chat = ({ id, messages, setMessages, fetchMessages }: { 
+  id: string;
+  messages: any[];
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
+  fetchMessages: () => void;
+}) => {
   console.log("Chat ID:", id); // ✅ Debugging: Ensures ID is received
 
   const { data: session } = useSession();
-  const userEmail = session?.user ? (session?.user?.email as string) : "anonymous";
+  // const userEmail = session?.user ? (session?.user?.email as string) : "anonymous";
 
-  const [messages, setMessages] = useState<any[]>([]);
+  // const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const defaultMessages = [
-    {
-      id: "1",
-      text: "Hello, how can I help you?",
-      createdAt: new Date(),
-      user: { _id: "1", name: "Support", avatar: "/wp.webp" },
-    },
-    {
-      id: "2",
-      text: "I need some information on Next.js.",
-      createdAt: new Date(),
-      user: { _id: "2", name: "User", avatar: "/user1.jpg" },
-    },
-    {
-      id: "3",
-      text: "Sure! Next.js is a React framework that enables server-side rendering and static site generation.",
-      createdAt: new Date(),
-      user: { _id: "1", name: "Support", avatar: "/wp.webp" },
-    },
-  ];
+  // useEffect(() => {
+  //   const fetchMessages = async () => {
+  //     console.log("🔹 Fetching messages...");
+  //     if (!id) {
+  //       console.warn("❌ No ID provided, skipping API call.");
+  //       return;
+  //     }
+
+  //     setLoading(true); // ✅ Show loading before API call
+  //     setError(false);  // ✅ Reset error before making the request
+
+  //     try {
+  //       console.log("🔹 Fetching messages for ID:", id);
+
+  //       const response = await fetch(
+  //         `${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-all-message?id=${id}`,
+  //         {
+  //           method: "GET",
+  //           credentials: "include",
+  //         }
+  //       );
+
+  //       if (!response.ok) throw new Error("Failed to fetch messages");
+
+  //       const data = await response.json();
+  //       console.log("✅ Messages fetched:", data);
+
+  //       setMessages(data.length ? data : defaultMessages);
+
+  //       // ✅ Save last message_id to localStorage
+  //       if (data.length > 0) {
+  //         const lastMessage = data[data.length - 1]; // Get the last message
+  //         localStorage.setItem("lastMessageId", lastMessage.message_id);
+  //         console.log("💾 Saved lastMessageId:", lastMessage.message_id);
+  //       }
+  //     } catch (error) {
+  //       console.error("❌ Error fetching messages:", error);
+  //       setError(true);
+  //       setMessages(defaultMessages);
+  //     } finally {
+  //       setLoading(false); // ✅ Hide loading after request completes
+  //     }
+  //   };
+
+  //   fetchMessages();
+  // }, [id]); // ✅ Runs every time `id` changes
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      console.log("🔹 Fetching messages...");
-      if (!id) {
-        console.warn("❌ No ID provided, skipping API call.");
-        return;
-      }
-
-      setLoading(true); // ✅ Show loading before API call
-      setError(false);  // ✅ Reset error before making the request
-
-      try {
-        console.log("🔹 Fetching messages for ID:", id);
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-all-message?id=${id}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-
-        if (!response.ok) throw new Error("Failed to fetch messages");
-
-        const data = await response.json();
-        console.log("✅ Messages fetched:", data);
-
-        setMessages(data.length ? data : defaultMessages);
-      } catch (error) {
-        console.error("❌ Error fetching messages:", error);
-        setError(true);
-        setMessages(defaultMessages);
-      } finally {
-        setLoading(false); // ✅ Hide loading after request completes
-      }
-    };
-
     fetchMessages();
-  }, [id]); // ✅ Runs every time `id` changes
+  }, [fetchMessages]);
+
+  // ✅ This effect runs when `messages` updates
+  useEffect(() => {
+      console.log("✅ Messages updated:", messages);
+      setLoading(false);
+  }, [messages]); // ✅ Logs after messages are fetched
+
 
   const chatRef = useRef<HTMLDivElement | null>(null);
 

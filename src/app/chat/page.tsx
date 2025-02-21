@@ -17,7 +17,7 @@ const page = () => {
             How can i help you?
           </h2>
         </div>
-        <ChatInput id={""}/>
+        <ChatInput id={""} />
       {/* <ChatHelp /> */}
       </div>
     </>

@@ -14,7 +14,7 @@ const NewChat = () => {
     const dummyChatId = Math.random().toString(36).substring(2, 12);
 
     // ✅ Redirect to the new chat page with the dummy ID
-    router.push(`/chat/${dummyChatId}`);
+    router.push(`/chat`);
   };
 
   return (

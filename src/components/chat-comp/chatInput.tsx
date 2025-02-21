@@ -7,9 +7,18 @@ import { ImArrowUpRight2 } from "react-icons/im";
 import { IoGlobeOutline } from "react-icons/io5";
 import { MdImage, MdSmartToy } from "react-icons/md";
 import { TbPaperclip } from "react-icons/tb";
+import { fetchMessages } from "@/utils/fetchMessages";
 import toast from "react-hot-toast"; // ✅ For success & error messages
 
-const ChatInput = ({ id }: { id: string }) => {
+const ChatInput = ({
+  id,
+  setMessages,
+  fetchMessages,
+}: {
+  id: string;
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
+  fetchMessages: () => void;
+}) => {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const { data: session } = useSession();
@@ -30,39 +39,60 @@ const ChatInput = ({ id }: { id: string }) => {
   // ✅ Handle sending message
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(prompt)
-    if (!prompt.trim()) return; // Avoid empty messages
-
+  
+    if (!prompt.trim()) return; // ✅ Avoid empty messages
+  
+    console.log("Prompt:", prompt);
+    console.log("Chat ID:", id ? "id ase" : "id nai");
+  
+    // ✅ Prepare request body based on ID existence
+    const requestBody = id
+      ? {
+          prompt: prompt,
+          group_id: id, // ✅ Use `id` as `group_id`
+          parent_message_id: localStorage.getItem("lastMessageId") || null, // ✅ Use stored `lastMessageId`
+        }
+      : { prompt: prompt }; // ✅ If no ID, only send prompt
+  
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/chat/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Include JWT if needed
         },
-        body: JSON.stringify({
-          // chatId: id,
-          prompt: prompt,
-          // userEmail: userEmail, // ✅ Send user email with message
-        }),
+        body: JSON.stringify(requestBody),
         credentials: "include",
       });
-
+  
       const data = await res.json();
-
+  
       if (res.ok) {
         toast.success("Message sent!"); // ✅ Show success message
-        const id = data.message_id;
-        router.push(`/chat/${id}`);
+        const newChatId = data.chat_group.group_id;
+        setMessages((prevMessages) => {
+          console.log("🔹 Previous Messages:", prevMessages); // ✅ Log previous state
+          console.log("🆕 New Message from API:", data.chat_message); // ✅ Log new message from API
+        
+          const updatedMessages = [...prevMessages, data.chat_message];
+        
+          console.log("✅ Updated Messages:", updatedMessages); // ✅ Log final updated state
+        
+          return updatedMessages; // ✅ Return the new state
+        });
+        
+        fetchMessages();
+        router.push(`/chat/${newChatId}`); // ✅ Redirect only if a new chat was created
+        
         setPrompt(""); // ✅ Clear input after sending
       } else {
         toast.error(data.message || "Failed to send message."); // Show error from backend
       }
     } catch (error) {
-      console.error("Error sending message:", error);
-      toast.error("Something went wrong. Try again later."); // Show error message
+      console.error("❌ Error sending message:", error);
+      toast.error("Something went wrong. Try again later.");
     }
   };
+  
 
   return (
     <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto pt-3 px-4">

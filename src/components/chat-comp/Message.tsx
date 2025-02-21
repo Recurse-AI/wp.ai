@@ -29,7 +29,7 @@ const defaultAvatars = {
 
 const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   const msg = message || defaultMessage;
-  console.log(msg);
+  // console.log(msg);
 
   return (
     <>
