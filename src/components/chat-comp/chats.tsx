@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
 
@@ -76,8 +76,17 @@ const Chat = ({ id }: { id: string }) => {
     fetchMessages();
   }, [id]); // ✅ Runs every time `id` changes
 
+  const chatRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to the latest message
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   return (
-    <div>
+    <div ref={chatRef}>
       {/* ✅ Show loading before messages are fetched */}
       {loading && (
         <div className="flex flex-col items-center gap-2 py-5">

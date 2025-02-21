@@ -13,7 +13,7 @@ const ChatPage = async ({ params }: Props) => {
 
   return (
     <div className="flex flex-col justify-center h-[100%] p-5 overflow-hidden">
-      <div className="flex-1 overflow-y-scroll pt-10">
+      <div className="flex-1 overflow-y-auto pt-10">
         <Chat id={id}/>
         {/* chat */}
       </div>
