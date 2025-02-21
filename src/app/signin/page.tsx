@@ -21,6 +21,10 @@ export default function SignIn() {
   const pathname = usePathname(); // ✅ Get current pathname
   
   useEffect(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
+  }, []);
+
+  useEffect(() => {
       const authenticateUser = async () => {
         if (session?.user?.name) {
           try {
@@ -86,10 +90,6 @@ export default function SignIn() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
-  }, []);
 
   // if (!isLoggedIn) {
   //   return <p>Loading...</p>; // ✅ Show a loader while checking authentication

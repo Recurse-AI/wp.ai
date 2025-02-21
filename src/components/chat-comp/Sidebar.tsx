@@ -5,27 +5,54 @@ import { useRouter, usePathname } from "next/navigation";
 import NewChat from "./newChat";
 import ChatRow from "./chatRow";
 import { getUser } from "@/utils/getUser";
-import Link from "next/link"; // ✅ Fix: Use Next.js Link
+import Link from "next/link";
 import { IoHome } from "react-icons/io5";
 
 const Sidebar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     getUser(setIsLoggedIn, setUser, router, pathname);
   }, []);
 
-  // Static chat data instead of Firestore
-  const staticChats = [
-    { id: "1", name: "Chat with GPT", lastMessage: "Hello! How can I help?" },
-    { id: "2", name: "Work Discussion", lastMessage: "Let's schedule a meeting." },
-    { id: "3", name: "Random Thoughts", lastMessage: "Did you know about AI?" },
-  ];
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchChats = async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-group-message/`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch chats");
+
+        const data = await response.json();
+
+        console.log("Fetched Chats:", data); // ✅ Debugging API response
+
+        // ✅ Ensure correct data extraction
+        setChats(Array.isArray(data.message) ? data.message : []);
+      } catch (err) {
+        console.error("Error fetching chats:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isLoggedIn) {
+      fetchChats();
+    }
+  }, [isLoggedIn]);
 
   return (
     <div className="text-3xl text-indigo-600 m-2">
@@ -39,24 +66,33 @@ const Sidebar = () => {
         {isLoggedIn ? (
           <>
             <p className="text-base font-semibold mt-4">Chat History</p>
-            <div className="mt-4 overflow-y-scroll h-[80%]">
-              {staticChats.length ? (
-                staticChats.map((chat) => (
+
+            {/* ✅ Fix: Show loading state first */}
+            {loading ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">Loading chats...</p>
+              </div>
+            ) : error ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-red-500">Failed to load chats.</p>
+              </div>
+            ) : chats.length > 0 ? (
+              <div className="mt-4 overflow-y-scroll h-[80%]">
+                {chats.map((chat) => (
                   <ChatRow
-                    key={chat.id}
-                    id={chat.id}
-                    name={chat.name}
-                    lastMessage={chat.lastMessage}
+                    key={chat.group_id}
+                    id={chat.group_id}
+                    name={chat.title}
                     openDropdown={openDropdown}
                     setOpenDropdown={setOpenDropdown}
                   />
-                ))
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="text-sm text-muted-foreground">No chats found.</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">No chats found.</p>
+              </div>
+            )}
           </>
         ) : (
           // Sign In Prompt if not logged in

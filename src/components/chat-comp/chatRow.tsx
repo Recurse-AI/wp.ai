@@ -7,10 +7,9 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaEdit, FaShareAlt } from "react-icons/fa";
 import { createPortal } from "react-dom";
 
-const ChatRow = ({ id, name, lastMessage, openDropdown, setOpenDropdown }: { 
+const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: { 
   id: string; 
-  name: string; 
-  lastMessage: string; 
+  name: string;
   openDropdown: string | null; 
   setOpenDropdown: (id: string | null) => void; 
 }) => {

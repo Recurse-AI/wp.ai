@@ -22,6 +22,11 @@ export default function SignUp() {
   const router = useRouter(); // ✅ Get router instance
   const pathname = usePathname(); // ✅ Get current pathname
   // 🔹 Store Token in localStorage
+
+  useEffect(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
+  }, []);
+
   useEffect(() => {
     const authenticateUser = async () => {
       if (session?.user?.name) {
@@ -59,10 +64,6 @@ export default function SignUp() {
     authenticateUser();
   
 }, [session, router]);
-
-useEffect(() => {
-  getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
-}, []);
 
   // 🔹 Password Validation
   const isPasswordStrong = (password: string) => {

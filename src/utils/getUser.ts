@@ -1,5 +1,7 @@
 "use client";
 
+import { signOut } from "next-auth/react"; // ✅ Import signOut from NextAuth
+
 export const getUser = async (
   setIsLoggedIn: (value: boolean) => void,
   setUser: (user: any) => void,
@@ -27,13 +29,18 @@ export const getUser = async (
     }
   } catch (error) {
     console.error("Error fetching user data:", error);
-    localStorage.removeItem("userData"); // ✅ Remove old data
+
+    // ✅ Clear user session data
+    localStorage.removeItem("userData"); // Remove stored user data
+    await signOut({ redirect: false }); // ✅ Sign out user from NextAuth without redirect
+
     setIsLoggedIn(false);
 
-    // ✅ Redirect only if the user is not on allowed public pages
+    // ✅ Redirect to login only if the user is not on allowed public pages
     // if (!["/signin", "/signup", "/about", "/pricing", "/chat"].includes(pathname)) {
-    //   router.push("/");
+    //   router.push("/signin");
     // }
+
     return false; // ✅ User is not logged in
   }
 };

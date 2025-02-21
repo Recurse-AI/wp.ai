@@ -56,58 +56,30 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  /** ✅ useEffect should be called unconditionally */
-  // useEffect(() => {
-  //   const token = localStorage.getItem("authToken");
-  //   console.log(token)
-  
-  //   if (token) {
-  //     setIsLoggedIn(true);
-  
-  //     fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
-  //       method: "GET",
-  //       headers: { "Content-Type": "application/json" },
-  //       credentials: "include", // ✅ Ensures cookies are sent
-  //     })
-  //       .then((res) => {
-  //         if (res.status === 200) {
-  //           return res.json(); // ✅ Proceed only if status is 200
-  //         } else {
-  //           // localStorage.removeItem("authToken");
-  //           setIsLoggedIn(false);
-  //           throw new Error("Unauthorized"); // ✅ Trigger error handling
-  //         }
-  //       })
-  //       .then((data) => {
-  //         console.log(data);
-  //         // ✅ Save full user data in localStorage
-  //         localStorage.setItem("userData", JSON.stringify(data));
-  //         setUser({ name: data.user.full_name, image: data.profile_pic });
-  //       })
-  //       .catch((error) => {
-  //         console.error("Error fetching user data:", error);
-  //         // toast.error("You are not logged in, please log in first!"); // ✅ Show error toast
-  //         // localStorage.removeItem("authToken");
-  //         setIsLoggedIn(false);
-  //         if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
-  //         router.push("/"); // ✅ Redirect to sign-in page
-  //       });
-  //   } else {
-  //     // localStorage.removeItem("authToken");
-  //     setIsLoggedIn(false);
-  //     // toast.error("You are not logged in, please log in first!"); // ✅ Show toast if no token
-  //     if(pathname !== "/signin" && pathname !== "/signup" && pathname !== "/about" && pathname !== "/pricing")
-  //     router.push("/"); // ✅ Redirect to sign-in page
-  //   }
-  // }, [pathname, session]);
-  
-
   const handleLogout = async () => {
-    setShowDropdown(false);
-    localStorage.removeItem("authToken");
-    await signOut({ redirect: false });
-    setIsLoggedIn(false);
-    router.push("/");
+    try {
+      setShowDropdown(false);
+      
+      // ✅ Remove JWT token from localStorage
+      localStorage.removeItem("authToken");
+  
+      // ✅ Call backend logout endpoint to clear JWT from cookies
+      await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
+        method: "GET",
+        credentials: "include", // Ensures cookies are sent and cleared
+      });
+  
+      // ✅ Sign out from NextAuth (removes session)
+      await signOut({ redirect: false });
+  
+      setIsLoggedIn(false);
+  
+      // ✅ Redirect to login page
+      router.push("/");
+  
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   useEffect(() => {

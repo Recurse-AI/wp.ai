@@ -52,7 +52,7 @@ const ChatInput = ({ id }: { id: string }) => {
 
       if (res.ok) {
         toast.success("Message sent!"); // ✅ Show success message
-        const id = data.group;
+        const id = data.message_id;
         router.push(`/chat/${id}`);
         setPrompt(""); // ✅ Clear input after sending
       } else {
