@@ -87,11 +87,12 @@ const ChatInput = ({
         body: JSON.stringify(requestBody),
         credentials: "include",
       });
+      console.log(res)
   
       const data = await res.json();
   
       if (res.ok) {
-        toast.success("Message sent!");
+        // toast.success("Message sent!");
   
         const newChatId = data.chat_group.group_id;
   
@@ -99,6 +100,7 @@ const ChatInput = ({
           setMessages((prevMessages) => {
             // ✅ Remove Temporary Message
             const updatedMessages = prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id);
+            localStorage.setItem("set-to-flow",data.chat_message.message_id);
     
             console.log("🔹 Previous Messages Without Temp:", updatedMessages);
             console.log("🆕 New Message from API:", data.chat_message);
@@ -106,11 +108,13 @@ const ChatInput = ({
             // ✅ Add the real message from API response
             return [...updatedMessages, data.chat_message];
           });
-          fetchMessages(); // ✅ Ensure full refresh of messages
+          // fetchMessages(); // ✅ Ensure full refresh of messages
+          setShowProcessing(false);
         }
-  
-        setShowProcessing(false);
-        window.location.href = `/chat/${newChatId}`;
+        else{
+          setShowProcessing(false);
+          window.location.href = `/chat/${newChatId}`;
+        }
   
         setPrompt(""); // ✅ Clear input field
       } else {

@@ -1,8 +1,8 @@
-import React from 'react'
-import Image from 'next/image'
-import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 type MessageType = {
   message_id: string;
@@ -29,7 +29,38 @@ const defaultAvatars = {
 
 const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   const msg = message || defaultMessage;
-  // console.log(msg);
+  const [displayText, setDisplayText] = useState(""); // ✅ State for streaming effect
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  useEffect(() => {
+    // ✅ Check if message ID is in localStorage "set-to-flow"
+    const storedFlowMessages = localStorage.getItem("set-to-flow") || "[]";
+
+    if (storedFlowMessages.includes(msg.message_id)) {
+      setIsStreaming(true);
+      let index = 0;
+
+      // ✅ Determine the speed dynamically based on message length
+      const length = msg.ai_response.length;
+      const speed = length > 500 ? 10 : length > 200 ? 20 : length > 50 ? 30 : 50; // ✅ Speed Ratio
+
+      const interval = setInterval(() => {
+        setDisplayText(msg.ai_response.slice(0, index));
+        index++;
+
+        if (index > msg.ai_response.length) {
+          clearInterval(interval);
+          setIsStreaming(false);
+          localStorage.removeItem("set-to-flow"); // ✅ Remove after streaming
+        }
+      }, speed); // ✅ Dynamic speed applied here
+
+      return () => clearInterval(interval);
+    } else {
+      setDisplayText(msg.ai_response);
+    }
+  }, [msg.ai_response, msg.message_id]);
+
 
   return (
     <>
@@ -71,7 +102,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
             <ReactMarkdown
               className="prose prose-invert"
               components={{
-                code({ inline, className, children, ...props }: { inline?: boolean, className?: string, children?: React.ReactNode }) {
+                code({ inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");
                   return !inline && match ? (
                     <SyntaxHighlighter
@@ -90,7 +121,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
                 },
               }}
             >
-              {msg?.ai_response || defaultMessage.ai_response}
+              {isStreaming ? displayText : msg.ai_response || defaultMessage.ai_response}
             </ReactMarkdown>
           </div>
         </div>
