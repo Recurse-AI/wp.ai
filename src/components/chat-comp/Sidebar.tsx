@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,7 +8,6 @@ import NewChat from "./newChat";
 import ChatRow from "./chatRow";
 import { getUser } from "@/utils/getUser";
 import Link from "next/link";
-import { IoHome } from "react-icons/io5";
 
 const Sidebar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
