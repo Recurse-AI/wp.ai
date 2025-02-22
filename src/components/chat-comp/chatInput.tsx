@@ -110,7 +110,7 @@ const ChatInput = ({
         }
   
         setShowProcessing(false);
-        router.push(`/chat/${newChatId}`); // ✅ Redirect if it's a new chat
+        window.location.href = `/chat/${newChatId}`;
   
         setPrompt(""); // ✅ Clear input field
       } else {
