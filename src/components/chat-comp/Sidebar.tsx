@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,7 +8,6 @@ import NewChat from "./newChat";
 import ChatRow from "./chatRow";
 import { getUser } from "@/utils/getUser";
 import Link from "next/link";
-import { IoHome } from "react-icons/io5";
 
 const Sidebar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -40,7 +41,7 @@ const Sidebar = () => {
         console.log("Fetched Chats:", data); // ✅ Debugging API response
 
         // ✅ Ensure correct data extraction
-        setChats(Array.isArray(data.message) ? data.message : []);
+        setChats(Array.isArray(data.message) ? data.message.reverse() : []);
       } catch (err) {
         console.error("Error fetching chats:", err);
         setError(true);

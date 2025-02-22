@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -87,11 +89,12 @@ const ChatInput = ({
         body: JSON.stringify(requestBody),
         credentials: "include",
       });
+      console.log(res)
   
       const data = await res.json();
   
       if (res.ok) {
-        toast.success("Message sent!");
+        // toast.success("Message sent!");
   
         const newChatId = data.chat_group.group_id;
   
@@ -99,6 +102,7 @@ const ChatInput = ({
           setMessages((prevMessages) => {
             // ✅ Remove Temporary Message
             const updatedMessages = prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id);
+            localStorage.setItem("set-to-flow",data.chat_message.message_id);
     
             console.log("🔹 Previous Messages Without Temp:", updatedMessages);
             console.log("🆕 New Message from API:", data.chat_message);
@@ -106,11 +110,14 @@ const ChatInput = ({
             // ✅ Add the real message from API response
             return [...updatedMessages, data.chat_message];
           });
-          fetchMessages(); // ✅ Ensure full refresh of messages
+          // fetchMessages(); // ✅ Ensure full refresh of messages
+          setShowProcessing(false);
         }
-  
-        setShowProcessing(false);
-        window.location.href = `/chat/${newChatId}`;
+        else{
+          localStorage.setItem("set-to-flow",data.chat_message.message_id);
+          setShowProcessing(false);
+          window.location.href = `/chat/${newChatId}`;
+        }
   
         setPrompt(""); // ✅ Clear input field
       } else {
@@ -132,64 +139,70 @@ const ChatInput = ({
 
   return (
     <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto pt-3 px-4">
-      {showProcessing && <ProcessingMessage />}
-      <form onSubmit={handleSubmit} className="bg-[#2A2A2A] rounded-2xl flex items-center px-5 py-4 w-full relative">
-        {/* Input Field Wrapper */}
-        <div className="relative w-full flex flex-col space-y-2">
-          {/* Input Field (Expands up to 5 lines) */}
-          <textarea
-            ref={textareaRef}
-            placeholder="How can I help you today?"
-            onChange={handleInput}
-            value={prompt}
-            className="bg-transparent text-gray-300 placeholder:text-gray-500 px-3 outline-none 
-                w-full font-medium tracking-wide text-base resize-none overflow-y-auto"
-            style={{
-              minHeight: "40px", // Starts at 1 line height
-              maxHeight: "120px", // Stops expanding after 5 lines
-              height: "40px", // Initial height
-              paddingBottom: "10px", // Prevent text from touching the bottom
-              lineHeight: "24px", // Maintain proper line spacing
-            }}
-          />
-
-          {/* Bottom Options (Always Below Input) */}
-          <div className="flex justify-start px-3 gap-4 text-gray-500 text-xs">
-            <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-              <FaCube className="text-sm" /> <span>Artifacts</span>
-            </div>
-            <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-              <IoGlobeOutline className="text-sm" /> <span>Web Search</span>
-            </div>
-            <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-              <MdImage className="text-sm" /> <span>Image Generation</span>
-            </div>
-            <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-              <MdSmartToy className="text-sm" /> <span>Video Generation</span>
+      
+      {/* ✅ Show Processing Message */}
+      {showProcessing ? (
+        <ProcessingMessage isOpen={showProcessing}/>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-[#2A2A2A] rounded-2xl flex items-center px-5 py-4 w-full relative">
+          {/* Input Field Wrapper */}
+          <div className="relative w-full flex flex-col space-y-2">
+            {/* Input Field (Expands up to 5 lines) */}
+            <textarea
+              ref={textareaRef}
+              placeholder="How can I help you today?"
+              onChange={handleInput}
+              value={prompt}
+              className="bg-transparent text-gray-300 placeholder:text-gray-500 px-3 outline-none 
+                  w-full font-medium tracking-wide text-base resize-none overflow-y-auto"
+              style={{
+                minHeight: "40px", // Starts at 1 line height
+                maxHeight: "120px", // Stops expanding after 5 lines
+                height: "40px", // Initial height
+                paddingBottom: "10px", // Prevent text from touching the bottom
+                lineHeight: "24px", // Maintain proper line spacing
+              }}
+            />
+  
+            {/* Bottom Options (Always Below Input) */}
+            <div className="flex justify-start px-3 gap-4 text-gray-500 text-xs">
+              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
+                <FaCube className="text-sm" /> <span>Artifacts</span>
+              </div>
+              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
+                <IoGlobeOutline className="text-sm" /> <span>Web Search</span>
+              </div>
+              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
+                <MdImage className="text-sm" /> <span>Image Generation</span>
+              </div>
+              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
+                <MdSmartToy className="text-sm" /> <span>Video Generation</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Right Side Icons */}
-        <div className="flex items-center gap-3">
-          <TbPaperclip className="text-lg text-gray-400 cursor-pointer hover:text-white" />
-          <FaCamera className="text-lg text-gray-400 cursor-pointer hover:text-white" />
-          <button
-            type="submit"
-            disabled={!prompt.trim()} // Disable if input is empty
-            className="p-2.5 rounded-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 flex items-center justify-center transition-all"
-          >
-            <ImArrowUpRight2 className="text-white text-lg" />
-          </button>
-        </div>
-      </form>
-
-      {/* ChatGPT Info Footer */}
+  
+          {/* Right Side Icons */}
+          <div className="flex items-center gap-3">
+            <TbPaperclip className="text-lg text-gray-400 cursor-pointer hover:text-white" />
+            <FaCamera className="text-lg text-gray-400 cursor-pointer hover:text-white" />
+            <button
+              type="submit"
+              disabled={!prompt.trim()} // Disable if input is empty
+              className="p-2.5 rounded-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 flex items-center justify-center transition-all"
+            >
+              <ImArrowUpRight2 className="text-white text-lg" />
+            </button>
+          </div>
+        </form>
+      )}
+  
+      {/* ✅ ChatGPT Info Footer */}
       <p className="text-xs mt-2 text-gray-500 font-medium tracking-wide">
         ChatGPT can make mistakes. Check important info.
       </p>
     </div>
   );
+  
 };
 
 export default ChatInput;

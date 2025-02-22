@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const fetchMessages = async (id: string, setMessages: any, setError: any) => {
     if (!id) return;
   
