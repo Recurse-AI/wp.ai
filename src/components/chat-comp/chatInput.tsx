@@ -112,6 +112,7 @@ const ChatInput = ({
           setShowProcessing(false);
         }
         else{
+          localStorage.setItem("set-to-flow",data.chat_message.message_id);
           setShowProcessing(false);
           window.location.href = `/chat/${newChatId}`;
         }

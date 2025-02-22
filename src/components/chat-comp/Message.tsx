@@ -73,7 +73,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
               {msg?.user_prompt || defaultMessage.user_prompt}
             </ReactMarkdown>
           </div>
-
+  
           {/* User Avatar */}
           <Image
             className="border border-gray-600 w-9 h-9 rounded-full object-cover"
@@ -84,7 +84,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
           />
         </div>
       </div>
-
+  
       {/* AI Response (GPT Message) */}
       <div className="py-5 text-white mx-20 flex justify-start">
         <div className="flex space-x-2.5 md:space-x-5 md:px-10 items-center">
@@ -96,38 +96,48 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
             width={100}
             height={100}
           />
-
+  
           {/* AI Message Content */}
           <div className="chat-message text-lg text-left">
-            <ReactMarkdown
-              className="prose prose-invert"
-              components={{
-                code({ inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={oneDark as any}
-                      language={match[1]}
-                      PreTag="div"
-                      {...(props as any)}
-                    >
-                      {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-              }}
-            >
-              {isStreaming ? displayText : msg.ai_response || defaultMessage.ai_response}
-            </ReactMarkdown>
+            {msg.ai_response === "Loading..." ? (
+              <div className="flex items-center space-x-3 text-gray-400 text-lg font-semibold">
+                {/* Spinning Circle Loader */}
+                <div className="w-5 h-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+                {/* Floating Text Effect */}
+                <span className="animate-bounce">Loading...</span>
+              </div>
+            ) : (
+              <ReactMarkdown
+                className="prose prose-invert"
+                components={{
+                  code({ inline, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        style={oneDark as any}
+                        language={match[1]}
+                        PreTag="div"
+                        {...(props as any)}
+                      >
+                        {String(children).replace(/\n$/, "")}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {isStreaming ? displayText : msg.ai_response || defaultMessage.ai_response}
+              </ReactMarkdown>
+            )}
           </div>
         </div>
       </div>
     </>
   );
+  
 };
 
 export default Message;

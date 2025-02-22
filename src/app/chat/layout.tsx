@@ -24,59 +24,41 @@ export default function ChatLayout({
 }) {
   const [collapseSidebar, setCollapseSidebar] = useState(false);
 
-  // Detect screen size change
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setCollapseSidebar(true);
-      } else {
-        setCollapseSidebar(false);
-      }
+      setCollapseSidebar(window.innerWidth < 768);
     };
-    // Set initial state based on screen size
     handleResize();
-
-    // Attach resize event listener
     window.addEventListener("resize", handleResize);
-
-    // Cleanup event listener on unmount
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const marginLeftClass = collapseSidebar ? "ml-10" : "ml-2";
-
   return (
-    <div className="antialiased overflow-hidden">
-      <div className="flex">
+    <div className="w-full h-screen overflow-x-auto overflow-y-hidden">
+      <div className="flex h-full min-w-[600px]">
         {/* Sidebar */}
-        {!collapseSidebar && (
-          <div
-            className={`bg-gray-950 text-gray-200 font-bold max-w-[250px] h-screen overflow-y-auto md:min-w-[220px] 
-            transition-all duration-300 ${
-              collapseSidebar ? "w-0 overflow-hidden" : "w-[250px] md:w-[220px]"
-            }`}
-          >
-            {/* Close Button Inside Sidebar */}
+        <div
+          className={`bg-gray-950 text-gray-200 font-bold h-full overflow-y-auto transition-all duration-300 
+          ${collapseSidebar ? "w-0 overflow-hidden" : "w-[250px] md:w-[220px]"}`}
+        >
+          {!collapseSidebar && (
             <div className="flex flex-row items-center justify-between text-3xl p-4">
               <p className="text-indigo-600">SideBar</p>
               <button onClick={() => setCollapseSidebar(!collapseSidebar)}>
                 <FiSidebar />
               </button>
             </div>
-            <div className="mt-3">
-              <Sidebar />
-            </div>
+          )}
+          <div className="mt-3">
+            <Sidebar />
           </div>
-        )}
+        </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-neutral-900 h-screen overscroll-hidden relative text-gray-200">
-          {/* Open Button (Only when sidebar is closed) */}
-          <div
-            className="flex m-2
-                        absolute top-0 left-0 pl-2 pr-1 w-full items-center space-x-2"
-          >
-            <div className="flex">
+        <div className="flex flex-col flex-1 bg-neutral-900 h-full overscroll-x-auto text-gray-200 relative min-w-[400px]">
+          {/* Header Section */}
+          <div className="w-full bg-gray-900 border-b-2 border-gray-900 relative">
+            <div className="flex min-w-[600px]">
               {collapseSidebar && (
                 <button
                   className="font-bold text-3xl m-2"
@@ -85,13 +67,13 @@ export default function ChatLayout({
                   <FiSidebar />
                 </button>
               )}
-            </div>
-            <div className="flex">
-              <Header ml={marginLeftClass} />
+              {/* Header */}
+              <Header />
             </div>
           </div>
 
-          {children}
+          {/* Page Content */}
+          <div className="flex-1 overflow-hidden p-4">{children}</div>
         </div>
       </div>
 

@@ -40,7 +40,7 @@ const Sidebar = () => {
         console.log("Fetched Chats:", data); // ✅ Debugging API response
 
         // ✅ Ensure correct data extraction
-        setChats(Array.isArray(data.message) ? data.message : []);
+        setChats(Array.isArray(data.message) ? data.message.reverse() : []);
       } catch (err) {
         console.error("Error fetching chats:", err);
         setError(true);
