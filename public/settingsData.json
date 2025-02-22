@@ -1,0 +1,10 @@
+[
+  { "id": "general", "label": "General" },
+  { "id": "notifications", "label": "Notifications" },
+  { "id": "personalization", "label": "Personalization" },
+  { "id": "speech", "label": "Speech" },
+  { "id": "data", "label": "Data Controls" },
+  { "id": "security", "label": "Security" },
+  { "id": "subscription", "label": "Subscription" }
+]
+
