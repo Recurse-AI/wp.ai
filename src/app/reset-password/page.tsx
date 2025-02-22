@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
+import { getUser } from "@/utils/getUser"; // ✅ Import getUser
 
 export default function ResetPassword() {
   const { theme } = useTheme();
@@ -14,8 +15,11 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [token, setToken] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ name: "", image: "" });
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
-  // ✅ Extract token from URL when page loads
+  // ✅ Extract token from URL
   useEffect(() => {
     const resetToken = searchParams.get("token");
     if (!resetToken) {
@@ -24,6 +28,21 @@ export default function ResetPassword() {
     }
     setToken(resetToken);
   }, [searchParams, router]);
+
+  // ✅ Check if user is logged in (Redirect if logged in)
+  useEffect(() => {
+    setThemeLoaded(false);
+    getUser(setIsLoggedIn, setUser, router).then(() => {
+      setThemeLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      console.log("🔹 User is already logged in. Redirecting to home...");
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
 
   // ✅ Password Strength Validation
   const isPasswordStrong = (password: string) => {
@@ -41,7 +60,7 @@ export default function ResetPassword() {
       setLoading(false);
       return;
     }
-    console.log(newPassword, confirmPassword);
+
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match!");
       setLoading(false);
@@ -55,11 +74,13 @@ export default function ResetPassword() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/reset-password`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/reset-password/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword }),
+        body: JSON.stringify({ token, password: newPassword }),
       });
+
+      console.log("🔹 API Response:", res);
 
       if (!res.ok) throw new Error("Token expired or invalid request.");
 
@@ -75,8 +96,11 @@ export default function ResetPassword() {
     }
   };
 
+  // ✅ Prevent rendering until theme is loaded
+  if (!themeLoaded) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
   return (
-    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
+    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-100"}`}>
       <div className={`shadow-lg p-8 rounded-2xl w-full max-w-md border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
         <h2 className={`text-2xl font-semibold text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
           Reset Password

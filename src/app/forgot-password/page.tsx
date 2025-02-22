@@ -1,37 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/context/ThemeProvider";
 import { toast } from "react-hot-toast";
+import { getUser } from "@/utils/getUser"; // ✅ Import getUser
 
 export default function ForgotPassword() {
   const { theme } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ name: "", image: "" });
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
-  // 🔹 Check if user is already logged in (Redirect to homepage if authToken is found)
+  // ✅ Check if user is logged in (Redirect to homepage)
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
+    setThemeLoaded(false);
+    getUser(setIsLoggedIn, setUser, router, pathname).then(() => {
+      setThemeLoaded(true);
+    });
+  }, []);
+
+  // ✅ Redirect to home if logged in
+  useEffect(() => {
+    if (isLoggedIn) {
       console.log("🔹 User is already logged in. Redirecting to home...");
       router.push("/");
     }
-  }, [router]);
+  }, [isLoggedIn, router]);
 
+  // ✅ Handle forgot password request
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/forgot-pass`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/forgot-password/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
+      console.log("🔹 API Response:", res);
 
       if (!res.ok) throw new Error("Email not found! Please check and try again.");
 
@@ -44,8 +59,11 @@ export default function ForgotPassword() {
     }
   };
 
+  // ✅ Prevent rendering until theme is loaded
+  if (!themeLoaded) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
   return (
-    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
+    <div className={`flex min-h-screen items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-100"}`}>
       <div className={`shadow-lg p-8 rounded-2xl w-full max-w-md border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
         <h2 className={`text-2xl font-semibold text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
           Password Recovery
