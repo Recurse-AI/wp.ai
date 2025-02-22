@@ -1,4 +1,3 @@
-"use client";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
@@ -20,7 +19,7 @@ import {
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
 
-const Header = ({ ml }: { ml: string }) => {
+const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
 
@@ -37,22 +36,13 @@ const Header = ({ ml }: { ml: string }) => {
   const handleLogout = async () => {
     try {
       setShowDropdown(false);
-
-      // ✅ Remove JWT token from localStorage
       localStorage.removeItem("authToken");
-
-      // ✅ Call backend logout endpoint to clear JWT from cookies
       await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
         method: "GET",
-        credentials: "include", // Ensures cookies are sent and cleared
+        credentials: "include",
       });
-
-      // ✅ Sign out from NextAuth (removes session)
       await signOut({ redirect: false });
-
       setIsLoggedIn(false);
-
-      // ✅ Redirect to login page
       router.push("/");
     } catch (error) {
       console.error("Error logging out:", error);
@@ -89,15 +79,9 @@ const Header = ({ ml }: { ml: string }) => {
   }, []);
 
   return (
-    <div
-      className={`flex items-center justify-between m-2
-    absolute w-full top-0 left-0 pl-3 pr-1 ${ml}`}
-    >
-      {/* WP.AI Dropdown Button */}
-      <button
-        className="flex items-center gap-1 bg-[#212121]
-        hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300"
-      >
+    <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-gray-900 w-full border-b border-gray-700">
+      {/* Left: WP.AI Dropdown Button */}
+      <button className="flex items-center gap-1 bg-[#212121] hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300">
         <div className="flex gap-1">
           WP.AI <FiChevronDown />
         </div>
@@ -120,7 +104,6 @@ const Header = ({ ml }: { ml: string }) => {
             {theme === "system" && <FaDesktop className="text-gray-500" />}
           </button>
 
-          {/* 🔹 Theme Selection Dropdown */}
           {/* 🔹 Theme Selection Dropdown */}
           {showThemeDropdown && (
             <div
@@ -163,39 +146,19 @@ const Header = ({ ml }: { ml: string }) => {
           <>
             <Link href="/signin">
               <motion.button
-                className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden"
-                whileHover={{ scale: 1.05 }} // Slight scale-up on hover
+                className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                whileHover={{ scale: 1.05 }}
               >
                 Sign In
-                {/* Flowing Light Effect */}
-                <motion.div
-                  className="absolute inset-0 bg-white opacity-10"
-                  animate={{ x: ["-100%", "100%"] }} // Moves from left to right
-                  transition={{
-                    repeat: Infinity,
-                    duration: 1.5,
-                    ease: "linear",
-                  }}
-                />
               </motion.button>
             </Link>
 
             <Link href="/signup">
               <motion.button
-                className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden"
-                whileHover={{ scale: 1.05 }} // Slight scale-up on hover
+                className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                whileHover={{ scale: 1.05 }}
               >
                 Sign Up
-                {/* Flowing Light Effect */}
-                <motion.div
-                  className="absolute inset-0 bg-white opacity-10"
-                  animate={{ x: ["-100%", "100%"] }} // Moves from left to right
-                  transition={{
-                    repeat: Infinity,
-                    duration: 1.5,
-                    ease: "linear",
-                  }}
-                />
               </motion.button>
             </Link>
           </>
@@ -216,7 +179,7 @@ const Header = ({ ml }: { ml: string }) => {
                 className="rounded-full border-2 border-gray-600"
               />
               {/* 🔹 Responsive Username */}
-              <div className="font-semibold max-w-[100px] sm:max-w-[150px] md:max-w-none break-words text-left hidden sm:block">
+              <div className="font-semibold hidden md:block truncate max-w-[120px]">
                 {user.name}
               </div>
             </button>
@@ -243,16 +206,6 @@ const Header = ({ ml }: { ml: string }) => {
                 <Link href="/profile" onClick={() => setShowDropdown(false)}>
                   <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                     <FaUser /> General
-                  </div>
-                </Link>
-                <Link href="/pricing" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaCrown /> Pricing
-                  </div>
-                </Link>
-                <Link href="/about" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaInfoCircle /> About
                   </div>
                 </Link>
                 <div
