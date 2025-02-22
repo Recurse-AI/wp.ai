@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   // ✅ Hide Navbar for specific pages EXCEPT if the path starts with "/chat/"
   const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check"];
-  const shouldShowNavbar = !hideNavbarPages.includes(pathname) && !pathname.startsWith("/chat/");
+  const shouldShowNavbar = !hideNavbarPages.includes(pathname) && !pathname.startsWith("/chat/") && !pathname.startsWith("/verify-email");
 
   return (
     <html lang="en">

@@ -17,33 +17,50 @@ export default function VerifyEmailPage() {
   );
 
   useEffect(() => {
-    if (!token) {
-      setStatus("failed");
-      return;
-    }
-
-    // ✅ Call verification API
-    fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/verify-email/?token=${token}`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((res) => {
-        if (res.status === 201) {
-          return res.json();
-        } else {
-          throw new Error("Verification failed");
+    const verifyEmail = async () => {
+      console.log("Token:", token); // ✅ Debugging
+  
+      if (!token) {
+        setStatus("failed");
+        return;
+      }
+  
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/verify-email?token=${token}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // ✅ Ensures cookies are sent
+        });
+  
+        console.log("Response Status:", res.status);
+        console.log("Response Headers:", [...res.headers.entries()]); // ✅ Debugging Headers
+  
+        if (!res.ok) {
+          throw new Error(`Verification failed: ${res.statusText}`);
         }
-      })
-      .then(() => {
-        setStatus("verified");
-
-        // ✅ Auto-redirect after 3 seconds
-        setTimeout(() => {
-          router.push("/signin");
-        }, 3000);
-      })
-      .catch(() => setStatus("failed"));
-  }, [token, router]);
+  
+        const data = await res.json();
+        console.log("API Response Data:", data); // ✅ Debugging Response Data
+  
+        if (res.status === 201) {
+          setStatus("verified");
+  
+          // ✅ Auto-redirect after 3 seconds
+          setTimeout(() => {
+            router.push("/signin");
+          }, 3000);
+        } else {
+          setStatus("failed");
+        }
+      } catch (error) {
+        console.error("Verification Error:", error);
+        setStatus("failed");
+      }
+    };
+  
+    verifyEmail();
+  }, [token]); // ✅ Runs when token changes
+  
 
   return (
     <div
