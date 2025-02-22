@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -36,11 +36,16 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({
     name: "",
-    image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
+    image:
+      "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
   });
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // ✅ Moved to top
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
 
   // ✅ Detect if page is scrolled
   useEffect(() => {
@@ -59,28 +64,52 @@ export default function Navbar() {
   const handleLogout = async () => {
     try {
       setShowDropdown(false);
-      
+
       // ✅ Remove JWT token from localStorage
       localStorage.removeItem("authToken");
-  
+
       // ✅ Call backend logout endpoint to clear JWT from cookies
       await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
         method: "GET",
         credentials: "include", // Ensures cookies are sent and cleared
       });
-  
+
       // ✅ Sign out from NextAuth (removes session)
       await signOut({ redirect: false });
-  
+
       setIsLoggedIn(false);
-  
+
       // ✅ Redirect to login page
       router.push("/");
-  
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+
+      if (
+        themeDropdownRef.current &&
+        !themeDropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowThemeDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
@@ -90,7 +119,8 @@ export default function Navbar() {
   //   return <p>Loading...</p>; // ✅ Show a loader while checking authentication
   // }
 
-  if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat") return null;
+  if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat" || pathname.startsWith("/verify-email"))
+    return null;
 
   return (
     <>
@@ -122,14 +152,18 @@ export default function Navbar() {
           </motion.span>
         </Link>
 
-
+        {/* Right: Theme & Authentication */}
         {/* Right: Theme & Authentication */}
         <div className="flex gap-4 items-center relative">
           {/* 🔹 Theme Dropdown Button */}
           <div className="relative">
             <button
-              onClick={() => setShowThemeDropdown(!showThemeDropdown)}
+              onClick={() => {
+                setShowThemeDropdown(!showThemeDropdown);
+                setShowDropdown(false)
+              }}
               className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-all"
+              ref={buttonRef}
             >
               {theme === "light" && <FaSun className="text-yellow-400" />}
               {theme === "dark" && <FaMoon className="text-gray-900" />}
@@ -137,8 +171,12 @@ export default function Navbar() {
             </button>
 
             {/* 🔹 Theme Selection Dropdown */}
+            {/* 🔹 Theme Selection Dropdown */}
             {showThemeDropdown && (
-              <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
+              <div
+                ref={themeDropdownRef}
+                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
+              >
                 <button
                   className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
                   onClick={() => {
@@ -183,7 +221,11 @@ export default function Navbar() {
                   <motion.div
                     className="absolute inset-0 bg-white opacity-10"
                     animate={{ x: ["-100%", "100%"] }} // Moves from left to right
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
                   />
                 </motion.button>
               </Link>
@@ -198,75 +240,80 @@ export default function Navbar() {
                   <motion.div
                     className="absolute inset-0 bg-white opacity-10"
                     animate={{ x: ["-100%", "100%"] }} // Moves from left to right
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
                   />
                 </motion.button>
               </Link>
-
             </>
           ) : (
             <div className="relative">
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-2"
-            >
-              <Image
-                src={user.image}
-                alt="Profile"
-                width={40}
-                height={40}
-                className="rounded-full border-2 border-gray-600"
-              />
-              {/* 🔹 Responsive Username */}
-              <div className="font-semibold max-w-[100px] sm:max-w-[150px] md:max-w-none break-words text-left hidden sm:block">
-                {user.name}
-              </div>
-
-            </button>
-
-            {/* 🔹 Profile Dropdown */}
-            {showDropdown && (
-              <motion.div
-                className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+              <button
+                onClick={() => {
+                  setShowDropdown(!showDropdown);
+                  setShowThemeDropdown(false)
+                }}
+                className="flex items-center gap-2"
               >
-                <Link href="/" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaHome /> Home
-                  </div>
-                </Link>
-                <Link href="/chat" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaRocket /> WP.ai
-                  </div>
-                </Link>
-                <Link href="/profile" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaUser /> General
-                  </div>
-                </Link>
-                <Link href="/pricing" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaCrown /> Pricing
-                  </div>
-                </Link>
-                <Link href="/about" onClick={() => setShowDropdown(false)}>
-                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                    <FaInfoCircle /> About
-                  </div>
-                </Link>
-                <div
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400"
-                >
-                  <FaSignOutAlt /> Sign Out
+                <Image
+                  src={user.image}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-gray-600"
+                />
+                {/* 🔹 Responsive Username */}
+                <div className="font-semibold max-w-[100px] sm:max-w-[150px] md:max-w-none break-words text-left hidden sm:block">
+                  {user.name}
                 </div>
-              </motion.div>
-            )}
-          </div>
+              </button>
 
+              {/* 🔹 Profile Dropdown */}
+              {showDropdown && (
+                <motion.div
+                  ref={dropdownRef}
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Link href="/" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaHome /> Home
+                    </div>
+                  </Link>
+                  <Link href="/chat" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaRocket /> WP.ai
+                    </div>
+                  </Link>
+                  <Link href="/profile" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaUser /> General
+                    </div>
+                  </Link>
+                  <Link href="/pricing" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaCrown /> Pricing
+                    </div>
+                  </Link>
+                  <Link href="/about" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaInfoCircle /> About
+                    </div>
+                  </Link>
+                  <div
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400"
+                  >
+                    <FaSignOutAlt /> Sign Out
+                  </div>
+                </motion.div>
+              )}
+            </div>
           )}
         </div>
       </nav>

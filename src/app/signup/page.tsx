@@ -92,16 +92,17 @@ export default function SignUp() {
         body: JSON.stringify({ full_name: fullName, email, password, provider: "manual" }),
       });
       console.log(res);
+      const signup_data = await res.json();
 
       if (res.status !== 201) {
-        throw new Error("Sign-up failed");
+        throw new Error(`Sign-up failed.  ${signup_data.email}`);
       }
       
-      toast.success("Account created! Redirecting to Sign In...");
+      toast.success("Account created! Please Check your email...");
       setTimeout(() => router.push("/signin"), 2000);
     } catch (err) {
       // setLoading(false);
-      toast.error("Sign-up failed. Please try again.");
+      toast.error(`${err.message}`);
     }finally{
       setLoading(false);
     }
