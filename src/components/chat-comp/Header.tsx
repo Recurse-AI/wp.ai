@@ -77,9 +77,12 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-gray-900 w-full border-b border-gray-700">
+    <div className={`flex flex-wrap items-center justify-between px-4 py-3 w-full
+      ${theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"}
+  `}>
       {/* Left: WP.AI Dropdown Button */}
-      <button className="flex items-center gap-1 bg-[#212121] hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300">
+      <button className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
+        ${theme === "dark" ? "bg-black border-gray-900 text-white hover:bg-black/30" : "bg-gray-300 border-gray-200 text-black"}`}>
         <div className="flex gap-1">
           WP.AI <FiChevronDown />
         </div>

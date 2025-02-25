@@ -24,7 +24,7 @@ const ChatPage = ({ params }: Props) => {
   }, [id]);
 
   return (
-    <div className={`flex flex-col justify-center h-[100%] p-5 overflow-hidden ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
+    <div className={`flex flex-col justify-center h-[100%] p-5 overflow-hidden`}>
       <div className="flex-1 overflow-y-auto pt-10">
         {/* ✅ Pass `messages` and `setMessages` to `Chat.tsx` */}
         <Chat id={id} messages={messages} setMessages={setMessages} fetchMessages={fetchChatMessages} />

@@ -4,24 +4,28 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FaPlus } from "react-icons/fa";
 import React from "react";
+import { useTheme } from "@/context/ThemeProvider";
 
 const NewChat = () => {
   const router = useRouter();
   const { data: session } = useSession();
+  const {theme} = useTheme(); // Assuming you get theme data from session or default to light
 
   const createNewChat = async () => {
-    // ✅ Generate a dummy chat ID
-    const dummyChatId = Math.random().toString(36).substring(2, 12);
-
-    // ✅ Redirect to the new chat page with the dummy ID
     router.push(`/chat`);
   };
 
   return (
     <button
-      className="flex items-center justify-center gap-2 border border-white/20
-        text-xs md:text-base px-2 py-1 rounded-md text-white/50 hover:border-white/10
-        hover:text-white duration-300 tracking-wide w-full mx-1"
+      className={`
+        flex items-center justify-center gap-2 border 
+        ${theme === "dark" ? "border-white/20" : "border-gray-800/20"}
+        text-xs md:text-base px-2 py-1 rounded-md 
+        ${theme === "dark" ? "text-white/50" : "text-gray-800/70"}
+        hover:${theme === "dark" ? "border-white/10" : "border-gray-800/10"}
+        hover:${theme === "dark" ? "text-white" : "text-gray-900"}
+        duration-300 tracking-wide w-full mx-1
+      `}
       onClick={createNewChat}
     >
       <FaPlus /> New Chat

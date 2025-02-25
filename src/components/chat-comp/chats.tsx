@@ -4,8 +4,7 @@ import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useRef } from "react";
 import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
-import { fetchMessages } from "@/utils/fetchMessages";
-import router from "next/router";
+import { useTheme } from "@/context/ThemeProvider";
 
 const Chat = ({ id, messages, setMessages, fetchMessages }: { 
   id: string;
@@ -18,6 +17,7 @@ const Chat = ({ id, messages, setMessages, fetchMessages }: {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const {theme} = useTheme()
 
   const chatRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,7 +40,7 @@ const Chat = ({ id, messages, setMessages, fetchMessages }: {
   return (
     <div
       ref={chatRef}
-      className="flex flex-1 flex-col-reverse overflow-y-auto h-[100%] p-4"
+      className={`flex flex-1 flex-col-reverse overflow-y-auto h-[100%] p-4`}
     >
       {/* ✅ Show loading before messages are fetched */}
       {loading && (

@@ -29,10 +29,13 @@ const Sidebar = () => {
       setLoading(true);
       setError(false);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-group-message/`, {
-          method: "GET",
-          credentials: "include",
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-group-message/`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
 
         if (!response.ok) throw new Error("Failed to fetch chats");
 
@@ -55,27 +58,52 @@ const Sidebar = () => {
   }, [isLoggedIn]);
 
   return (
-    <div className={`h-screen shadow-lg p-8 rounded-2xl w-full max-w-md border transition-all ${theme === "dark" ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-black"}`}>
+    <div
+      className={`h-screen shadow-lg p-6 w-full max-w-md transition-all duration-300
+      ${
+        theme === "dark"
+          ? "bg-gray-900/80 backdrop-blur-md shadow-md"
+          : "bg-gray-200 border-r "
+      }`}
+    >
       {/* New Chat Button */}
-      <div className={`flex items-center justify-center w-full tracking-wide text-3xl px-2 ${theme === "dark" ? "text-white" : "text-black"}`}>
+      <div
+        className={`flex items-center justify-center w-full tracking-wide text-3xl px-2 font-semibold`}
+      >
         <NewChat />
       </div>
 
       {/* Sidebar Content */}
-      <div>
+      <div className="mt-6">
         {isLoggedIn ? (
           <>
-            <p className={`text-base font-semibold mt-4 ${theme === "dark" ? "text-white" : "text-black"}`}>Chat History</p>
+            <p
+              className={`text-base font-semibold ${
+                theme === "dark" ? "text-gray-300" : "text-gray-800"
+              }`}
+            >
+              Chat History
+            </p>
+
             {loading ? (
-              <div className="py-8 text-center">
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Loading chats...</p>
+              <div className="py-6 text-center">
+                <p
+                  className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  Loading chats...
+                </p>
               </div>
             ) : error ? (
-              <div className="py-8 text-center">
+              <div className="py-6 text-center">
                 <p className="text-sm text-red-500">Failed to load chats.</p>
               </div>
             ) : chats.length > 0 ? (
-              <div className="mt-4 overflow-y-scroll h-[80%]">
+              <div
+                className="mt-4 overflow-y-scroll h-[75vh] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent
+                scrollbar-thumb-rounded-lg gap-2"
+              >
                 {chats.map((chat) => (
                   <ChatRow
                     key={chat.group_id}
@@ -87,17 +115,29 @@ const Sidebar = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center">
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>No chats found.</p>
+              <div className="py-6 text-center">
+                <p
+                  className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  No chats found.
+                </p>
               </div>
             )}
           </>
         ) : (
           <div className="text-sm font-semibold text-center mt-10">
-            <p className={`${theme === "dark" ? "text-white" : "text-black"}`}>Please Sign in to view History.</p>
+            <p className={`${theme === "dark" ? "text-white" : "text-black"}`}>
+              Please Sign in to view History.
+            </p>
             <Link
               href="/signin"
-              className={`text-xl ${theme === "dark" ? "text-blue-400 hover:text-white" : "text-blue-500 hover:text-black"} duration-300 mt-2 underline`}
+              className={`text-xl font-medium ${
+                theme === "dark"
+                  ? "text-blue-400 hover:text-white"
+                  : "text-blue-500 hover:text-gray-700"
+              } duration-300 mt-2 underline`}
             >
               Sign In
             </Link>
