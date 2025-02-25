@@ -6,6 +6,7 @@ import { IoChatboxOutline } from "react-icons/io5";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaEdit, FaShareAlt } from "react-icons/fa";
 import { createPortal } from "react-dom";
+import { useTheme } from "@/context/ThemeProvider";
 
 const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: { 
   id: string; 
@@ -13,6 +14,7 @@ const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: {
   openDropdown: string | null; 
   setOpenDropdown: (id: string | null) => void; 
 }) => {
+  const { theme } = useTheme();
   const pathName = usePathname();
   const router = useRouter();
   const [active, setActive] = useState(false);
@@ -29,12 +31,11 @@ const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: {
       const rect = buttonRef.current.getBoundingClientRect();
       setDropdownPosition({
         top: rect.top + window.scrollY,
-        left: rect.left + rect.width + 8, // Place dropdown outside to the right
+        left: rect.left + rect.width + 8,
       });
     }
   }, [openDropdown, id]);
 
-  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -58,84 +59,56 @@ const ChatRow = ({ id, name, openDropdown, setOpenDropdown }: {
     setOpenDropdown(openDropdown === id ? null : id);
   };
 
-  const handleRemoveChat = () => {
-    console.log(`Chat ${id} removed`);
-    router.push(`/`);
-  };
-
-  const handleEditTitle = () => {
-    const newTitle = prompt("Enter new chat title:", name);
-    if (newTitle) {
-      console.log(`Chat title changed to: ${newTitle}`);
-    }
-  };
-
-  const handleShareChat = () => {
-    const chatUrl = `${window.location.origin}/chat/${id}`;
-    navigator.clipboard.writeText(chatUrl);
-    alert("Chat link copied to clipboard!");
-  };
-
   return (
-    <div className="relative flex items-center">
+    <div className="relative flex items-center justify-between space-x-5 overflow-hidden">
       <Link
         href={`/chat/${id}`}
-        className={`flex items-center justify-between flex-1 p-2.5 rounded-md text-base
-          hover:bg-white/10 ease-in ${
-            active ? "bg-white/30" : "bg-transparent"
-          }`}
+        className={`flex items-center flex-1 p-2.5 rounded-md text-base ease-in whitespace-nowrap overflow-hidden ${
+          theme === "dark" ? "hover:bg-gray-700 bg-gray-800 text-white" : "hover:bg-gray-200 bg-white text-black"
+        } ${active ? (theme === "dark" ? "bg-gray-600" : "bg-gray-300") : ""}`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 overflow-hidden">
           <IoChatboxOutline />
-          {/* ✅ Truncate long titles */}
-          <div className="hidden md:inline-flex flex-1" title={name}>
-            <p className="truncate text-sm font-medium tracking-wide">
-              {name.length > 15 ? name.slice(0, 12) + "..." : name}
-            </p>
-          </div>
-
+          <p className="truncate text-sm font-medium tracking-wide" title={name}>
+            {name.length > 15 ? name.slice(0, 12) + "..." : name}
+          </p>
         </div>
       </Link>
 
-      {/* Button for Dropdown */}
-      <div ref={buttonRef} className="relative" onClick={handleDropdownToggle}>
+      <div ref={buttonRef} className="flex items-center" onClick={handleDropdownToggle}>
         <BsThreeDotsVertical
-          className="text-white/50 hover:text-gray-300 duration-300 text-base ease-in-out cursor-pointer"
+          className={`text-base ease-in-out cursor-pointer ${theme === "dark" ? "text-white/50 hover:text-gray-300" : "text-black/50 hover:text-gray-600"}`}
         />
-
-        {/* Render Dropdown Outside of Sidebar */}
-        {openDropdown === id &&
-          createPortal(
-            <div
-              className="fixed bg-gray-800 text-white shadow-lg rounded-md w-40 z-50"
-              style={{
-                top: dropdownPosition.top,
-                left: dropdownPosition.left,
-              }}
-              onClick={() => setOpenDropdown(null)}
-            >
-              <button
-                onClick={handleEditTitle}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-700"
-              >
-                <FaEdit /> Edit Title
-              </button>
-              <button
-                onClick={handleShareChat}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-700"
-              >
-                <FaShareAlt /> Share
-              </button>
-              <button
-                onClick={handleRemoveChat}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
-              >
-                <BiSolidTrashAlt /> Delete
-              </button>
-            </div>,
-            document.body // Ensures the dropdown renders outside the sidebar
-          )}
       </div>
+
+      {openDropdown === id &&
+        createPortal(
+          <div
+            className={`fixed shadow-lg rounded-md w-40 z-50 ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}`}
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+            }}
+            onClick={() => setOpenDropdown(null)}
+          >
+            <button
+              className={`flex items-center gap-2 w-full px-4 py-2 text-sm ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-300"}`}
+            >
+              <FaEdit /> Edit Title
+            </button>
+            <button
+              className={`flex items-center gap-2 w-full px-4 py-2 text-sm ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-300"}`}
+            >
+              <FaShareAlt /> Share
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
+            >
+              <BiSolidTrashAlt /> Delete
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

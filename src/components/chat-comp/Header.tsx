@@ -11,8 +11,6 @@ import {
   FaSignOutAlt,
   FaHome,
   FaRocket,
-  FaInfoCircle,
-  FaCrown,
   FaSun,
   FaMoon,
   FaDesktop,

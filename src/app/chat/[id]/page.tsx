@@ -4,12 +4,14 @@ import React, { useState, useCallback } from "react";
 import ChatInput from "@/components/chat-comp/chatInput";
 import Chat from "@/components/chat-comp/chats";
 import { fetchMessages } from "@/utils/fetchMessages"; // ✅ Import fetch function
+import { useTheme } from "@/context/ThemeProvider";
 
 interface Props {
   params: { id: string };
 }
 
 const ChatPage = ({ params }: Props) => {
+  const { theme } = useTheme();
   const { id } = params; // ✅ Await is not needed
 
   // ✅ Store messages in ChatPage.tsx
@@ -22,7 +24,7 @@ const ChatPage = ({ params }: Props) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col justify-center h-[100%] p-5 overflow-hidden">
+    <div className={`flex flex-col justify-center h-[100%] p-5 overflow-hidden ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
       <div className="flex-1 overflow-y-auto pt-10">
         {/* ✅ Pass `messages` and `setMessages` to `Chat.tsx` */}
         <Chat id={id} messages={messages} setMessages={setMessages} fetchMessages={fetchChatMessages} />
