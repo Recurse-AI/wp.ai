@@ -27,102 +27,123 @@ export default function ChatLayout({
 }) {
   const { theme } = useTheme();
   const [collapseSidebar, setCollapseSidebar] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setCollapseSidebar(window.innerWidth < 768);
+      const isNowMobile = window.innerWidth < 768;
+      setIsMobile(isNowMobile);
+
+      // Ensure the sidebar is open on desktop
+      if (!isNowMobile) {
+        setCollapseSidebar(false);
+      }
     };
+
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const handleSidebarToggle = () => {
+    setCollapseSidebar(!collapseSidebar);
+  };
+  const handleOutsideClick = () => {
+    if (isMobile && !collapseSidebar) {
+      setCollapseSidebar(true);
+    }
+  };
+
   return (
-    <div className={`w-full h-screen overflow-x-hidden overflow-y-hidden
-    `}>
-      <div className="flex h-full min-w-[600px]">
-        {/* Sidebar */}
+    <div className="flex w-full h-screen overflow-x-hidden relative">
+      {/* Sidebar Overlay for Mobile */}
+      {isMobile && !collapseSidebar && (
         <div
-          className={`font-bold h-full overflow-y-auto transition-all duration-300 ${
-            collapseSidebar ? "w-0 overflow-hidden" : "w-[350px] md:w-[250px]"
-          }`}
-        >
-          {!collapseSidebar && (
-            <div
-              className={`flex flex-row items-center justify-between text-3xl p-4
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-gray-200 border-r border-gray-200"
-             }`}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={handleOutsideClick}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`h-full transition-all duration-300 z-50 ${
+          isMobile
+            ? `fixed top-0 left-0 h-full bg-gray-800 text-white shadow-lg ${
+                collapseSidebar ? "w-0 overflow-hidden" : "w-[250px]"
+              }`
+            : `${
+                collapseSidebar
+                  ? "w-0 overflow-hidden"
+                  : "w-[250px] md:w-[220px]"
+              } ${
+                theme === "dark"
+                  ? "bg-gray-800 text-white"
+                  : "bg-gray-200 border-r border-gray-200"
+              }`
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="flex flex-row items-center justify-between text-3xl p-4">
+          <Link href="/" className="flex items-center gap-2">
+            <motion.span
+              className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"
+              animate={{
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+              }}
             >
-              {/* <p className={theme === "dark" ? "text-indigo-400" : "text-indigo-600"}>SideBar</p> */}
-              <Link href="/" className={`flex items-center gap-2 `}>
-                <motion.span
-                  className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"
-                  animate={{
-                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"], // Moves the gradient left-right
-                  }}
-                  transition={{
-                    duration: 4, // Duration of one cycle
-                    repeat: Infinity, // Infinite loop
-                    ease: "linear", // Smooth transition
-                  }}
-                  style={{
-                    backgroundSize: "200% 200%", // Increases gradient size for smooth flow
-                  }}
-                >
-                  WP.ai
-                </motion.span>
-              </Link>
-              <button onClick={() => setCollapseSidebar(!collapseSidebar)}>
-                <FiSidebar />
-              </button>
-            </div>
-          )}
-          <div className="">
-            <Sidebar />
-          </div>
+              WP.ai
+            </motion.span>
+          </Link>
+          <button onClick={handleSidebarToggle}>
+            <FiSidebar />
+          </button>
         </div>
 
-        {/* Main Content */}
+        {/* Sidebar Content */}
+        {!collapseSidebar && <Sidebar />}
+      </div>
+
+      {/* Main Content */}
+      <div
+        className={`flex flex-col flex-1 h-full w-full relative overflow-x-hidden ${
+          theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+        }`}
+      >
+        {/* Header Section */}
         <div
-          className={`flex flex-col flex-1 h-full overscroll-x-auto relative min-w-[400px] 
-            ${
+          className={`w-full relative ${
+            theme === "dark" ? "bg-gray-800" : "bg-gray-200"
+          }`}
+        >
+          <div
+            className={`flex w-full p-2 ${
               theme === "dark"
                 ? "bg-gray-800 text-white"
                 : "bg-gray-100 text-black"
             }`}
-        >
-          {/* Header Section */}
-          <div
-            className={`w-full relative ${
-              theme === "dark"
-                ? "bg-gray-800"
-                : "bg-gray-200"
-            }`}
           >
-            <div className={`flex min-w-[600px] ${
-                    theme === "dark"
-                      ? "bg-gray-800 text-white"
-                      : "bg-gray-100 text-black"
-                  }`}>
-              {collapseSidebar && (
-                <button
-                  className={`font-bold text-3xl m-2`}
-                  onClick={() => setCollapseSidebar(!collapseSidebar)}
-                >
-                  <FiSidebar />
-                </button>
-              )}
-              {/* Header */}
-              <Header />
-            </div>
+            {collapseSidebar && (
+              <button
+                className="font-bold text-3xl m-2"
+                onClick={handleSidebarToggle}
+              >
+                <FiSidebar />
+              </button>
+            )}
+            <Header />
           </div>
-
-          {/* Page Content */}
-          <div className="flex-1 overflow-hidden p-4">{children}</div>
         </div>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
       </div>
 
       {/* Toast Notifications */}
