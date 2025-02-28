@@ -26,8 +26,8 @@ const ChatPage = ({ params }: Props) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col justify-center h-[100%] p-5 overflow-hidden">
-      <div className="flex-1 overflow-y-auto pt-10">
+    <div className="flex flex-col justify-center h-[100%] overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {/* ✅ Pass `messages` and `setMessages` to `Chat.tsx` */}
         <Chat id={id} messages={messages} setMessages={setMessages} fetchMessages={fetchChatMessages} />
       </div>

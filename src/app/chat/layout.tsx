@@ -27,12 +27,12 @@ export default function ChatLayout({
 }) {
   const { theme } = useTheme();
   const [collapseSidebar, setCollapseSidebar] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [ismobileorMedium, setismobileorMedium] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const isNowMobile = window.innerWidth < 768;
-      setIsMobile(isNowMobile);
+      const isNowMobile = window.innerWidth < 975;
+      setismobileorMedium(isNowMobile);
 
       if (!isNowMobile) {
         // Retrieve sidebar state from localStorage only on desktop
@@ -60,7 +60,7 @@ export default function ChatLayout({
 
   // Close sidebar when clicking outside (on mobile)
   const handleOutsideClick = () => {
-    if (isMobile && !collapseSidebar) {
+    if (ismobileorMedium && !collapseSidebar) {
       setCollapseSidebar(true);
       localStorage.setItem("sidebarState", "false"); // Save state as collapsed
     }
@@ -69,7 +69,7 @@ export default function ChatLayout({
   return (
     <div className="flex w-full h-screen overflow-x-hidden relative">
       {/* Sidebar Overlay for Mobile */}
-      {isMobile && !collapseSidebar && (
+      {ismobileorMedium && !collapseSidebar && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={handleOutsideClick}
@@ -79,9 +79,9 @@ export default function ChatLayout({
       {/* Sidebar */}
       <div
         className={`h-full transition-all duration-300 z-50 ${
-          isMobile
+          ismobileorMedium
             ? `fixed top-0 left-0 h-full bg-gray-800 text-white shadow-lg ${
-                collapseSidebar ? "w-0 overflow-hidden" : "w-[250px]"
+                collapseSidebar ? "w-0 overflow-hidden" : "w-[290px]"
               }`
             : `${
                 collapseSidebar
