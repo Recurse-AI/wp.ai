@@ -141,11 +141,7 @@ const ChatInput = ({
 
   return (
     <div
-      className={`w-full flex flex-col mt-2 items-center justify-center max-w-3xl mx-auto pt-3 px-4 
-        ${
-          theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
-        }
-      `}
+      className={`w-full flex flex-col items-center justify-center max-w-3xl mx-auto px-4 `}
     >
       {/* ✅ Show Processing Message */}
       {showProcessing ? (
@@ -154,7 +150,7 @@ const ChatInput = ({
         <form
           onSubmit={handleSubmit}
           className={`flex rounded-3xl items-end px-5 py-4 w-full justify-between ${
-            theme === "dark" ? "bg-black/40" : "bg-gray-200"
+            theme === "dark" ? "bg-black" : "bg-gray-200"
           }`}
         >
           {/* Input and Attachments Wrapper */}

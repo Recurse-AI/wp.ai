@@ -30,7 +30,7 @@ const defaultAvatars = {
 
 const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   const msg = message || defaultMessage;
-  const [displayText, setDisplayText] = useState(""); 
+  const [displayText, setDisplayText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const { theme } = useTheme();
 
@@ -41,7 +41,8 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
       setIsStreaming(true);
       let index = 0;
       const length = msg.ai_response.length;
-      const speed = length > 500 ? 10 : length > 200 ? 20 : length > 50 ? 30 : 50;
+      const speed =
+        length > 500 ? 10 : length > 200 ? 20 : length > 50 ? 30 : 50;
 
       const interval = setInterval(() => {
         setDisplayText(msg.ai_response.slice(0, index));
@@ -61,20 +62,18 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   }, [msg.ai_response, msg.message_id]);
 
   return (
-    <>
+    <div className="flex flex-col items-center w-full">
       {/* User Message */}
-      <div className="flex justify-end px-4 mt-2 mr-2">
+      <div className="flex justify-end w-[75%] max-w-2xl px-4 mt-2">
         <div
-          className={`relative py-3 px-4 rounded-2xl shadow-md text-white ${
-            theme === "dark" ? "bg-gray-900" : "bg-gray-300 text-slate-900"
-          } max-w-[75%] sm:max-w-[60%] md:max-w-[50%] lg:max-w-[40%]`}
+          className={`relative py-3 px-4 rounded-2xl shadow-md text-white 
+            ${theme === "dark" ? "bg-gray-900" : "bg-gray-300 text-slate-950"}
+            w-full`}
         >
-          {/* ✅ Preserve new lines in user input */}
           <pre className="whitespace-pre-wrap break-words text-left">
             {msg?.user_prompt || defaultMessage.user_prompt}
           </pre>
 
-          {/* User Avatar */}
           <Image
             className="absolute top-1/2 -translate-y-1/2 right-[-40px] border border-gray-600 w-9 h-9 rounded-full object-cover"
             src={defaultAvatars.user}
@@ -86,19 +85,22 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
       </div>
 
       {/* AI Response */}
-      <div className="flex justify-start px-3 sm:px-4 mt-3">
-        {/* ✅ Reduce left margin for AI avatar on small screens */}
+      <div className="flex justify-start w-[80%] max-w-2xl px-4 mt-3">
         <Image
-          className="border border-gray-600 w-9 h-9 rounded-full sm:mr-3 mr-1 object-cover"
+          className="border border-gray-600 w-9 h-9 rounded-full object-cover"
           src={defaultAvatars.ai}
           alt="AI Avatar"
           width={100}
           height={100}
         />
         <div
-          className={`py-3 px-3 sm:px-4 rounded-2xl shadow-md ${
-            theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-200 text-black"
-          } max-w-[85%] sm:max-w-[75%] md:max-w-[60%] lg:max-w-[50%] sm:ml-0 ml-1`}
+          className={`py-3 px-4 rounded-2xl shadow-md 
+            ${
+            theme === "dark"
+              ? "bg-gray-800 text-white"
+              : "bg-gray-200 text-black"
+          } 
+          w-full`}
         >
           {msg.ai_response === "Loading..." ? (
             <div className="flex items-center space-x-3 text-gray-400 text-lg font-semibold">
@@ -128,12 +130,14 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
                 },
               }}
             >
-              {isStreaming ? displayText : msg.ai_response || defaultMessage.ai_response}
+              {isStreaming
+                ? displayText
+                : msg.ai_response || defaultMessage.ai_response}
             </ReactMarkdown>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

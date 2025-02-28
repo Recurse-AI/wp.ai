@@ -67,7 +67,7 @@ export default function ChatLayout({
   };
 
   return (
-    <div className="flex w-full h-screen overflow-x-hidden relative">
+    <div className="flex w-full h-screen overflow-hidden relative">
       {/* Sidebar Overlay for Mobile */}
       {ismobileorMedium && !collapseSidebar && (
         <div
@@ -124,11 +124,7 @@ export default function ChatLayout({
       </div>
 
       {/* Main Content */}
-      <div
-        className={`flex flex-col flex-1 h-full w-full relative overflow-x-hidden ${
-          theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
-        }`}
-      >
+      <div className="flex flex-col flex-1 h-full w-full relative overflow-hidden">
         {/* Header Section */}
         <div
           className={`w-full relative ${
@@ -154,8 +150,8 @@ export default function ChatLayout({
           </div>
         </div>
 
-        {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-4">{children}</div>
+        {/* Page Content: Make sure it scrolls */}
+        <div className="flex-1 overflow-y-auto p-4 pt-0">{children}</div>
       </div>
 
       {/* Toast Notifications */}

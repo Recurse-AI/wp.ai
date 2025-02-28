@@ -4,10 +4,12 @@ import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useRef } from "react";
 import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
+import { useTheme } from "@/context/ThemeProvider";
 
 const Chat = ({ id, messages, fetchMessages }: { 
   id: string;
   messages: any[];
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   fetchMessages: () => void;
 }) => {
   console.log("Chat ID:", id); // ✅ Debugging: Ensures ID is received
@@ -33,7 +35,10 @@ const Chat = ({ id, messages, fetchMessages }: {
   }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4" ref={chatRef}>
+    <div
+      ref={chatRef}
+      className="flex flex-1 flex-col-reverse overflow-y-auto h-[100%] p-4"
+    >
       {/* ✅ Show loading before messages are fetched */}
       {loading && (
         <div className="flex flex-col items-center gap-2 py-5">
