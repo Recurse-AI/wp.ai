@@ -6,18 +6,15 @@ import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
 import { useTheme } from "@/context/ThemeProvider";
 
-const Chat = ({ id, messages, setMessages, fetchMessages }: { 
+const Chat = ({ id, messages, fetchMessages }: { 
   id: string;
   messages: any[];
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   fetchMessages: () => void;
 }) => {
   console.log("Chat ID:", id); // ✅ Debugging: Ensures ID is received
-
-  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const {theme} = useTheme()
+  const [error] = useState(false);
 
   const chatRef = useRef<HTMLDivElement | null>(null);
 

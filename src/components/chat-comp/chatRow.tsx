@@ -65,34 +65,48 @@ const ChatRow = ({
   };
 
   return (
-    <div className="relative flex items-center justify-between overflow-hidden">
-      <Link
-        href={`/chat/${id}`}
-        className={`flex items-center flex-1 p-2.5 rounded-md text-3xl ease-in whitespace-nowrap overflow-hidden 
-     ${active ? (theme === "dark" ? "bg-gray-600" : "bg-gray-300") : ""}`}
-      >
-        <div className="flex items-center gap-2 flex-1 overflow-hidden">
-          {/* <IoChatboxOutline /> */}
-          <p className="truncate text-lg font-medium tracking-wide" title={name}>
-            {name.length > 20 ? name.slice(0, 20) + "..." : name}
-          </p>
-        </div>
-      </Link>
-
+    <div className="relative w-full">
       <div
-        ref={buttonRef}
-        className="flex items-center"
-        onClick={handleDropdownToggle}
+        className={`relative flex items-center justify-between w-full p-2.5 rounded-md ${
+          active ? (theme === "dark" ? "bg-gray-600" : "bg-gray-300") : ""
+        }`}
       >
-        <BsThreeDotsVertical
-          className={`text-base ease-in-out cursor-pointer ${
-            theme === "dark"
-              ? "text-white/50 hover:text-gray-300"
-              : "text-black/50 hover:text-gray-600"
-          }`}
-        />
+        {/* Ensure Link Takes Full Width */}
+        <Link
+          href={`/chat/${id}`}
+          className="flex items-center flex-1 whitespace-nowrap overflow-hidden"
+        >
+          <div className="flex items-center gap-2 flex-1 overflow-hidden">
+            <p
+              className="truncate text-lg font-medium tracking-wide"
+              title={name}
+            >
+              {name.length > 20 ? name.slice(0, 20) + "..." : name}
+            </p>
+          </div>
+        </Link>
+
+        {/* Ensure Three-Dot Button Aligns Properly */}
+        <div
+          ref={buttonRef}
+          className="flex items-center px-2 cursor-pointer"
+          onClick={handleDropdownToggle}
+        >
+          <BsThreeDotsVertical
+            className={`text-base ease-in-out ${
+              theme === "dark"
+                ? active
+                  ? "text-white"
+                  : "text-white/50 hover:text-gray-300"
+                : active
+                ? "text-black"
+                : "text-black/50 hover:text-gray-600"
+            }`}
+          />
+        </div>
       </div>
 
+      {/* Dropdown Menu */}
       {openDropdown === id &&
         createPortal(
           <div

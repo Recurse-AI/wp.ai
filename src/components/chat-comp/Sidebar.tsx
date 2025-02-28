@@ -59,7 +59,7 @@ const Sidebar = () => {
 
   return (
     <div
-      className={`h-screen shadow-lg p-6 w-full max-w-md transition-all duration-300
+      className={`h-screen shadow-lg p-2.5 w-full max-w-md transition-all duration-300
       ${
         theme === "dark"
           ? "bg-gray-900/80 backdrop-blur-md shadow-md"
@@ -68,13 +68,13 @@ const Sidebar = () => {
     >
       {/* New Chat Button */}
       <div
-        className={`flex items-center justify-center w-full tracking-wide text-3xl px-2 font-semibold`}
+        className={`flex items-center justify-center w-full tracking-wide text-3xl font-semibold mt-1`}
       >
         <NewChat />
       </div>
 
       {/* Sidebar Content */}
-      <div className="mt-6">
+      <div className="mt-6 w-full tracking-wide">
         {isLoggedIn ? (
           <>
             <p
@@ -102,7 +102,7 @@ const Sidebar = () => {
             ) : chats.length > 0 ? (
               <div
                 className="mt-4 overflow-y-scroll h-[75vh] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent
-                scrollbar-thumb-rounded-lg gap-2"
+                scrollbar-thumb-rounded-lg gap-2 w-full tracking-wide"
               >
                 {chats.map((chat) => (
                   <ChatRow

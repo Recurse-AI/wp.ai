@@ -34,23 +34,35 @@ export default function ChatLayout({
       const isNowMobile = window.innerWidth < 768;
       setIsMobile(isNowMobile);
 
-      // Ensure the sidebar is open on desktop
       if (!isNowMobile) {
-        setCollapseSidebar(false);
+        // Retrieve sidebar state from localStorage only on desktop
+        const savedSidebarState = localStorage.getItem("sidebarState");
+        setCollapseSidebar(savedSidebarState === "true");
+      } else {
+        // Always collapse sidebar on mobile after a refresh
+        setCollapseSidebar(true);
       }
     };
 
+    // Set initial state from localStorage on mount
     handleResize();
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Toggle sidebar and save state
   const handleSidebarToggle = () => {
-    setCollapseSidebar(!collapseSidebar);
+    const newState = !collapseSidebar;
+    setCollapseSidebar(newState);
+    localStorage.setItem("sidebarState", newState.toString()); // Save state
   };
+
+  // Close sidebar when clicking outside (on mobile)
   const handleOutsideClick = () => {
     if (isMobile && !collapseSidebar) {
       setCollapseSidebar(true);
+      localStorage.setItem("sidebarState", "false"); // Save state as collapsed
     }
   };
 
@@ -74,11 +86,11 @@ export default function ChatLayout({
             : `${
                 collapseSidebar
                   ? "w-0 overflow-hidden"
-                  : "w-[250px] md:w-[220px]"
+                  : "w-[300px] md:w-[270px]"
               } ${
                 theme === "dark"
-                  ? "bg-gray-800 text-white"
-                  : "bg-gray-200 border-r border-gray-200"
+                  ? "bg-gray-900/80 backdrop-blur-md shadow-md"
+                  : "bg-gray-200/90 border-r border-gray-200"
               }`
         }`}
       >

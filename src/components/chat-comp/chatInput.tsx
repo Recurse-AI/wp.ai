@@ -115,6 +115,9 @@ const ChatInput = ({
         }
 
         setPrompt(""); // ✅ Clear input field
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "40px"; // Reset to default size
+        }
       } else {
         toast.error(data.message || "Failed to send message.");
 
@@ -138,9 +141,11 @@ const ChatInput = ({
 
   return (
     <div
-      className={`w-full flex flex-col items-center justify-center max-w-3xl mx-auto pt-3 px-4 ${
-        theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
-      }`}
+      className={`w-full flex flex-col mt-2 items-center justify-center max-w-3xl mx-auto pt-3 px-4 
+        ${
+          theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+        }
+      `}
     >
       {/* ✅ Show Processing Message */}
       {showProcessing ? (
@@ -148,22 +153,22 @@ const ChatInput = ({
       ) : (
         <form
           onSubmit={handleSubmit}
-          className={`rounded-2xl flex items-center px-5 py-4 w-full relative ${
-            theme === "dark" ? "bg-[#2A2A2A]" : "bg-[#f9f9f9]"
+          className={`flex rounded-3xl items-end px-5 py-4 w-full justify-between ${
+            theme === "dark" ? "bg-black/40" : "bg-gray-200"
           }`}
         >
-          {/* Input Field Wrapper */}
-          <div className="relative w-full flex flex-col space-y-2">
-            {/* Input Field (Expands up to 5 lines) */}
+          {/* Input and Attachments Wrapper */}
+          <div className="relative flex flex-col w-full">
+            {/* Textarea */}
             <textarea
               ref={textareaRef}
               placeholder="How can I help you today?"
               onChange={handleInput}
               value={prompt}
               className={`bg-transparent placeholder:text-gray-500 px-3 outline-none 
-                  w-full font-medium tracking-wide text-base resize-none overflow-y-auto ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-800"
-                  }`}
+        w-full font-medium tracking-wide text-base resize-none overflow-y-auto ${
+          theme === "dark" ? "text-gray-300" : "text-gray-800"
+        }`}
               style={{
                 minHeight: "40px", // Starts at 1 line height
                 maxHeight: "120px", // Stops expanding after 5 lines
@@ -173,39 +178,25 @@ const ChatInput = ({
               }}
             />
 
-            {/* Bottom Options (Always Below Input) */}
-            <div className="flex justify-start px-3 gap-4 text-gray-500 text-xs">
-              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-                <FaCube className="text-sm" /> <span>Artifacts</span>
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-                <IoGlobeOutline className="text-sm" /> <span>Web Search</span>
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-                <MdImage className="text-sm" /> <span>Image Generation</span>
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer hover:text-white">
-                <MdSmartToy className="text-sm" /> <span>Video Generation</span>
-              </div>
+            {/* Icons Below Input */}
+            <div className="left-0 mt-2 px-3 flex gap-4 text-gray-500 text-xs">
+              <TbPaperclip className="text-lg cursor-pointer hover:text-white" />
+              <FaCamera className="text-lg cursor-pointer hover:text-white" />
             </div>
           </div>
 
-          {/* Right Side Icons */}
-          <div className="flex items-center gap-3">
-            <TbPaperclip className="text-lg cursor-pointer hover:text-white" />
-            <FaCamera className="text-lg cursor-pointer hover:text-white" />
-            <button
-              type="submit"
-              disabled={!prompt.trim()} // Disable if input is empty
-              className={`p-2.5 rounded-full ${
-                theme === "dark"
-                  ? "bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700"
-                  : "bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
-              } flex items-center justify-center transition-all`}
-            >
-              <ImArrowUpRight2 className="text-white text-lg" />
-            </button>
-          </div>
+          {/* Send Button on the Right */}
+          <button
+            type="submit"
+            disabled={!prompt.trim()} // Disable if input is empty
+            className={`p-2.5 rounded-full ml-3 ${
+              theme === "dark"
+                ? "bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700"
+                : "bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
+            } flex items-center justify-center transition-all`}
+          >
+            <ImArrowUpRight2 className="text-white text-lg" />
+          </button>
         </form>
       )}
 
@@ -215,7 +206,7 @@ const ChatInput = ({
           theme === "dark" ? "text-gray-500" : "text-gray-800"
         }`}
       >
-        ChatGPT can make mistakes. Check important info.
+        WP.AI can make mistakes. Check important info.
       </p>
     </div>
   );
