@@ -5,20 +5,22 @@ services:
       context: .
       dockerfile: Dockerfile.manager
     volumes:
-      - type: npipe
-        source: \\.\pipe\docker_engine
-        target: /var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - type: bind
         source: ./wp-sites
         target: /var/www/sites
+      - type: bind
+        source: ./wp-shared
+        target: /var/www/shared
     ports:
-      - "8000:80"
-      - "3306:3306"
+      - "${WP_PORT:-8080}:80"
+      - "${MYSQL_PORT:-3307}:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=secure_root_password
       - MYSQL_COMMON_USER=wp_user
       - MYSQL_COMMON_PASSWORD=wp_password
+      - WP_PORT=${WP_PORT:-8080}
     privileged: true
     working_dir: /app
     entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
-    command: ["apache2-foreground"]  # Changed this 
+    command: ["tail", "-f", "/dev/null"] 

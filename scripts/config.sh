@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Base configuration
-export WP_BASE_URL="http://localhost:8000"
+export WP_BASE_URL="http://localhost:${WP_PORT:-8080}"
 export WP_BASE_DIR="/var/www/sites"
+export WP_SHARED_DIR="/var/www/shared/wordpress"
 export WP_CACHE_DIR="/var/www/wp-cache"
 
 # MySQL configuration

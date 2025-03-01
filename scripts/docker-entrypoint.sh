@@ -84,11 +84,18 @@ if ! sudo apache2ctl configtest; then
 fi
 
 # Start Apache
-if ! sudo apache2ctl start; then
+if ! sudo service apache2 start; then
     echo "Failed to start Apache"
     exit 1
 fi
 echo "Apache started successfully"
 
 # Keep container running
-exec "$@"
+if [ "$1" = "apache2-foreground.sh" ]; then
+    # If apache2-foreground is specified, keep the container running
+    echo "Keeping container running..."
+    tail -f /dev/null
+else
+    # Otherwise, run the specified command
+    exec "$@"
+fi

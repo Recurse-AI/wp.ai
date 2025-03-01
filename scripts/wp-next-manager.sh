@@ -46,109 +46,108 @@ setup_environment() {
     echo "Setting up WordPress environment..."
     
     # Create required directories
-    sudo mkdir -p "$WP_BASE_DIR" "$WP_CACHE_DIR"
-    sudo chown -R manager:www-data "$WP_BASE_DIR" "$WP_CACHE_DIR"
-    sudo chmod -R 775 "$WP_BASE_DIR" "$WP_CACHE_DIR"
+    sudo mkdir -p "$WP_BASE_DIR" "$WP_CACHE_DIR" "$WP_SHARED_DIR"
+    sudo chown -R manager:www-data "$WP_BASE_DIR" "$WP_CACHE_DIR" "$WP_SHARED_DIR"
     
-    # Verify MySQL connection
-    if mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -e "SELECT 1;" >/dev/null 2>&1; then
-        echo "MySQL connection verified"
-    else
-        echo "Error: Cannot connect to MySQL"
-        exit 1
+    # Start MySQL and Apache
+    echo "Starting services..."
+    sudo service mysql start
+    sudo service apache2 start
+    
+    # Enable required Apache modules
+    echo "Enabling Apache modules..."
+    sudo a2enmod rewrite
+    sudo a2enmod vhost_alias
+    sudo apache2ctl restart
+    
+    # Install WP-CLI if not already installed
+    if ! command -v wp &> /dev/null; then
+        echo "Installing WP-CLI..."
+        curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        chmod +x wp-cli.phar
+        sudo mv wp-cli.phar /usr/local/bin/wp
     fi
+    
+    # Setup shared WordPress core
+    echo "Setting up shared WordPress core..."
+    bash /app/setup-shared-wp.sh setup-shared
+    
+    echo "WordPress environment setup completed!"
+}
 
-    echo "Base environment setup completed!"
+# Function to create symbolic links to shared core
+create_symlinks() {
+    local user_id=$1
+    local site_dir=$(get_wp_dir "$user_id")
+    local shared_dir="$WP_SHARED_DIR"
+    
+    echo "Creating symbolic links to shared WordPress core for user $user_id..."
+    
+    # Create symbolic links for all core files except wp-content
+    for item in $(find "$shared_dir" -maxdepth 1 -not -name "wp-content" -not -name "wp-config-sample.php" -not -name "wp-config.php" -not -name "."); do
+        local basename=$(basename "$item")
+        sudo ln -sf "$item" "$site_dir/$basename"
+    done
+    
+    echo "Symbolic links created successfully!"
 }
 
 # Function to create WordPress instance for user
 create_user_instance() {
     local user_id=$1
-    local site_dir=$(get_wp_dir "$user_id")
-    local site_url=$(get_wp_url "$user_id")
-    local db_name=$(get_wp_db_name "$user_id")
     
     echo "Creating WordPress instance for user $user_id..."
     
-    # Create user database
-    echo "Creating database: $db_name"
-    mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${db_name};"
-    
-    # Create WordPress directory
-    sudo mkdir -p "$site_dir"
-    sudo chown -R manager:www-data "$site_dir"
-    sudo chmod -R 775 "$site_dir"
-    
-    # Download and install WordPress
-    echo "Downloading WordPress..."
-    wp core download --path="$site_dir" --force
-    
-    # Create wp-config.php
-    echo "Configuring WordPress..."
-    wp config create \
-        --dbname="$db_name" \
-        --dbuser="$MYSQL_USER" \
-        --dbpass="$MYSQL_PASSWORD" \
-        --dbhost="$MYSQL_HOST" \
-        --path="$site_dir" \
-        --force
-        
-    # Install WordPress
-    echo "Installing WordPress..."
-    wp core install \
-        --url="$site_url" \
-        --title="WordPress Site $user_id" \
-        --admin_user="$WP_ADMIN_USER" \
-        --admin_password="$WP_ADMIN_PASSWORD" \
-        --admin_email="$WP_ADMIN_EMAIL" \
-        --path="$site_dir" \
-        --skip-email
-        
-    # Setup Apache virtual host
-    create_vhost "$user_id"
-        
-    # Set final permissions
-    sudo chown -R www-data:www-data "$site_dir"
-    sudo find "$site_dir" -type d -exec chmod 755 {} \;
-    sudo find "$site_dir" -type f -exec chmod 644 {} \;
-    
-    # Create .htaccess file
-    echo "Creating .htaccess file..."
-    sudo tee "$site_dir/.htaccess" > /dev/null << EOF
-# BEGIN WordPress
-<IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /user_${user_id}/
-RewriteRule ^index\.php$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /user_${user_id}/index.php [L]
-</IfModule>
-# END WordPress
-EOF
-    
-    # Fix permissions for .htaccess
-    sudo chown www-data:www-data "$site_dir/.htaccess"
-    sudo chmod 644 "$site_dir/.htaccess"
-    
-    echo "WordPress instance created successfully!"
-    echo "Site URL: $site_url"
-    echo "Admin URL: $site_url/wp-admin"
-    echo "Admin username: $WP_ADMIN_USER"
-    echo "Admin password: $WP_ADMIN_PASSWORD"
+    # Call the setup-shared-wp.sh script to create user instance
+    bash /app/setup-shared-wp.sh create-user "$user_id"
 }
 
-# Function to list WordPress instances
+# Function to list all WordPress instances
 list_instances() {
-    echo "WordPress Instances:"
-    for site in "$WP_BASE_DIR"/user_*; do
-        if [ -d "$site" ]; then
-            user_id=$(basename "$site" | sed 's/user_//')
-            echo "- User $user_id:"
-            echo "  Site: $(get_wp_url "$user_id")"
-            echo "  Admin: $(get_wp_url "$user_id")/wp-admin"
-        fi
-    done
+    echo "Listing all WordPress instances..."
+    
+    # List all user directories
+    echo "User directories:"
+    ls -la "$WP_BASE_DIR" | grep "user_"
+    
+    # List all databases
+    echo "WordPress databases:"
+    mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -e "SHOW DATABASES LIKE 'wp_%';"
+}
+
+# Function to upload plugin to user's WordPress
+upload_plugin() {
+    local user_id=$1
+    local plugin_zip=$2
+    local site_dir=$(get_wp_dir "$user_id")
+    
+    echo "Uploading plugin to user $user_id's WordPress..."
+    
+    # Check if plugin zip exists
+    if [ ! -f "$plugin_zip" ]; then
+        echo "Error: Plugin zip file not found: $plugin_zip"
+        exit 1
+    fi
+    
+    # Install plugin using WP-CLI
+    wp plugin install "$plugin_zip" --path="$site_dir" --force
+    
+    echo "Plugin uploaded successfully!"
+}
+
+# Function to update shared WordPress core
+update_shared_core() {
+    echo "Updating shared WordPress core..."
+    
+    # Backup current shared core
+    local backup_dir="/var/www/wp-backups/core-$(date +%Y%m%d%H%M%S)"
+    sudo mkdir -p "$backup_dir"
+    sudo cp -r "$WP_SHARED_DIR"/* "$backup_dir/"
+    
+    # Update WordPress core
+    bash /app/setup-shared-wp.sh setup-shared
+    
+    echo "Shared WordPress core updated successfully!"
 }
 
 # Main command handler
@@ -166,10 +165,36 @@ case "$1" in
     "list")
         list_instances
         ;;
+    "upload-plugin")
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: $0 upload-plugin <user_id> <plugin_zip_path>"
+            exit 1
+        fi
+        upload_plugin "$2" "$3"
+        ;;
+    "update-core")
+        update_shared_core
+        ;;
+    "start")
+        echo "Starting WordPress services..."
+        sudo service mysql start
+        sudo service apache2 start
+        echo "WordPress services started!"
+        ;;
+    "stop")
+        echo "Stopping WordPress services..."
+        sudo service apache2 stop
+        sudo service mysql stop
+        echo "WordPress services stopped!"
+        ;;
     *)
         echo "Usage:"
         echo "  $0 init                # Initialize the environment"
         echo "  $0 create-user <id>    # Create new WordPress instance"
         echo "  $0 list                # List all WordPress instances"
+        echo "  $0 upload-plugin <user_id> <plugin_zip_path>  # Upload plugin to user's WordPress"
+        echo "  $0 update-core         # Update shared WordPress core"
+        echo "  $0 start               # Start WordPress services"
+        echo "  $0 stop                # Stop WordPress services"
         ;;
 esac 

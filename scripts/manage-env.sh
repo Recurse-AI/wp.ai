@@ -11,6 +11,15 @@ REGISTRY=${REGISTRY:-docker.io/library}
 TAG=${TAG:-latest}
 IMAGE_NAME="${REGISTRY}/wp-ai-wp-manager:${TAG}"
 
+# Set Docker socket path based on OS
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    export DOCKER_SOCK="//./pipe/docker_engine"
+else
+    # Unix systems
+    export DOCKER_SOCK="/var/run/docker.sock"
+fi
+
 # Function to get docker command
 get_docker_cmd() {
     if command -v docker &> /dev/null; then
