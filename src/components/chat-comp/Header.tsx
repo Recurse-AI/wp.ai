@@ -30,6 +30,7 @@ const Header = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
     try {
@@ -49,22 +50,24 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close Profile Dropdown if clicked outside
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setShowDropdown(false);
+        setTimeout(() => setShowDropdown(false), 100);
       }
 
+      // Close Theme Dropdown if clicked outside
       if (
         themeDropdownRef.current &&
         !themeDropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        themeButtonRef.current &&
+        !themeButtonRef.current.contains(event.target as Node)
       ) {
-        setShowThemeDropdown(false);
+        setTimeout(() => setShowThemeDropdown(false), 100);
       }
     };
 
@@ -77,9 +80,20 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-gray-900 w-full border-b border-gray-700">
+    <div
+      className={`flex flex-wrap items-center justify-between px-4 py-3 w-full
+      ${theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"}
+  `}
+    >
       {/* Left: WP.AI Dropdown Button */}
-      <button className="flex items-center gap-1 bg-[#212121] hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300">
+      <button
+        className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
+        ${
+          theme === "dark"
+            ? "bg-black border-gray-900 text-white hover:bg-black/30"
+            : "bg-gray-300 border-gray-200 text-black"
+        }`}
+      >
         <div className="flex gap-1">
           WP.AI <FiChevronDown />
         </div>
@@ -90,12 +104,13 @@ const Header = () => {
         {/* 🔹 Theme Dropdown Button */}
         <div className="relative">
           <button
-            onClick={() => {
-              setShowThemeDropdown(!showThemeDropdown);
+            ref={themeButtonRef} // ✅ Use a separate ref for theme button
+            onClick={(e) => {
+              e.stopPropagation(); // ✅ Prevents immediate closing
+              setShowThemeDropdown((prev) => !prev);
               setShowDropdown(false);
             }}
             className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-all"
-            ref={buttonRef}
           >
             {theme === "light" && <FaSun className="text-yellow-400" />}
             {theme === "dark" && <FaMoon className="text-gray-900" />}
@@ -163,8 +178,10 @@ const Header = () => {
         ) : (
           <div className="relative">
             <button
-              onClick={() => {
-                setShowDropdown(!showDropdown);
+              ref={buttonRef} // ✅ Separate ref for profile button
+              onClick={(e) => {
+                e.stopPropagation(); // ✅ Prevents immediate closing
+                setShowDropdown((prev) => !prev);
                 setShowThemeDropdown(false);
               }}
               className="flex items-center gap-2"

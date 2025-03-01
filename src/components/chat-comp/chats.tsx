@@ -6,20 +6,17 @@ import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useRef } from "react";
 import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
-import { fetchMessages } from "@/utils/fetchMessages";
-import router from "next/router";
+import { useTheme } from "@/context/ThemeProvider";
 
-const Chat = ({ id, messages, setMessages, fetchMessages }: { 
+const Chat = ({ id, messages, fetchMessages }: { 
   id: string;
   messages: any[];
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   fetchMessages: () => void;
 }) => {
   console.log("Chat ID:", id); // ✅ Debugging: Ensures ID is received
-
-  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error] = useState(false);
 
   const chatRef = useRef<HTMLDivElement | null>(null);
 
