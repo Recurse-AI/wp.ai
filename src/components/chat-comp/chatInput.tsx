@@ -85,7 +85,7 @@ const ChatInput = ({
       : { prompt: prompt };
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/chat/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/chat/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,6 +113,7 @@ const ChatInput = ({
         } else {
           localStorage.setItem("set-to-flow", data.chat_message.message_id);
           setShowProcessing(false);
+          localStorage.setItem("next-fall-url",`/chat/${newChatId}`);
           window.location.href = `/chat/${newChatId}`;
         }
 

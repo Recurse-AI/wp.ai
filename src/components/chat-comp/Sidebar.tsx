@@ -32,7 +32,7 @@ const Sidebar = () => {
       setError(false);
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-group-message/`,
+          `${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-group-message/`,
           {
             method: "GET",
             credentials: "include",

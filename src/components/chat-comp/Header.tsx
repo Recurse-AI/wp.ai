@@ -36,13 +36,13 @@ const Header = () => {
     try {
       setShowDropdown(false);
       localStorage.removeItem("authToken");
-      await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
+      await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/logout/`, {
         method: "GET",
         credentials: "include",
       });
       await signOut({ redirect: false });
       setIsLoggedIn(false);
-      router.push("/");
+      router.push("/chat");
     } catch (error) {
       console.error("Error logging out:", error);
     }
