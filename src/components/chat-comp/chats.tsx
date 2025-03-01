@@ -6,7 +6,11 @@ import { BsArrowDownCircle } from "react-icons/bs";
 import Message from "./Message";
 import { useTheme } from "@/context/ThemeProvider";
 
-const Chat = ({ id, messages, fetchMessages }: { 
+const Chat = ({
+  id,
+  messages,
+  fetchMessages,
+}: {
   id: string;
   messages: any[];
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
@@ -37,7 +41,7 @@ const Chat = ({ id, messages, fetchMessages }: {
   return (
     <div
       ref={chatRef}
-      className="flex flex-1 flex-col-reverse overflow-y-auto h-[100%] p-4"
+      className="flex flex-1 flex-col-reverse overflow-y-auto h-[100%] mx-auto w-full"
     >
       {/* ✅ Show loading before messages are fetched */}
       {loading && (
@@ -49,7 +53,9 @@ const Chat = ({ id, messages, fetchMessages }: {
       {/* ✅ Show error if API call fails */}
       {!loading && error && (
         <div className="flex flex-col items-center gap-2 py-5">
-          <p className="text-red-500">Error loading messages. Using default messages.</p>
+          <p className="text-red-500">
+            Error loading messages. Using default messages.
+          </p>
         </div>
       )}
 
@@ -62,12 +68,14 @@ const Chat = ({ id, messages, fetchMessages }: {
       )}
 
       {/* ✅ Display messages with latest first */}
-      {!loading &&
-        [...messages].reverse().map((message) => (
-          <div key={message.message_id}>
-            <Message message={message} />
-          </div>
-        ))}
+      <div className="w-full">
+        {!loading &&
+          [...messages].map((message) => (
+            <div key={message.message_id} className="w-full">
+              <Message message={message} />
+            </div>
+          ))}
+      </div>
     </div>
   );
 };

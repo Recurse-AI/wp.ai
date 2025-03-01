@@ -22,8 +22,8 @@ const ChatPage = ({ params }: Props) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col justify-center h-full">
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col justify-center h-full w-full">
+      <div className="flex-1 overflow-y-auto w-full">
         <Chat id={id} messages={messages} setMessages={setMessages} fetchMessages={fetchChatMessages} />
       </div>
 

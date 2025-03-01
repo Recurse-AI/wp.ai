@@ -9,6 +9,7 @@ import { FiSidebar } from "react-icons/fi";
 import { useTheme } from "@/context/ThemeProvider";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import "@fontsource/inter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -80,7 +81,7 @@ export default function ChatLayout({
       <div
         className={`h-full transition-all duration-300 z-50 ${
           ismobileorMedium
-            ? `fixed top-0 left-0 h-full bg-gray-800 text-white shadow-lg ${
+            ? `fixed top-0 left-0 h-full bg-gray-800 shadow-lg ${
                 collapseSidebar ? "w-0 overflow-hidden" : "w-[290px]"
               }`
             : `${
@@ -151,7 +152,7 @@ export default function ChatLayout({
         </div>
 
         {/* Page Content: Make sure it scrolls */}
-        <div className="flex-1 overflow-y-auto p-4 pt-0">{children}</div>
+        <div className="flex-1 overflow-y-auto pb-2 pt-0 font-inter w-full">{children}</div>
       </div>
 
       {/* Toast Notifications */}
