@@ -14,6 +14,8 @@ import {
   FaSun,
   FaMoon,
   FaDesktop,
+  FaCrown,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
 
@@ -36,7 +38,7 @@ const Header = () => {
     try {
       setShowDropdown(false);
       localStorage.removeItem("authToken");
-      await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/logout/`, {
+      await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
         method: "GET",
         credentials: "include",
       });
@@ -161,6 +163,7 @@ const Header = () => {
               <motion.button
                 className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
                 whileHover={{ scale: 1.05 }}
+                onClick={() => localStorage.setItem("isChat", "true")}
               >
                 Sign In
               </motion.button>
@@ -170,6 +173,7 @@ const Header = () => {
               <motion.button
                 className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
                 whileHover={{ scale: 1.05 }}
+                onClick={() => localStorage.setItem("isChat", "true")}
               >
                 Sign Up
               </motion.button>
@@ -222,6 +226,16 @@ const Header = () => {
                   <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                     <FaUser /> General
                   </div>
+                </Link>
+                {/* <Link href="/pricing" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaCrown /> Pricing
+                    </div>
+                </Link> */}
+                <Link href="/about" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaInfoCircle /> About
+                    </div>
                 </Link>
                 <div
                   onClick={handleLogout}

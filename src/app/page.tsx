@@ -188,6 +188,36 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ✅ Video Section */}
+      <section className="flex flex-col lg:flex-row items-center justify-center py-16 px-6 ">
+        {/* Centered content with 10% free space on both sides */}
+        <div className="flex flex-col lg:flex-row w-full max-w-5xl mx-auto lg:space-x-10">
+          {/* Left Column (Title + Description, 30% width) */}
+          <div className="w-full lg:w-[30%] text-center lg:text-left flex flex-col justify-center space-y-4">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
+              Our platform provides access to the latest WordPress data.
+            </h2>
+            <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 shadow-md p-4 rounded-lg bg-white dark:bg-gray-800">
+              Anyone can learn about new plugins, themes, and everything WordPress-related right here. 
+              Ask us anything about WordPress and get the latest updates instantly.
+            </p>
+          </div>
+
+          {/* Right Column (Video, 70% width) */}
+          <div className="w-full lg:w-[70%]">
+            <div className="w-full aspect-video">
+              <iframe
+                className="w-full h-full rounded-lg shadow-lg"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                title="WP.ai Demonstration"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ✅ Features Section */}
       <section className="py-20 px-6">
         <h2 className="text-4xl font-bold text-center">Why Choose WP.ai?</h2>
@@ -235,8 +265,9 @@ export default function LandingPage() {
       </section>
 
 
+
       {/* ✅ Pricing Section - Added Star Badge & Upgrade Now Button */}
-      <section className="py-20 px-6">
+      {/* <section className="py-20 px-6">
         <h2 className="text-4xl font-bold text-center">Choose Your Plan</h2>
         <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-5xl mx-auto">
           {plans.map((plan) => (
@@ -247,7 +278,7 @@ export default function LandingPage() {
                 ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
               whileHover={{ scale: 1.05 }}
             >
-              {/* ⭐ Star Badge for Best Plan */}
+              
               {plan.best && (
                 <motion.div
                   className="absolute top-2 right-2 bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
@@ -272,14 +303,14 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              {/* ✅ Upgrade Now Button */}
+              
               <motion.button
                 onClick={() => handleUpgrade(plan.id)}
                 className="mt-6 w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all relative overflow-hidden"
                 whileHover={{ scale: 1.05 }}
               >
                 Upgrade Now
-                {/* 🔹 Flowing Light Effect */}
+                
                 <motion.div
                   className="absolute inset-0 bg-white opacity-10"
                   animate={{ x: ["-100%", "100%"] }}
@@ -289,7 +320,7 @@ export default function LandingPage() {
             </motion.div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* ✅ Feedback Section */}
       <section className="py-20 px-6 text-center">

@@ -13,6 +13,7 @@ import { fetchMessages } from "@/utils/fetchMessages";
 import toast from "react-hot-toast"; // ✅ For success & error messages
 import ProcessingMessage from "./processingMessage";
 import { useTheme } from "@/context/ThemeProvider";
+import { Tooltip } from 'react-tooltip';
 
 const ChatInput = ({
   id,
@@ -85,7 +86,7 @@ const ChatInput = ({
       : { prompt: prompt };
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/chat/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +114,6 @@ const ChatInput = ({
         } else {
           localStorage.setItem("set-to-flow", data.chat_message.message_id);
           setShowProcessing(false);
-          localStorage.setItem("next-fall-url",`/chat/${newChatId}`);
           window.location.href = `/chat/${newChatId}`;
         }
 
@@ -179,9 +179,27 @@ const ChatInput = ({
 
             {/* Icons Below Input */}
             <div className="left-0 mt-2 px-3 flex gap-4 text-gray-500 text-xs">
-              <TbPaperclip className="text-lg cursor-pointer hover:text-white" />
-              <FaCamera className="text-lg cursor-pointer hover:text-white" />
+              {/* Paperclip Icon with Tooltip */}
+              <div className="relative">
+                <TbPaperclip
+                  data-tooltip-id="tooltip-paperclip"
+                  data-tooltip-content="Coming Soon..."
+                  className="text-lg cursor-pointer hover:text-white"
+                />
+                <Tooltip id="tooltip-paperclip" place="top" />
+              </div>
+
+              {/* Camera Icon with Tooltip */}
+              <div className="relative">
+                <FaCamera
+                  data-tooltip-id="tooltip-camera"
+                  data-tooltip-content="Coming Soon..."
+                  className="text-lg cursor-pointer hover:text-white"
+                />
+                <Tooltip id="tooltip-camera" place="top" />
+              </div>
             </div>
+
           </div>
 
           {/* Send Button on the Right */}

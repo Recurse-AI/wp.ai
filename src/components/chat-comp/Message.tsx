@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useTheme } from "@/context/ThemeProvider";
+import "@fontsource/inter";
 
 type MessageType = {
   message_id: string;
@@ -63,44 +64,42 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   }, [msg.ai_response, msg.message_id]);
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="flex flex-col items-center w-full font-inter">
       {/* User Message */}
-      <div className="flex justify-end w-[75%] max-w-2xl px-4 mt-2">
+      <div className="flex justify-end w-full max-w-2xl mt-2">
         <div
-          className={`relative py-3 px-4 rounded-2xl shadow-md text-white 
-            ${theme === "dark" ? "bg-gray-900" : "bg-gray-300 text-slate-950"}
-            w-full`}
+          className={`relative py-3 px-4 rounded-3xl ml-20 w-auto
+          ${
+            theme === "dark"
+              ? "bg-[#343541] text-white"
+              : "bg-[#ECECF1] text-gray-900"
+          }`}
         >
           <pre className="whitespace-pre-wrap break-words text-left">
             {msg?.user_prompt || defaultMessage.user_prompt}
           </pre>
 
-          <Image
+          {/* <Image
             className="absolute top-1/2 -translate-y-1/2 right-[-40px] border border-gray-600 w-9 h-9 rounded-full object-cover"
             src={defaultAvatars.user}
             alt="User Avatar"
             width={100}
             height={100}
-          />
+          /> */}
         </div>
       </div>
 
       {/* AI Response */}
-      <div className="flex justify-start w-[80%] max-w-2xl px-4 mt-3">
-        <Image
+      <div className="flex justify-start w-full max-w-2xl mt-3 font-inter">
+        {/* <Image
           className="border border-gray-600 w-9 h-9 rounded-full object-cover"
           src={defaultAvatars.ai}
           alt="AI Avatar"
           width={100}
           height={100}
-        />
+        /> */}
         <div
-          className={`py-3 px-4 rounded-2xl shadow-md 
-            ${
-            theme === "dark"
-              ? "bg-gray-800 text-white"
-              : "bg-gray-200 text-black"
-          } 
+          className={`py-3 px-4 rounded-2xl 
           w-full`}
         >
           {msg.ai_response === "Loading..." ? (
