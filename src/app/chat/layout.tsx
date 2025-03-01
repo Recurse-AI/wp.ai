@@ -7,6 +7,10 @@ import Header from "@/components/chat-comp/Header";
 import Sidebar from "@/components/chat-comp/Sidebar";
 import { Toaster } from "react-hot-toast";
 import { FiSidebar } from "react-icons/fi";
+import { useTheme } from "@/context/ThemeProvider";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import "@fontsource/inter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,59 +27,133 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { theme } = useTheme();
   const [collapseSidebar, setCollapseSidebar] = useState(false);
+  const [ismobileorMedium, setismobileorMedium] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setCollapseSidebar(window.innerWidth < 768);
+      const isNowMobile = window.innerWidth < 975;
+      setismobileorMedium(isNowMobile);
+
+      if (!isNowMobile) {
+        // Retrieve sidebar state from localStorage only on desktop
+        const savedSidebarState = localStorage.getItem("sidebarState");
+        setCollapseSidebar(savedSidebarState === "true");
+      } else {
+        // Always collapse sidebar on mobile after a refresh
+        setCollapseSidebar(true);
+      }
     };
+
+    // Set initial state from localStorage on mount
     handleResize();
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Toggle sidebar and save state
+  const handleSidebarToggle = () => {
+    const newState = !collapseSidebar;
+    setCollapseSidebar(newState);
+    localStorage.setItem("sidebarState", newState.toString()); // Save state
+  };
+
+  // Close sidebar when clicking outside (on mobile)
+  const handleOutsideClick = () => {
+    if (ismobileorMedium && !collapseSidebar) {
+      setCollapseSidebar(true);
+      localStorage.setItem("sidebarState", "false"); // Save state as collapsed
+    }
+  };
+
   return (
-    <div className="w-full h-screen overflow-x-auto overflow-y-hidden">
-      <div className="flex h-full min-w-[600px]">
-        {/* Sidebar */}
+    <div className="flex w-full h-screen overflow-hidden relative">
+      {/* Sidebar Overlay for Mobile */}
+      {ismobileorMedium && !collapseSidebar && (
         <div
-          className={`bg-gray-950 text-gray-200 font-bold h-full overflow-y-auto transition-all duration-300 
-          ${collapseSidebar ? "w-0 overflow-hidden" : "w-[250px] md:w-[220px]"}`}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={handleOutsideClick}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`h-full transition-all duration-300 z-50 ${
+          ismobileorMedium
+            ? `fixed top-0 left-0 h-full bg-gray-800 shadow-lg ${
+                collapseSidebar ? "w-0 overflow-hidden" : "w-[290px]"
+              }`
+            : `${
+                collapseSidebar
+                  ? "w-0 overflow-hidden"
+                  : "w-[300px] md:w-[270px]"
+              } ${
+                theme === "dark"
+                  ? "bg-gray-900/80 backdrop-blur-md shadow-md"
+                  : "bg-gray-200/90 border-r border-gray-200"
+              }`
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="flex flex-row items-center justify-between text-3xl p-4">
+          <Link href="/" className="flex items-center gap-2">
+            <motion.span
+              className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"
+              animate={{
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+              }}
+            >
+              WP.ai
+            </motion.span>
+          </Link>
+          <button onClick={handleSidebarToggle}>
+            <FiSidebar />
+          </button>
+        </div>
+
+        {/* Sidebar Content */}
+        {!collapseSidebar && <Sidebar />}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 h-full w-full relative overflow-hidden">
+        {/* Header Section */}
+        <div
+          className={`w-full relative ${
+            theme === "dark" ? "bg-gray-800" : "bg-gray-200"
+          }`}
         >
-          {!collapseSidebar && (
-            <div className="flex flex-row items-center justify-between text-3xl p-4">
-              <p className="text-indigo-600">SideBar</p>
-              <button onClick={() => setCollapseSidebar(!collapseSidebar)}>
+          <div
+            className={`flex w-full p-2 ${
+              theme === "dark"
+                ? "bg-gray-800 text-white"
+                : "bg-gray-100 text-black"
+            }`}
+          >
+            {collapseSidebar && (
+              <button
+                className="font-bold text-3xl m-2"
+                onClick={handleSidebarToggle}
+              >
                 <FiSidebar />
               </button>
-            </div>
-          )}
-          <div className="mt-3">
-            <Sidebar />
+            )}
+            <Header />
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex flex-col flex-1 bg-neutral-900 h-full overscroll-x-auto text-gray-200 relative min-w-[400px]">
-          {/* Header Section */}
-          <div className="w-full bg-gray-900 border-b-2 border-gray-900 relative">
-            <div className="flex min-w-[600px]">
-              {collapseSidebar && (
-                <button
-                  className="font-bold text-3xl m-2"
-                  onClick={() => setCollapseSidebar(!collapseSidebar)}
-                >
-                  <FiSidebar />
-                </button>
-              )}
-              {/* Header */}
-              <Header />
-            </div>
-          </div>
-
-          {/* Page Content */}
-          <div className="flex-1 overflow-hidden p-4">{children}</div>
-        </div>
+        {/* Page Content: Make sure it scrolls */}
+        <div className="flex-1 overflow-y-auto pb-2 pt-0 font-inter w-full">{children}</div>
       </div>
 
       {/* Toast Notifications */}
@@ -83,12 +161,12 @@ export default function ChatLayout({
         position="top-right"
         toastOptions={{
           style: {
-            background: "#000000",
-            color: "#ffffff",
+            background: theme === "dark" ? "#000000" : "#ffffff",
+            color: theme === "dark" ? "#ffffff" : "#000000",
             padding: "10px",
             fontSize: "16px",
             fontWeight: "bold",
-            border: "2px solid #000000",
+            border: `2px solid ${theme === "dark" ? "#000000" : "#e0e0e0"}`,
           },
         }}
       />

@@ -295,11 +295,11 @@ export default function Navbar() {
                       <FaUser /> General
                     </div>
                   </Link>
-                  <Link href="/pricing" onClick={() => setShowDropdown(false)}>
+                  {/* <Link href="/pricing" onClick={() => setShowDropdown(false)}>
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaCrown /> Pricing
                     </div>
-                  </Link>
+                  </Link> */}
                   <Link href="/about" onClick={() => setShowDropdown(false)}>
                     <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                       <FaInfoCircle /> About

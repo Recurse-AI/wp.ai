@@ -14,6 +14,8 @@ import {
   FaSun,
   FaMoon,
   FaDesktop,
+  FaCrown,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
 
@@ -30,6 +32,7 @@ const Header = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
     try {
@@ -41,7 +44,7 @@ const Header = () => {
       });
       await signOut({ redirect: false });
       setIsLoggedIn(false);
-      router.push("/");
+      router.push("/chat");
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -49,22 +52,24 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close Profile Dropdown if clicked outside
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setShowDropdown(false);
+        setTimeout(() => setShowDropdown(false), 100);
       }
 
+      // Close Theme Dropdown if clicked outside
       if (
         themeDropdownRef.current &&
         !themeDropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        themeButtonRef.current &&
+        !themeButtonRef.current.contains(event.target as Node)
       ) {
-        setShowThemeDropdown(false);
+        setTimeout(() => setShowThemeDropdown(false), 100);
       }
     };
 
@@ -77,9 +82,20 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-gray-900 w-full border-b border-gray-700">
+    <div
+      className={`flex flex-wrap items-center justify-between px-4 py-3 w-full
+      ${theme === "dark" ? "bg-gray-800 text-white" : "bg-gray-100 text-black"}
+  `}
+    >
       {/* Left: WP.AI Dropdown Button */}
-      <button className="flex items-center gap-1 bg-[#212121] hover:bg-black font-semibold tracking-wide px-3 py-2 rounded-lg duration-300">
+      <button
+        className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
+        ${
+          theme === "dark"
+            ? "bg-black border-gray-900 text-white hover:bg-black/30"
+            : "bg-gray-300 border-gray-200 text-black"
+        }`}
+      >
         <div className="flex gap-1">
           WP.AI <FiChevronDown />
         </div>
@@ -90,12 +106,13 @@ const Header = () => {
         {/* 🔹 Theme Dropdown Button */}
         <div className="relative">
           <button
-            onClick={() => {
-              setShowThemeDropdown(!showThemeDropdown);
+            ref={themeButtonRef} // ✅ Use a separate ref for theme button
+            onClick={(e) => {
+              e.stopPropagation(); // ✅ Prevents immediate closing
+              setShowThemeDropdown((prev) => !prev);
               setShowDropdown(false);
             }}
             className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-all"
-            ref={buttonRef}
           >
             {theme === "light" && <FaSun className="text-yellow-400" />}
             {theme === "dark" && <FaMoon className="text-gray-900" />}
@@ -146,6 +163,7 @@ const Header = () => {
               <motion.button
                 className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
                 whileHover={{ scale: 1.05 }}
+                onClick={() => localStorage.setItem("isChat", "true")}
               >
                 Sign In
               </motion.button>
@@ -155,6 +173,7 @@ const Header = () => {
               <motion.button
                 className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
                 whileHover={{ scale: 1.05 }}
+                onClick={() => localStorage.setItem("isChat", "true")}
               >
                 Sign Up
               </motion.button>
@@ -163,8 +182,10 @@ const Header = () => {
         ) : (
           <div className="relative">
             <button
-              onClick={() => {
-                setShowDropdown(!showDropdown);
+              ref={buttonRef} // ✅ Separate ref for profile button
+              onClick={(e) => {
+                e.stopPropagation(); // ✅ Prevents immediate closing
+                setShowDropdown((prev) => !prev);
                 setShowThemeDropdown(false);
               }}
               className="flex items-center gap-2"
@@ -205,6 +226,16 @@ const Header = () => {
                   <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                     <FaUser /> General
                   </div>
+                </Link>
+                {/* <Link href="/pricing" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaCrown /> Pricing
+                    </div>
+                </Link> */}
+                <Link href="/about" onClick={() => setShowDropdown(false)}>
+                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                      <FaInfoCircle /> About
+                    </div>
                 </Link>
                 <div
                   onClick={handleLogout}

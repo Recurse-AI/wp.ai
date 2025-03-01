@@ -51,7 +51,11 @@ export default function SignUp() {
             // console.log(data.jwt)
             localStorage.setItem("authToken", data.jwt); // Save backend token
             toast.success("You are logged in now!");
-            router.push("/");
+            if(localStorage.getItem("isChat")){
+              localStorage.removeItem("isChat");
+              router.push("/chat");
+            }
+            else router.push("/");
             setIsLoggedIn(true);
           } else {
             console.error("❌ Backend /authLogin API failed");

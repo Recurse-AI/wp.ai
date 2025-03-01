@@ -3,7 +3,7 @@ export const fetchMessages = async (id: string, setMessages: any, setError: any)
     if (!id) return;
   
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-all-message?id=${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-all-message?id=${id}`, {
         method: "GET",
         credentials: "include",
       });

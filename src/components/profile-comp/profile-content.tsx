@@ -79,10 +79,11 @@ export default function ProfileContent() {
         <Card>
           <CardHeader>
             <CardTitle>Account Settings</CardTitle>
-            <CardDescription>Manage your account and subscription details.</CardDescription>
+            {/* <CardDescription>Manage your account and subscription details.</CardDescription> */}
+            <CardDescription>Manage your account here.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <h3 className="text-lg font-semibold">Premium Status</h3>
               {(storedUser.user_profile.is_premium || true) ? (
                 <div>
@@ -92,7 +93,7 @@ export default function ProfileContent() {
               ) : (
                 <p>You are on the free plan.</p>
               )}
-            </div>
+            </div> */}
             <Button onClick={() => console.log("Upgrade premium clicked")}>{userData.isPremium ? "Change Plan" : "Upgrade to Premium"}</Button>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Password</h3>

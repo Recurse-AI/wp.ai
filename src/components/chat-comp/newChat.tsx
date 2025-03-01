@@ -1,30 +1,36 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FaPlus } from "react-icons/fa";
 import React from "react";
+import { useTheme } from "@/context/ThemeProvider";
 
 const NewChat = () => {
   const router = useRouter();
   const { data: session } = useSession();
+  const { theme } = useTheme(); // Assuming you get theme data from session or default to light
 
   const createNewChat = async () => {
-    // ✅ Generate a dummy chat ID
-    const dummyChatId = Math.random().toString(36).substring(2, 12);
-
-    // ✅ Redirect to the new chat page with the dummy ID
     router.push(`/chat`);
   };
 
   return (
     <button
-      className="flex items-center justify-center gap-2 border border-white/20
-        text-xs md:text-base px-2 py-1 rounded-md text-white/50 hover:border-white/10
-        hover:text-white duration-300 tracking-wide w-full mx-1"
+      className={`
+        flex items-center justify-center gap-2 
+        w-full py-2 rounded-md
+        text-sm md:text-base font-medium tracking-wide
+        transition duration-300 ease-in-out
+        ${theme === "dark"
+          ? "bg-gray-800 text-white border border-white/20 hover:bg-gray-700 hover:border-white/10"
+          : "bg-white text-gray-800 border border-gray-800/20 hover:bg-gray-50 hover:border-gray-800/10"}
+        cursor-pointer
+      `}
       onClick={createNewChat}
     >
-      <FaPlus /> New Chat
+      <FaPlus className="text-lg" /> {/* Adjust icon size */}
+      New Chat
     </button>
   );
 };
