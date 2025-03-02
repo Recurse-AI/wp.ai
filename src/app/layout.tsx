@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* ✅ Render children directly without authentication check */}
             <div className="relative z-10">{children}</div>
 
-            <Toaster position="bottom-right" reverseOrder={false} />
+            {/* <Toaster position="bottom-right" reverseOrder={false} /> */}
           </SessionProvider>
         </ThemeProvider>
 
