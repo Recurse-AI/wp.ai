@@ -18,6 +18,8 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
+import { Menu } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 
 const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -33,6 +35,10 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [showWPAIDropdown, setShowWPAIDropdown] = useState(false);
+  const wpAIButtonRef = useRef<HTMLButtonElement>(null);
+  const wpAIDropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     try {
@@ -48,6 +54,11 @@ const Header = () => {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleDefaultMode = () => {
+    setShowWPAIDropdown(false);
+    window.location.reload(); // This will refresh the current page
   };
 
   useEffect(() => {
@@ -71,6 +82,16 @@ const Header = () => {
       ) {
         setTimeout(() => setShowThemeDropdown(false), 100);
       }
+
+      // Close WP.AI Dropdown if clicked outside
+      if (
+        wpAIDropdownRef.current &&
+        !wpAIDropdownRef.current.contains(event.target as Node) &&
+        wpAIButtonRef.current &&
+        !wpAIButtonRef.current.contains(event.target as Node)
+      ) {
+        setTimeout(() => setShowWPAIDropdown(false), 100);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -88,18 +109,52 @@ const Header = () => {
   `}
     >
       {/* Left: WP.AI Dropdown Button */}
-      <button
-        className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
-        ${
-          theme === "dark"
-            ? "bg-black border-gray-900 text-white hover:bg-black/30"
-            : "bg-gray-300 border-gray-200 text-black"
-        }`}
-      >
-        <div className="flex gap-1">
-          WP.AI <FiChevronDown />
-        </div>
-      </button>
+      <div className="relative">
+        <button
+          ref={wpAIButtonRef}
+          onClick={() => {
+            setShowWPAIDropdown(!showWPAIDropdown);
+            setShowDropdown(false);
+            setShowThemeDropdown(false);
+          }}
+          className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
+            ${
+              theme === "dark"
+                ? "bg-black border-gray-900 text-white hover:bg-black/30"
+                : "bg-gray-300 border-gray-200 text-black"
+            }`}
+        >
+          <div className="flex gap-1">
+            WP.AI <FiChevronDown />
+          </div>
+        </button>
+
+        {/* WP.AI Dropdown Menu */}
+        {showWPAIDropdown && (
+          <motion.div
+            ref={wpAIDropdownRef}
+            className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div
+              onClick={handleDefaultMode}
+              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+            >
+              <FaRocket /> Default Mode
+            </div>
+            <div
+              data-tooltip-id="agent-mode-tooltip"
+              data-tooltip-content="Coming Soon!"
+              className="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 cursor-not-allowed opacity-50"
+            >
+              <FaRocket /> Agent Mode
+            </div>
+            <Tooltip id="agent-mode-tooltip" place="right" />
+          </motion.div>
+        )}
+      </div>
 
       {/* Right: Theme & Authentication */}
       <div className="flex gap-4 items-center relative">
@@ -158,27 +213,130 @@ const Header = () => {
 
         {/* 🔹 Authentication */}
         {!isLoggedIn ? (
-          <>
-            <Link href="/signin">
-              <motion.button
-                className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => localStorage.setItem("isChat", "true")}
-              >
-                Sign In
-              </motion.button>
-            </Link>
+          <div className="relative">
+            {/* Desktop View: Buttons */}
+            <div className="hidden md:flex space-x-4">
+              <Link href="/signin">
+                <motion.button
+                  className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign In
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
+          <div className="relative">
+            {/* Desktop View: Buttons */}
+            <div className="hidden md:flex space-x-4">
+              <Link href="/signin">
+                <motion.button
+                  className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign In
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
 
-            <Link href="/signup">
-              <motion.button
-                className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => localStorage.setItem("isChat", "true")}
+              <Link href="/signup">
+                <motion.button
+                  className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign Up
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
+            </div>
+
+            {/* Mobile View: Dropdown Menu */}
+            <div className="md:hidden relative">
+              <button
+                className="p-2 bg-gray-700 text-white"
+                onClick={() => setIsOpen(!isOpen)}
               >
-                Sign Up
-              </motion.button>
-            </Link>
-          </>
+                <Menu size={24} />
+              </button>
+
+              {isOpen && (
+                <motion.div
+                  className="fixed top-16 right-4 w-32 bg-white shadow-lg overflow-hidden z-50"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <Link href="/signin">
+                    <motion.button
+                      className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white transition overflow-hidden text-sm md:text-base w-full text-left"
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => localStorage.setItem("isChat", "true")}
+                    >
+                      Sign In
+                      {/* Flowing Light Effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-white opacity-10"
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 1.5,
+                          ease: "linear",
+                        }}
+                      />
+                    </motion.button>
+                  </Link>
+                  <Link href="/signup">
+                    <motion.button
+                      className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white transition overflow-hidden text-sm md:text-base w-full text-left"
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => localStorage.setItem("isChat", "true")}
+                    >
+                      Sign Up
+                      {/* Flowing Light Effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-white opacity-10"
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 1.5,
+                          ease: "linear",
+                        }}
+                      />
+                    </motion.button>
+                  </Link>
+                </motion.div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="relative">
             <button
@@ -233,9 +391,12 @@ const Header = () => {
                     </div>
                 </Link> */}
                 <Link href="/about" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaInfoCircle /> About
-                    </div>
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                    <FaInfoCircle /> About
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                    <FaInfoCircle /> About
+                  </div>
                 </Link>
                 <div
                   onClick={handleLogout}

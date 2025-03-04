@@ -66,7 +66,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
   return (
     <div className="flex flex-col items-center w-full font-inter">
       {/* User Message */}
-      <div className="flex justify-end w-full max-w-2xl mt-2">
+      <div className="flex justify-end w-full max-w-3xl px-4 mt-2">
         <div
           className={`relative py-3 px-4 rounded-3xl ml-20 w-auto
           ${
@@ -90,7 +90,7 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
       </div>
 
       {/* AI Response */}
-      <div className="flex justify-start w-full max-w-2xl mt-3 font-inter">
+      <div className="flex justify-start w-full max-w-3xl px-4 mt-3 font-inter">
         {/* <Image
           className="border border-gray-600 w-9 h-9 rounded-full object-cover"
           src={defaultAvatars.ai}

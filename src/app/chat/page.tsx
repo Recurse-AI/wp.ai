@@ -14,7 +14,9 @@ const Page = () => {
           How can I help you?
         </h2>
       </div>
-      <ChatInput id={""} />
+      <ChatInput id={""} /> 
+      {/* {* no console.error(); */}
+      *}
     </div>
   );
 };

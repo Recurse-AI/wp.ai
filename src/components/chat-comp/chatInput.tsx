@@ -13,7 +13,7 @@ import { fetchMessages } from "@/utils/fetchMessages";
 import toast from "react-hot-toast"; // ✅ For success & error messages
 import ProcessingMessage from "./processingMessage";
 import { useTheme } from "@/context/ThemeProvider";
-import { Tooltip } from 'react-tooltip';
+import { Tooltip } from "react-tooltip";
 
 const ChatInput = ({
   id,
@@ -43,6 +43,16 @@ const ChatInput = ({
         scrollHeight,
         maxHeight
       )}px`;
+    }
+  };
+
+  // ✅ Handle key press events
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // Prevent default new line
+      if (prompt.trim()) {
+        handleSubmit(e as any);
+      }
     }
   };
 
@@ -161,8 +171,9 @@ const ChatInput = ({
             {/* Textarea */}
             <textarea
               ref={textareaRef}
-              placeholder="How can I help you today?"
+              placeholder="Ask me anything..."
               onChange={handleInput}
+              onKeyDown={handleKeyDown}
               value={prompt}
               className={`bg-transparent placeholder:text-gray-500 px-3 outline-none 
         w-full font-medium tracking-wide text-base resize-none overflow-y-auto ${
@@ -199,7 +210,6 @@ const ChatInput = ({
                 <Tooltip id="tooltip-camera" place="top" />
               </div>
             </div>
-
           </div>
 
           {/* Send Button on the Right */}
