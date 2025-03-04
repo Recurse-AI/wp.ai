@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { getUser } from "@/utils/getUser"; // ✅ Import getUser
@@ -14,10 +14,12 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
   const [themeLoaded, setThemeLoaded] = useState(false);
+  const pathname = usePathname();
 
   // ✅ Extract token from URL
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function ResetPassword() {
   // ✅ Check if user is logged in (Redirect if logged in)
   useEffect(() => {
     setThemeLoaded(false);
-    getUser(setIsLoggedIn, setUser, router).then(() => {
+    getUser(setIsLoggedIn, setUser, router, pathname).then(() => {
       setThemeLoaded(true);
     });
   }, []);
@@ -54,6 +56,7 @@ export default function ResetPassword() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setErrorMessage("");
 
     if (!token) {
       toast.error("Invalid token.");
@@ -62,13 +65,13 @@ export default function ResetPassword() {
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match!");
+      setErrorMessage("Passwords do not match!");
       setLoading(false);
       return;
     }
 
     if (!isPasswordStrong(newPassword)) {
-      toast.error("Password must be at least 8 characters, include 1 uppercase, 1 lowercase, and 1 number.");
+      setErrorMessage("Password must be at least 8 characters, include 1 uppercase, 1 lowercase, and 1 number.");
       setLoading(false);
       return;
     }
@@ -84,13 +87,14 @@ export default function ResetPassword() {
 
       if (!res.ok) throw new Error("Token expired or invalid request.");
 
-      setMessage("Password reset successfully! Redirecting to Sign In...");
+      setMessage("✅ Password reset successfully! Redirecting to Sign In...");
       toast.success("Password updated!");
 
       // ✅ Redirect after success
-      setTimeout(() => router.push("/signin"), 2000);
+      setTimeout(() => router.push("/signin"), 3000);
     } catch (error) {
-      toast.error("Failed to reset password. Try again.");
+      setErrorMessage("Failed to reset password. Try again.");
+      toast.error("Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -110,6 +114,7 @@ export default function ResetPassword() {
         </p>
 
         {message && <p className="text-green-400 text-center">{message}</p>}
+        {errorMessage && <p className="text-red-400 text-center">{errorMessage}</p>}
 
         <form onSubmit={handleResetPassword} className="space-y-4">
           <input
@@ -133,9 +138,19 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg"
+            className="w-full p-3 bg-blue-500 hover:bg-blue-600 transition-all text-white font-medium rounded-lg flex items-center justify-center"
           >
-            {loading ? "Updating..." : "Reset Password"}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                Updating...
+              </>
+            ) : (
+              "Reset Password"
+            )}
           </button>
         </form>
 

@@ -4,29 +4,14 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "avatars.githubusercontent.com",
+        hostname: "**", // Allows all HTTPS image hostnames
       },
       {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com", // Google Profile Pictures
-      },
-      {
-        protocol: "https",
-        hostname: "secure.gravatar.com", // WordPress Profile Pictures
-      },
-      {
-        protocol: "https",
-        hostname: "ec3b-59-152-111-154.ngrok-free.app", // WordPress Profile Pictures
-      },
-      {
-        protocol: "https",
-        hostname: "media.istockphoto.com", // WordPress Profile Pictures
-      },
-      {
-        protocol: "https",
-        hostname: "img.freepik.com", // WordPress Profile Pictures
+        protocol: "http",
+        hostname: "**", // Allows all HTTP image hostnames (Not recommended for security)
       },
     ],
+    unoptimized: true, // ⚠️ Disables image optimization (Allows any external image)
   },
 };
 
