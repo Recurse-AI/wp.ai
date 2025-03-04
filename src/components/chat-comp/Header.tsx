@@ -18,6 +18,7 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
+import { Menu } from "lucide-react";
 
 const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -33,6 +34,7 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -158,27 +160,108 @@ const Header = () => {
 
         {/* 🔹 Authentication */}
         {!isLoggedIn ? (
-          <>
-            <Link href="/signin">
-              <motion.button
-                className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => localStorage.setItem("isChat", "true")}
-              >
-                Sign In
-              </motion.button>
-            </Link>
+          <div className="relative">
+            {/* Desktop View: Buttons */}
+            <div className="hidden md:flex space-x-4">
+              <Link href="/signin">
+                <motion.button
+                  className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign In
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
 
-            <Link href="/signup">
-              <motion.button
-                className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => localStorage.setItem("isChat", "true")}
+              <Link href="/signup">
+                <motion.button
+                  className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign Up
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
+            </div>
+
+            {/* Mobile View: Dropdown Menu */}
+            <div className="md:hidden relative">
+              <button
+                className="p-2 bg-gray-700 text-white"
+                onClick={() => setIsOpen(!isOpen)}
               >
-                Sign Up
-              </motion.button>
-            </Link>
-          </>
+                <Menu size={24} />
+              </button>
+
+              {isOpen && (
+                <motion.div
+                  className="fixed top-16 right-4 w-32 bg-white shadow-lg overflow-hidden z-50"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <Link href="/signin">
+                    <motion.button
+                      className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white transition overflow-hidden text-sm md:text-base w-full text-left"
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => localStorage.setItem("isChat", "true")}
+                    >
+                      Sign In
+                      {/* Flowing Light Effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-white opacity-10"
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 1.5,
+                          ease: "linear",
+                        }}
+                      />
+                    </motion.button>
+                  </Link>
+                  <Link href="/signup">
+                    <motion.button
+                      className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white transition overflow-hidden text-sm md:text-base w-full text-left"
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => localStorage.setItem("isChat", "true")}
+                    >
+                      Sign Up
+                      {/* Flowing Light Effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-white opacity-10"
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 1.5,
+                          ease: "linear",
+                        }}
+                      />
+                    </motion.button>
+                  </Link>
+                </motion.div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="relative">
             <button
@@ -233,9 +316,9 @@ const Header = () => {
                     </div>
                 </Link> */}
                 <Link href="/about" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaInfoCircle /> About
-                    </div>
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                    <FaInfoCircle /> About
+                  </div>
                 </Link>
                 <div
                   onClick={handleLogout}

@@ -94,7 +94,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className={`relative min-h-screen bg-transparent ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
+    <div className={`relative min-h-screen bg-transparent w-full ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
       
       {/* <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
