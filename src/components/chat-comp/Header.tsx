@@ -235,6 +235,28 @@ const Header = () => {
                   />
                 </motion.button>
               </Link>
+          <div className="relative">
+            {/* Desktop View: Buttons */}
+            <div className="hidden md:flex space-x-4">
+              <Link href="/signin">
+                <motion.button
+                  className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => localStorage.setItem("isChat", "true")}
+                >
+                  Sign In
+                  {/* Flowing Light Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-white opacity-10"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                    }}
+                  />
+                </motion.button>
+              </Link>
 
               <Link href="/signup">
                 <motion.button
@@ -369,6 +391,9 @@ const Header = () => {
                     </div>
                 </Link> */}
                 <Link href="/about" onClick={() => setShowDropdown(false)}>
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                    <FaInfoCircle /> About
+                  </div>
                   <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
                     <FaInfoCircle /> About
                   </div>
