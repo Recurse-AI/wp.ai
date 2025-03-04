@@ -26,34 +26,35 @@ const Sidebar = () => {
     getUser(setIsLoggedIn, setUser, router, pathname);
   }, []);
 
+  const fetchChats = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-group-message/`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch chats");
+
+      const data = await response.json();
+
+      console.log("Fetched Chats:", data);
+
+      setChats(Array.isArray(data.message) ? data.message.reverse() : []);
+    } catch (err) {
+      console.error("Error fetching chats:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchChats = async () => {
-      setLoading(true);
-      setError(false);
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-group-message/`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-
-        if (!response.ok) throw new Error("Failed to fetch chats");
-
-        const data = await response.json();
-
-        console.log("Fetched Chats:", data);
-
-        setChats(Array.isArray(data.message) ? data.message.reverse() : []);
-      } catch (err) {
-        console.error("Error fetching chats:", err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    
     if (isLoggedIn) {
       fetchChats();
     }
@@ -113,6 +114,7 @@ const Sidebar = () => {
                     name={chat.title}
                     openDropdown={openDropdown}
                     setOpenDropdown={setOpenDropdown}
+                    refreshChats={fetchChats}
                   />
                 ))}
               </div>

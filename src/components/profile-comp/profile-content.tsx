@@ -94,7 +94,7 @@ export default function ProfileContent() {
                 <p>You are on the free plan.</p>
               )}
             </div> */}
-            <Button onClick={() => console.log("Upgrade premium clicked")}>{userData.isPremium ? "Change Plan" : "Upgrade to Premium"}</Button>
+            {/* <Button onClick={() => console.log("Upgrade premium clicked")}>{userData.isPremium ? "Change Plan" : "Upgrade to Premium"}</Button> */}
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Password</h3>
               <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)}>
