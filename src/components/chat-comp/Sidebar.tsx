@@ -10,7 +10,7 @@ import { getUser } from "@/utils/getUser";
 import Link from "next/link";
 import { useTheme } from "@/context/ThemeProvider";
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
@@ -54,11 +54,16 @@ const Sidebar = () => {
   };
 
   useEffect(() => {
-    
     if (isLoggedIn) {
       fetchChats();
     }
   }, [isLoggedIn]);
+
+  const handleChatSelect = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <div
@@ -73,7 +78,7 @@ const Sidebar = () => {
       <div
         className={`flex items-center justify-center w-full tracking-wide text-3xl font-semibold mt-1`}
       >
-        <NewChat />
+        <NewChat onClose={onClose} />
       </div>
 
       {/* Sidebar Content */}
@@ -115,6 +120,7 @@ const Sidebar = () => {
                     openDropdown={openDropdown}
                     setOpenDropdown={setOpenDropdown}
                     refreshChats={fetchChats}
+                    onSelect={handleChatSelect}
                   />
                 ))}
               </div>

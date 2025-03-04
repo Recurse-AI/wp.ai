@@ -16,12 +16,14 @@ const ChatRow = ({
   openDropdown,
   setOpenDropdown,
   refreshChats, // ✅ Function to refresh chat list after delete
+  onSelect, // Add this prop
 }: {
   id: string;
   name: string;
   openDropdown: string | null;
   setOpenDropdown: (id: string | null) => void;
   refreshChats: () => void; // ✅ Refresh chat list after deletion
+  onSelect?: () => void; // Add this type
 }) => {
   const { theme } = useTheme();
   const pathName = usePathname();
@@ -34,6 +36,7 @@ const ChatRow = ({
   const [newTitle, setNewTitle] = useState(name); // ✅ Track new title
   const [loading, setLoading] = useState(false); // ✅ Loading state for title update
   const [deleting, setDeleting] = useState(false); // ✅ Loading state for delete action
+  const inputRef = useRef<HTMLInputElement>(null); // Add this line
 
   useEffect(() => {
     if (!pathName) return;
@@ -43,9 +46,21 @@ const ChatRow = ({
   useEffect(() => {
     if (openDropdown === id && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const dropdownWidth = 160; // Width of the dropdown menu
+
+      // Calculate position
+      let left = rect.left + rect.width + 8;
+
+      // Check if dropdown would go off screen
+      if (left + dropdownWidth > windowWidth) {
+        // Position dropdown to the left of the button if it would go off screen
+        left = rect.left - dropdownWidth - 8;
+      }
+
       setDropdownPosition({
         top: rect.top + window.scrollY,
-        left: rect.left + rect.width + 8,
+        left: Math.max(8, left), // Ensure minimum left position of 8px
       });
     }
   }, [openDropdown, id]);
@@ -53,6 +68,45 @@ const ChatRow = ({
   useEffect(() => {
     setNewTitle(name); // ✅ Update new title when name changes
   }, [name]);
+
+  // Add useEffect for handling outside clicks
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        openDropdown === id &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node) &&
+        !(event.target as Element).closest(".dropdown-menu")
+      ) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdown, id, setOpenDropdown]);
+
+  // Add useEffect for handling outside clicks on the input
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isEditing &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        updateTitle();
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEditing]);
 
   const handleDropdownToggle = () => {
     setOpenDropdown(openDropdown === id ? null : id);
@@ -64,20 +118,24 @@ const ChatRow = ({
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/edit-title/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          "group-id": id,
-          title: newTitle,
-        }),
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/edit-title/`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            "group-id": id,
+            title: newTitle,
+          }),
+          credentials: "include",
+        }
+      );
 
       if (!res.ok) throw new Error("Failed to update title");
 
       toast.success("Chat title updated!"); // ✅ Show success toast
       setIsEditing(false); // ✅ Exit editing mode
+      onSelect?.(); // Close sidebar after successful title update
     } catch (error) {
       toast.error("Failed to update title");
       console.error("Error updating title:", error);
@@ -90,12 +148,15 @@ const ChatRow = ({
   const deleteChat = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/delete-group/`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "group-id": id }),
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/delete-group/`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "group-id": id }),
+          credentials: "include",
+        }
+      );
 
       if (!res.ok) throw new Error("Failed to delete chat");
 
@@ -122,6 +183,7 @@ const ChatRow = ({
           {isEditing ? (
             <div className="flex items-center w-full">
               <input
+                ref={inputRef}
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
@@ -132,11 +194,20 @@ const ChatRow = ({
               {loading ? (
                 <div className="ml-2 animate-spin border-t-2 border-blue-500 border-solid rounded-full h-5 w-5" />
               ) : (
-                <FaCheck onClick={updateTitle} className="text-green-500 ml-2 cursor-pointer" />
+                <FaCheck
+                  onClick={updateTitle}
+                  className="text-green-500 ml-2 cursor-pointer"
+                />
               )}
             </div>
           ) : (
-            <Link href={`/chat/${id}`} className="flex-1 truncate text-lg font-medium tracking-wide">
+            <Link
+              href={`/chat/${id}`}
+              className="flex-1 truncate text-lg font-medium tracking-wide"
+              onClick={() => {
+                onSelect?.(); // Call onSelect when chat is clicked
+              }}
+            >
               {newTitle.length > 20 ? newTitle.slice(0, 20) + "..." : newTitle}
             </Link>
           )}
@@ -166,14 +237,17 @@ const ChatRow = ({
       {openDropdown === id &&
         createPortal(
           <div
-            className={`fixed shadow-lg rounded-md w-40 z-50 ${
-              theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
+            className={`fixed shadow-lg rounded-md w-40 z-50 dropdown-menu ${
+              theme === "dark"
+                ? "bg-gray-800 text-white"
+                : "bg-white text-black"
             }`}
             style={{
               top: dropdownPosition.top,
               left: dropdownPosition.left,
+              maxWidth: "calc(100vw - 16px)", // Ensure dropdown doesn't exceed screen width
             }}
-            onClick={(e) => e.stopPropagation()} // ✅ Prevent dropdown from closing immediately
+            onClick={(e) => e.stopPropagation()}
           >
             {/* ✅ Edit Title Button */}
             <button
@@ -194,7 +268,9 @@ const ChatRow = ({
                 toast(
                   (t) => (
                     <div className="flex flex-col items-center space-y-3 p-4 bg-gray-800 text-white rounded-lg shadow-lg w-80">
-                      <p className="text-sm font-medium">Are you sure you want to delete this chat?</p>
+                      <p className="text-sm font-medium">
+                        Are you sure you want to delete this chat?
+                      </p>
                       <div className="flex justify-center space-x-4">
                         <button
                           onClick={() => toast.dismiss(t.id)}
@@ -224,7 +300,6 @@ const ChatRow = ({
             >
               <BiSolidTrashAlt /> Delete
             </button>
-
           </div>,
           document.body
         )}

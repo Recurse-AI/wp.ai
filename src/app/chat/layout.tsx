@@ -122,7 +122,16 @@ export default function ChatLayout({
         </div>
 
         {/* Sidebar Content */}
-        {!collapseSidebar && <Sidebar />}
+        {!collapseSidebar && (
+          <Sidebar
+            onClose={() => {
+              if (ismobileorMedium) {
+                setCollapseSidebar(true);
+                localStorage.setItem("sidebarState", "true");
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Main Content */}
@@ -153,7 +162,9 @@ export default function ChatLayout({
         </div>
 
         {/* Page Content: Make sure it scrolls */}
-        <div className="flex-1 overflow-y-auto pb-2 pt-0 font-inter w-full">{children}</div>
+        <div className="flex-1 overflow-y-auto pb-2 pt-0 font-inter w-full">
+          {children}
+        </div>
       </div>
 
       {/* Toast Notifications */}

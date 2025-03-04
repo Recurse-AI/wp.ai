@@ -1,11 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation"; 
+import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "@/context/ThemeProvider"; 
-import "./globals.css"; 
+import { ThemeProvider } from "@/context/ThemeProvider";
+import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { twMerge } from "tailwind-merge";
 
@@ -19,29 +19,44 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname(); 
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
 
   // ✅ Hide Navbar for specific pages EXCEPT if the path starts with "/chat/"
-  const hideNavbarPages = ["/signin", "/signup", "/forgot-password", "/reset-password", "/otp-check"];
-  const shouldShowNavbar = !hideNavbarPages.includes(pathname) && !pathname.startsWith("/chat/") && !pathname.startsWith("/verify-email");
+  const hideNavbarPages = [
+    "/signin",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/otp-check",
+  ];
+  const shouldShowNavbar =
+    !hideNavbarPages.includes(pathname) &&
+    !pathname.startsWith("/chat/") &&
+    !pathname.startsWith("/verify-email");
 
   return (
     <html lang="en">
-      <body className={twMerge(`${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative`)}>
-        
+      <body
+        className={twMerge(
+          `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full`
+        )}
+      >
         <ThemeProvider>
           <SessionProvider>
-            {/* ✅ Navbar is hidden only if it's in `hideNavbarPages` and NOT starting with "/chat/" */}
-            {shouldShowNavbar && <Navbar />}
+            {/* Remove relative positioning and width from this div */}
+            <div className="z-[100]">{shouldShowNavbar && <Navbar />}</div>
 
-            {/* ✅ Render children directly without authentication check */}
-            <div className="relative z-10">{children}</div>
+            {/* Remove relative positioning and width from this div */}
+            <div className="z-0">{children}</div>
 
             {/* <Toaster position="bottom-right" reverseOrder={false} /> */}
           </SessionProvider>
         </ThemeProvider>
-
       </body>
     </html>
   );
