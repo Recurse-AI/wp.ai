@@ -47,7 +47,11 @@ export default function SignIn() {
               // console.log(data.jwt)
               localStorage.setItem("authToken", data.jwt); // Save backend token
               toast.success("You are logged in now!");
-              router.push("/");
+              if(localStorage.getItem("isChat")){
+                localStorage.removeItem("isChat");
+                router.push("/chat");
+              }
+              else router.push("/");
               setIsLoggedIn(true);
             } else {
               console.error("❌ Backend /authLogin API failed");
@@ -83,7 +87,11 @@ export default function SignIn() {
       localStorage.setItem("authToken", token);
 
       toast.success("Login successful! Redirecting...");
-      router.push("/");
+      if(localStorage.getItem("isChat")){
+        localStorage.removeItem("isChat");
+        router.push("/chat");
+      }
+      else router.push("/");
     } catch (err) {
       toast.error("Invalid email or password");
     } finally {

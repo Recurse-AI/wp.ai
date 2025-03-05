@@ -124,103 +124,112 @@ export default function Navbar() {
 
   return (
     <>
-      <nav
-        className={`fixed top-0 left-0 w-full py-4 px-6 flex justify-between items-center z-50 transition-all duration-300
+      <motion.nav
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 100 }}
+        className={`fixed top-0 left-0 w-full py-3 md:py-4 px-4 md:px-6 flex justify-between items-center z-50 transition-all duration-300
         ${
           isScrolled
-            ? "bg-gray-100/10 dark:bg-gray-900/80 backdrop-blur-md shadow-md"
-            : "bg-gray-100 dark:bg-gray-900"
+            ? "bg-white/60 dark:bg-gray-900/60 backdrop-blur-md shadow-lg"
+            : "bg-white/40 dark:bg-gray-900/40 backdrop-blur-sm"
         }`}
       >
-        {/* Left: Website Name */}
-        <Link href="/" className="flex items-center gap-2">
-          <motion.span
-            className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"
-            animate={{
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"], // Moves the gradient left-right
-            }}
-            transition={{
-              duration: 4, // Duration of one cycle
-              repeat: Infinity, // Infinite loop
-              ease: "linear", // Smooth transition
-            }}
-            style={{
-              backgroundSize: "200% 200%", // Increases gradient size for smooth flow
-            }}
+        {/* Left: Logo */}
+        <Link href="/" className="flex items-center gap-2 group">
+          <motion.div
+            className="relative"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            WP.ai
-          </motion.span>
+            <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-30 group-hover:opacity-100 blur transition-all duration-300" />
+            <motion.span
+              className="relative text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+              animate={{
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+              }}
+            >
+              WP.ai
+            </motion.span>
+          </motion.div>
         </Link>
 
         {/* Right: Theme & Authentication */}
-        {/* Right: Theme & Authentication */}
-        <div className="flex gap-4 items-center relative">
-          {/* 🔹 Theme Dropdown Button */}
-          <div className="relative">
+        <div className="flex gap-2 md:gap-4 items-center relative">
+          {/* Theme Dropdown */}
+          <motion.div 
+            className="relative"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <button
               onClick={() => {
                 setShowThemeDropdown(!showThemeDropdown);
-                setShowDropdown(false)
+                setShowDropdown(false);
               }}
-              className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-all"
+              className="p-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
               ref={buttonRef}
             >
-              {theme === "light" && <FaSun className="text-yellow-400" />}
-              {theme === "dark" && <FaMoon className="text-gray-900" />}
-              {theme === "system" && <FaDesktop className="text-gray-500" />}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
+              <div className="relative">
+                {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
+                {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
+                {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
+              </div>
             </button>
 
-            {/* 🔹 Theme Selection Dropdown */}
-            {/* 🔹 Theme Selection Dropdown */}
+            {/* Theme Dropdown Menu */}
             {showThemeDropdown && (
-              <div
+              <motion.div
                 ref={themeDropdownRef}
-                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700"
               >
-                <button
-                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
-                  onClick={() => {
-                    setTheme("light");
-                    setShowThemeDropdown(false);
-                  }}
-                >
-                  <FaSun className="text-yellow-400" /> Light Mode
-                </button>
-                <button
-                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
-                  onClick={() => {
-                    setTheme("dark");
-                    setShowThemeDropdown(false);
-                  }}
-                >
-                  <FaMoon className="text-gray-900" /> Dark Mode
-                </button>
-                <button
-                  className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
-                  onClick={() => {
-                    setTheme("system");
-                    setShowThemeDropdown(false);
-                  }}
-                >
-                  <FaDesktop className="text-gray-500" /> System Default
-                </button>
-              </div>
+                {[
+                  { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
+                  { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
+                  { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
+                ].map((item) => (
+                  <motion.button
+                    key={item.mode}
+                    whileHover={{ x: 5 }}
+                    className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => {
+                      setTheme(item.mode);
+                      setShowThemeDropdown(false);
+                    }}
+                  >
+                    <item.icon className={`${item.color} text-lg`} />
+                    <span className="font-medium">{item.label}</span>
+                  </motion.button>
+                ))}
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
-          {/* 🔹 Authentication */}
+          {/* Authentication */}
           {!isLoggedIn ? (
-            <>
+            <div className="flex gap-2 md:gap-4">
               <Link href="/signin">
                 <motion.button
-                  className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden"
-                  whileHover={{ scale: 1.05 }} // Slight scale-up on hover
+                  className="relative px-3 md:px-4 py-2 text-sm md:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   Sign In
-                  {/* Flowing Light Effect */}
                   <motion.div
-                    className="absolute inset-0 bg-white opacity-10"
-                    animate={{ x: ["-100%", "100%"] }} // Moves from left to right
+                    className="absolute inset-0 bg-white opacity-20"
+                    animate={{ x: ["-100%", "100%"] }}
                     transition={{
                       repeat: Infinity,
                       duration: 1.5,
@@ -232,14 +241,14 @@ export default function Navbar() {
 
               <Link href="/signup">
                 <motion.button
-                  className="relative px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition overflow-hidden"
-                  whileHover={{ scale: 1.05 }} // Slight scale-up on hover
+                  className="relative px-3 md:px-4 py-2 text-sm md:text-base bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition overflow-hidden"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   Sign Up
-                  {/* Flowing Light Effect */}
                   <motion.div
-                    className="absolute inset-0 bg-white opacity-10"
-                    animate={{ x: ["-100%", "100%"] }} // Moves from left to right
+                    className="absolute inset-0 bg-white opacity-20"
+                    animate={{ x: ["-100%", "100%"] }}
                     transition={{
                       repeat: Infinity,
                       duration: 1.5,
@@ -248,78 +257,77 @@ export default function Navbar() {
                   />
                 </motion.button>
               </Link>
-            </>
+            </div>
           ) : (
-            <div className="relative">
+            <motion.div 
+              className="relative"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <button
                 onClick={() => {
                   setShowDropdown(!showDropdown);
-                  setShowThemeDropdown(false)
+                  setShowThemeDropdown(false);
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 group"
               >
-                <Image
-                  src={user.image}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="rounded-full border-2 border-gray-600"
-                />
-                {/* 🔹 Responsive Username */}
-                <div className="font-semibold max-w-[100px] sm:max-w-[150px] md:max-w-none break-words text-left hidden sm:block">
-                  {user.name}
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-30 group-hover:opacity-100 blur transition-all duration-300" />
+                  <Image
+                    src={user.image}
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="relative rounded-full border-2 border-transparent group-hover:border-white transition-all duration-300"
+                  />
                 </div>
+                <span className="font-medium max-w-[80px] sm:max-w-[120px] truncate hidden sm:block">
+                  {user.name}
+                </span>
               </button>
 
-              {/* 🔹 Profile Dropdown */}
+              {/* Profile Dropdown */}
               {showDropdown && (
                 <motion.div
                   ref={dropdownRef}
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700"
                 >
-                  <Link href="/" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaHome /> Home
-                    </div>
-                  </Link>
-                  <Link href="/chat" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaRocket /> WP.ai
-                    </div>
-                  </Link>
-                  <Link href="/profile" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaUser /> General
-                    </div>
-                  </Link>
-                  <Link href="/pricing" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaCrown /> Pricing
-                    </div>
-                  </Link>
-                  <Link href="/about" onClick={() => setShowDropdown(false)}>
-                    <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-                      <FaInfoCircle /> About
-                    </div>
-                  </Link>
-                  <div
+                  {[
+                    { href: "/", icon: FaHome, label: "Home" },
+                    { href: "/chat", icon: FaRocket, label: "WP.ai" },
+                    { href: "/profile", icon: FaUser, label: "General" },
+                    { href: "/about", icon: FaInfoCircle, label: "About" }
+                  ].map((item) => (
+                    <Link key={item.href} href={item.href} onClick={() => setShowDropdown(false)}>
+                      <motion.div
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <item.icon className="text-lg text-gray-600 dark:text-gray-400" />
+                        <span className="font-medium">{item.label}</span>
+                      </motion.div>
+                    </Link>
+                  ))}
+                  <motion.div
+                    whileHover={{ x: 5 }}
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-red-600 cursor-pointer text-red-400"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 cursor-pointer transition-colors"
                   >
-                    <FaSignOutAlt /> Sign Out
-                  </div>
+                    <FaSignOutAlt className="text-lg" />
+                    <span className="font-medium">Sign Out</span>
+                  </motion.div>
                 </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* Ensure space below navbar to avoid content overlapping */}
-      <div className="pt-16"></div>
+      {/* Spacer */}
+      <div className="h-16 md:h-20"></div>
     </>
   );
 }

@@ -94,258 +94,318 @@ export default function LandingPage() {
   };
 
   return (
-    <div className={`relative min-h-screen bg-transparent ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
-      
-      {/* <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('https://www.google.com/url?sa=i&url=https%3A%2F%2Fpicsvg.com%2F&psig=AOvVaw3uh8dXkfw57q-_E8xxMz1L&ust=1739881446717000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCJj2q9LZyosDFQAAAAAdAAAAABAJ')",
-          opacity: 0.2,
-        }}
-      /> */}
+    <div className={`relative min-h-screen overflow-hidden ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
+      {/* Fixed Background Elements */}
+      <div className="fixed inset-0 overflow-hidden">
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
+        
+        {/* Large Glowing Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/30 rounded-full blur-3xl" />
+        <div className="absolute top-[30%] right-[-5%] w-[400px] h-[400px] bg-purple-600/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-pink-600/30 rounded-full blur-3xl" />
+        
+        {/* Animated Particles */}
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-2 h-2 bg-white rounded-full"
+              style={{
+                left: `${(i * 5)}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -1000],
+                opacity: [1, 0],
+              }}
+              transition={{
+                duration: 10 + Math.random() * 10,
+                repeat: Infinity,
+                delay: i * 0.2,
+                ease: "linear",
+              }}
+            />
+          ))}
+        </div>
 
-      {/* ✅ Fixed Background Circles */}
-      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-        {/* 🔵 Large Circles */}
-        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" />
-        <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
+        {/* Glowing Lines */}
+        <div className="absolute inset-0">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={`line-${i}`}
+              className="absolute h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"
+              style={{
+                width: '100%',
+                top: `${(i + 1) * 20}%`,
+                left: 0,
+              }}
+              animate={{
+                x: ['-100%', '100%'],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                delay: i * 1.5,
+                ease: "linear",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Floating Circles */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={`circle-${i}`}
+            className="absolute rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20"
+            style={{
+              width: `${100 + i * 20}px`,
+              height: `${100 + i * 20}px`,
+              left: `${(i * 15)}%`,
+              top: `${(i * 10)}%`,
+            }}
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+              rotate: [0, 180],
+            }}
+            transition={{
+              duration: 10 + i * 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
       </div>
 
-
-      {/* ✅ Hero Section */}
-      <section className="relative flex flex-col items-center justify-center text-center py-20 px-6">
-        <motion.h1
-          className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          AI-Powered WordPress Optimization
-        </motion.h1>
-        <motion.p
-          className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          WP.ai supercharges your WordPress site with <strong>AI automation</strong> and <strong>SEO enhancements</strong>, making your website smarter and faster.
-        </motion.p>
-        <div className="mt-8 flex gap-4">
-        <motion.button
-            className="relative px-6 py-3 text-white rounded-lg text-lg font-semibold flex items-center gap-2 overflow-hidden bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-            whileHover={{ scale: 1.05 }}
-            onClick={() => router.push("/chat")}
+      {/* Content Container */}
+      <div className="relative z-10">
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex flex-col items-center justify-center text-center py-12 sm:py-16 md:py-20 px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto"
           >
-            {/* Flowing Effect Layer */}
-            <motion.div
-              className="absolute inset-0 bg-white opacity-10"
-              animate={{
-                x: ["-100%", "100%"],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 1.5,
-                ease: "linear",
-              }}
-            />
-            
-            Try it Now <ArrowRight size={18} />
-          </motion.button>
-
-          <motion.button
-            className="relative px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold overflow-hidden"
-            whileHover={{ scale: 1.05 }}
-            onClick={() => router.push("/about")}
-          >
-            {/* Flowing Effect Layer */}
-            <motion.div
-              className="absolute inset-0 bg-white opacity-10"
-              animate={{
-                x: ["-100%", "100%"],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 1.5,
-                ease: "linear",
-              }}
-            />
-            
-            Learn More
-          </motion.button>
-
-        </div>
-
-        {/* ✅ Animated Hero Image (Slow Rotation Fix) */}
-        <motion.div
-          className="mt-12"
-          animate={{ rotate: 360 }} // ✅ Corrected rotation
-          transition={{ repeat: Infinity, duration: 15, ease: "linear" }} // ✅ Slower rotation speed
-        >
-          <Image src="/wp.webp" width={600} height={400} alt="AI-powered hero" className="rounded-lg" />
-        </motion.div>
-      </section>
-
-      {/* ✅ Features Section */}
-      <section className="py-20 px-6">
-        <h2 className="text-4xl font-bold text-center">Why Choose WP.ai?</h2>
-        <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-5xl mx-auto">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              className={`relative p-6 border rounded-2xl shadow-lg transition-all duration-300 overflow-hidden
-                ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
+            <motion.h1
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold"
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+                AI-Powered WordPress Optimization
+              </span>
+            </motion.h1>
+            <motion.p
+              className="mt-4 sm:mt-6 md:mt-8 text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0px 10px 20px rgba(0,0,0,0.1)",
-                transition: { duration: 0.3 },
-              }}
+              transition={{ duration: 0.8, delay: 0.2 }}
             >
-              {/* ✅ Line Drawing Effect */}
-              <motion.div
-                className="absolute inset-0 rounded-2xl border-2 border-transparent pointer-events-none"
-                initial={{ borderColor: "transparent", clipPath: "inset(100% 0% 0% 0%)" }}
-                animate={{ borderColor: "#3b82f6", clipPath: "inset(0% 0% 0% 0%)" }}
-                transition={{ duration: 10, ease: "easeInOut" }}
-                whileHover={{ borderWidth: "4px", transition: { duration: 0.3 } }}
-              />
+              WP.ai supercharges your WordPress site with <span className="font-semibold text-blue-600 dark:text-blue-400">AI automation</span> and <span className="font-semibold text-purple-600 dark:text-purple-400">SEO enhancements</span>, making your website smarter and faster.
+            </motion.p>
 
-              {/* ✅ Background Glow Effect */}
-              <motion.div
-                className="absolute inset-0 bg-blue-500 opacity-10 scale-125 blur-2xl"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 0.3 }}
-                transition={{ duration: 0.3 }}
-              />
-
-              {/* ✅ Feature Content */}
-              <div className="relative z-10">
-                <feature.icon className="text-blue-500" size={36} />
-                <h3 className="text-xl font-semibold mt-2">{feature.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">{feature.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-
-      {/* ✅ Pricing Section - Added Star Badge & Upgrade Now Button */}
-      <section className="py-20 px-6">
-        <h2 className="text-4xl font-bold text-center">Choose Your Plan</h2>
-        <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <motion.div
-              key={plan.id}
-              className={`relative p-6 border rounded-2xl shadow-lg transition-all duration-300
-                ${plan.best ? "border-blue-500 scale-105 shadow-xl" : "border-gray-300 dark:border-gray-700"}
-                ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-              whileHover={{ scale: 1.05 }}
-            >
-              {/* ⭐ Star Badge for Best Plan */}
-              {plan.best && (
-                <motion.div
-                  className="absolute top-2 right-2 bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.5 }}
-                >
-                  ⭐ Best Popular
-                </motion.div>
-              )}
-
-              <h3 className="text-2xl font-semibold">{plan.title}</h3>
-              <p className="flex items-center gap-2 text-4xl font-bold mt-3">
-                <DollarSign size={24} /> {plan.price}
-              </p>
-              <p className="text-gray-500 dark:text-gray-400">{plan.duration}</p>
-              <ul className="mt-4 space-y-2">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle className="text-green-500" size={18} /> {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* ✅ Upgrade Now Button */}
+            <div className="mt-8 sm:mt-10 md:mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
               <motion.button
-                onClick={() => handleUpgrade(plan.id)}
-                className="mt-6 w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all relative overflow-hidden"
+                className="group relative w-44 sm:w-auto px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 text-white rounded-xl text-sm sm:text-base md:text-lg font-semibold overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300"
                 whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push("/chat")}
               >
-                Upgrade Now
-                {/* 🔹 Flowing Light Effect */}
+                <span className="relative z-10 flex items-center gap-2">
+                  Try it Now <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                </span>
                 <motion.div
-                  className="absolute inset-0 bg-white opacity-10"
-                  animate={{ x: ["-100%", "100%"] }}
-                  transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
+                  animate={{
+                    x: ["-100%", "100%"],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "linear",
+                  }}
                 />
               </motion.button>
-            </motion.div>
-          ))}
-        </div>
-      </section>
 
-      {/* ✅ Feedback Section */}
-      <section className="py-20 px-6 text-center">
-        <motion.h2
-          className="text-4xl font-bold"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          We Value Your Feedback
-        </motion.h2>
-        <motion.p
-          className="text-gray-500 dark:text-gray-400 mt-2"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-        >
-          Share your thoughts to help us improve WP.ai.
-        </motion.p>
+              <motion.button
+                className="group w-48 sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-900 dark:text-white rounded-xl text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push("/about")}
+              >
+                Learn More
+              </motion.button>
+            </div>
+          </motion.div>
 
-        <motion.div
-          className="mt-6 max-w-xl mx-auto"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          {/* ✅ Feedback Textarea */}
-          <textarea
-            className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none"
-            placeholder="Write your feedback..."
-            value={feedback} // ✅ Controlled Input
-            onChange={(e) => setFeedback(e.target.value)} // ✅ Handles changes correctly
-          />
-
-          {/* ✅ Submit Button with Animation */}
-          <motion.button
-            onClick={handleFeedbackSubmit}
-            className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold relative overflow-hidden"
-            whileHover={{ scale: 1.05 }}
+          {/* Updated Hero Image */}
+          <motion.div
+            className="mt-12 sm:mt-16 md:mt-20"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
           >
-            Submit Feedback
+            <div className="relative w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] md:w-[300px] md:h-[300px] mx-auto">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30 animate-pulse" />
+              <motion.div
+                className="relative w-full h-full rounded-full overflow-hidden shadow-2xl"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              >
+                <Image
+                  src="/wp.webp"
+                  fill
+                  style={{ objectFit: 'cover' }}
+                  alt="AI-powered hero"
+                  className="rounded-full hover:scale-110 transition-transform duration-500"
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        </section>
 
-            {/* 🔹 Flowing Light Effect */}
+        {/* Video Section */}
+        <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="space-y-4 sm:space-y-6 md:space-y-8"
+              >
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                  Our platform provides access to the latest WordPress data.
+                </h2>
+                <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+                  Anyone can learn about new plugins, themes, and everything WordPress-related right here. 
+                  Ask us anything about WordPress and get the latest updates instantly.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="relative"
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30" />
+                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl">
+                  <iframe
+                    className="w-full h-full"
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                    title="WP.ai Demonstration"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12 sm:mb-16 md:mb-20"
+            >
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                Why Choose WP.ai?
+              </span>
+            </motion.h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.2 }}
+                  viewport={{ once: true }}
+                  className="group relative"
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30 transition-opacity group-hover:opacity-100" />
+                  <div className={`relative h-full p-6 sm:p-8 rounded-2xl backdrop-blur-sm ${theme === "dark" ? "bg-gray-800/90" : "bg-white/90"}`}>
+                    <feature.icon className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600 dark:text-blue-400 mb-4 sm:mb-6" />
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">{feature.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Feedback Section */}
+        <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 md:mb-8"
+            >
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                We Value Your Feedback
+              </span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-10 md:mb-12"
+            >
+              Share your thoughts to help us improve WP.ai.
+            </motion.p>
+
             <motion.div
-              className="absolute inset-0 bg-white opacity-10"
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-            />
-          </motion.button>
-        </motion.div>
-      </section>
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="relative"
+            >
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30" />
+              <div className="relative">
+                <textarea
+                  className="w-full p-4 sm:p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-base sm:text-lg min-h-[150px] sm:min-h-[200px]"
+                  placeholder="Write your feedback..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                />
 
-      {/* ✅ Footer */}
-      <footer className="py-6 text-center bg-gray-100 dark:bg-gray-800">
-        <p className="text-gray-500 dark:text-gray-400">© 2024 WP.ai - All rights reserved.</p>
-      </footer>
+                <motion.button
+                  onClick={handleFeedbackSubmit}
+                  className="mt-4 sm:mt-6 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Submit Feedback
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="relative py-8 text-center">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
+          <p className="relative text-gray-600 dark:text-gray-400">© 2024 WP.ai - All rights reserved.</p>
+        </footer>
+      </div>
     </div>
   );
 }

@@ -1,30 +1,34 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FaPlus } from "react-icons/fa";
 import React from "react";
+import { useTheme } from "@/context/ThemeProvider";
 
-const NewChat = () => {
+const NewChat = ({ onClose }: { onClose?: () => void }) => {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { theme } = useTheme();
 
-  const createNewChat = async () => {
-    // ✅ Generate a dummy chat ID
-    const dummyChatId = Math.random().toString(36).substring(2, 12);
-
-    // ✅ Redirect to the new chat page with the dummy ID
-    router.push(`/chat`);
+  const handleNewChat = () => {
+    if (onClose) {
+      onClose();
+    }
+    router.push("/chat");
   };
 
   return (
     <button
-      className="flex items-center justify-center gap-2 border border-white/20
-        text-xs md:text-base px-2 py-1 rounded-md text-white/50 hover:border-white/10
-        hover:text-white duration-300 tracking-wide w-full mx-1"
-      onClick={createNewChat}
+      onClick={handleNewChat}
+      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 w-full
+        ${
+          theme === "dark"
+            ? "bg-black hover:bg-gray-800 text-white"
+            : "bg-gray-300 hover:bg-gray-400 text-black"
+        }`}
     >
-      <FaPlus /> New Chat
+      <FaPlus className="text-xl" />
+      <span className="text-lg font-medium">New Chat</span>
     </button>
   );
 };
