@@ -391,6 +391,50 @@ export default function useAuth() {
     }
   };
 
+  // Add a verifyEmail function if it doesn't exist
+  const verifyEmail = useCallback(async (uidb64: string, token: string) => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      // Call the API to verify the email
+      const response = await AuthService.confirmEmailVerification(uidb64, token);
+      
+      // Check if the response includes auth tokens (user is automatically logged in)
+      if (response.access && response.refresh && response.user) {
+        // Store the tokens
+        TokenManager.storeTokens(response.access, response.refresh);
+        
+        // Update auth state with the user data
+        setAuthState({
+          user: response.user,
+          loading: false,
+          isAuthenticated: true,
+          error: null,
+        });
+      } else {
+        // Just update loading state if no tokens returned
+        setAuthState(prev => ({
+          ...prev,
+          loading: false,
+          error: null,
+        }));
+      }
+      
+      return response;
+    } catch (error) {
+      const errorMessage = (error as any)?.message || 'Email verification failed. Please try again.';
+      
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+      }));
+      
+      throw error;
+    }
+  }, []);
+
+  // Return all the auth methods and state
   return {
     // State
     user: authState.user,
@@ -398,10 +442,11 @@ export default function useAuth() {
     isAuthenticated: authState.isAuthenticated,
     error: authState.error,
     
-    // Auth methods
+    // Methods
     login,
     register,
     logout,
+    verifyEmail,
     socialAuth,
     
     // Profile management

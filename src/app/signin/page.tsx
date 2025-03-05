@@ -11,16 +11,17 @@ import useAuth from "@/lib/useAuth";
 import ClientOnly from "@/lib/client-only";
 import Link from 'next/link';
 import { getToastStyle } from "@/lib/toastConfig";
+import { useAuthContext } from "@/context/AuthProvider";
 
 // Interface for form data
 interface SignInFormData {
-  email: string;
+  login: string;
   password: string;
 }
 
 // Interface for field errors
 interface FormErrors {
-  email?: string;
+  login?: string;
   password?: string;
   general?: string;
 }
@@ -28,7 +29,7 @@ interface FormErrors {
 // Validation messages
 const VALIDATION_MESSAGES = {
   REQUIRED: (field: string) => `${field} is required`,
-  INVALID_CREDENTIALS: "Invalid email or password",
+  INVALID_CREDENTIALS: "Invalid username or password",
   LOGIN_SUCCESS: "Login successful! Redirecting...",
 };
 
@@ -38,10 +39,11 @@ export default function SignIn() {
   const pathname = usePathname();
   const { login, error: authError } = useAuth();
   const { data: session } = useSession();
+  const { setUserData } = useAuthContext();
   
   // Form state
   const [formData, setFormData] = useState<SignInFormData>({
-    email: "",
+    login: "",
     password: "",
   });
   
@@ -135,8 +137,8 @@ export default function SignIn() {
     let isValid = true;
 
     // Check required fields
-    if (!formData.email.trim()) {
-      newErrors.email = VALIDATION_MESSAGES.REQUIRED('Email');
+    if (!formData.login.trim()) {
+      newErrors.login = VALIDATION_MESSAGES.REQUIRED('Username or Email');
       isValid = false;
     }
 
@@ -168,9 +170,27 @@ export default function SignIn() {
     try {
       // Using the auth service for login
       const user = await login({
-        email: formData.email,
+        login: formData.login,
         password: formData.password
       });
+      
+      // Save user data to localStorage for immediate access across components
+      if (user) {
+        const userData = {
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            full_name: `${user.first_name} ${user.last_name}`.trim()
+          },
+          profile_pic: user.profile_picture || ""
+        };
+        
+        localStorage.setItem("userData", JSON.stringify(userData));
+        
+        // Update the auth context with the new user data
+        setUserData(userData);
+      }
       
       toast.success(VALIDATION_MESSAGES.LOGIN_SUCCESS, getToastStyle(theme));
       
@@ -204,7 +224,6 @@ export default function SignIn() {
         errorMessage = errorObj.message;
         setErrors({ general: errorMessage });
       }
-      
       toast.error(errorMessage, getToastStyle(theme));
     } finally {
       setLoading(false);
@@ -308,23 +327,23 @@ export default function SignIn() {
               
               <div className="space-y-1">
                 <label className={`block text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Email
+                  Username or Email
                 </label>
                 <input
-                  type="email"
-                  name="email"
-                  placeholder="Enter your email"
+                  type="text"
+                  name="login"
+                  placeholder="Enter your username or email"
                   className={`w-full p-3 rounded-lg border ${
                     theme === "dark" 
                       ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
                       : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500"
-                  } ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-indigo-500'} focus:ring-2 focus:border-transparent transition-all`}
-                  value={formData.email}
+                  } ${errors.login ? 'border-red-500 focus:ring-red-500' : 'focus:ring-indigo-500'} focus:ring-2 focus:border-transparent transition-all`}
+                  value={formData.login}
                   onChange={handleInputChange}
                   required
                 />
-                {errors.email && formSubmitted && (
-                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                {errors.login && formSubmitted && (
+                  <p className="mt-1 text-sm text-red-500">{errors.login}</p>
                 )}
               </div>
               
@@ -425,7 +444,7 @@ export default function SignIn() {
       </div>
       
       {/* Add Toaster component to ensure toast notifications appear */}
-      <Toaster position="top-center" />
+      <Toaster position="bottom-right" reverseOrder={false} />
     </ClientOnly>
   );
 }

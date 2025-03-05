@@ -15,7 +15,7 @@ export interface UserRegistration {
 }
 
 export interface LoginCredentials {
-  email: string;
+  login: string;
   password: string;
 }
 
@@ -112,7 +112,7 @@ const AuthService = {
     apiPost<{ message: string }>(ApiPaths.EMAIL_VERIFICATION, data),
 
   confirmEmailVerification: (uidb64: string, token: string) => 
-    apiGet<{ message: string }>(ApiPaths.EMAIL_VERIFICATION_CONFIRM(uidb64, token)),
+    apiGet<TokenResponse>(ApiPaths.EMAIL_VERIFICATION_CONFIRM(uidb64, token)),
 
   // Phone verification
   requestPhoneVerification: (phone: string) => 

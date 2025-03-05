@@ -8,7 +8,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { getUser } from "@/utils/getUser";
 import {
   FaUser,
   FaSignOutAlt,
@@ -22,8 +21,10 @@ import {
   FaDesktop,
 } from "react-icons/fa";
 import { useTheme } from "@/context/ThemeProvider";
+import { useAuthContext } from "@/context/AuthProvider";
 import SettingsDialog from "@/myUi/SettingsDialog";
 import MySettings from "@/myUi/MySettings";
+import useAuth from "@/lib/useAuth";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -32,20 +33,49 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
 
-  /** ✅ Always Declare Hooks at the Top */
+  // Get authentication state from useAuth hook
+  const { isAuthenticated, user: authUser, logout } = useAuth();
+  
+  // Get authentication state from AuthContext
+  const { isLoggedIn: contextIsLoggedIn, user: contextUser } = useAuthContext();
+
+  // Determine user state combining both auth sources
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({
     name: "",
     image:
       "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
   });
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // ✅ Moved to top
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Update local state from authUser when it changes
+  useEffect(() => {
+    if (authUser) {
+      setIsLoggedIn(true);
+      setUser({
+        name: `${authUser.first_name} ${authUser.last_name}`.trim() || authUser.username,
+        image: authUser.profile_picture || user.image,
+      });
+    }
+  }, [authUser]);
+  
+  // Update local state from context when it changes
+  useEffect(() => {
+    if (contextIsLoggedIn && contextUser) {
+      setIsLoggedIn(true);
+      setUser({
+        name: contextUser.name || user.name,
+        image: contextUser.image || user.image,
+      });
+    }
+  }, [contextIsLoggedIn, contextUser]);
 
   // ✅ Detect if page is scrolled
   useEffect(() => {
@@ -61,26 +91,11 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // ✅ Modified handleLogout to use useAuth's logout
   const handleLogout = async () => {
     try {
       setShowDropdown(false);
-
-      // ✅ Remove JWT token from localStorage
-      localStorage.removeItem("authToken");
-
-      // ✅ Call backend logout endpoint to clear JWT from cookies
-      await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
-        method: "GET",
-        credentials: "include", // Ensures cookies are sent and cleared
-      });
-
-      // ✅ Sign out from NextAuth (removes session)
-      await signOut({ redirect: false });
-
-      setIsLoggedIn(false);
-
-      // ✅ Redirect to login page
-      router.push("/");
+      await logout(); // Use the logout function from useAuth
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -110,14 +125,6 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    getUser(setIsLoggedIn, setUser, router, pathname); // ✅ Pass router and pathname
-  }, []);
-
-  // if (!isLoggedIn) {
-  //   return <p>Loading...</p>; // ✅ Show a loader while checking authentication
-  // }
 
   if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat" || pathname.startsWith("/verify-email"))
     return null;
@@ -218,34 +225,15 @@ export default function Navbar() {
           </motion.div>
 
           {/* Authentication */}
-          {!isLoggedIn ? (
-            <div className="flex gap-2 md:gap-4">
+          {!isLoggedIn && !isAuthenticated ? (
+            <div className="flex items-center gap-4">
               <Link href="/signin">
-                <motion.button
-                  className="relative px-3 md:px-4 py-2 text-sm md:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Sign In
-                  <motion.div
-                    className="absolute inset-0 bg-white opacity-20"
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1.5,
-                      ease: "linear",
-                    }}
-                  />
-                </motion.button>
-              </Link>
-
-              <Link href="/signup">
                 <motion.button
                   className="relative px-3 md:px-4 py-2 text-sm md:text-base bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition overflow-hidden"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Sign Up
+                  Sign In
                   <motion.div
                     className="absolute inset-0 bg-white opacity-20"
                     animate={{ x: ["-100%", "100%"] }}

@@ -1,63 +1,68 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
-import { signOut } from "next-auth/react"; // ✅ Import signOut from NextAuth
-
+/**
+ * Simplified user authentication check that doesn't rely on API calls
+ * 
+ * @param setIsLoggedIn - Function to update login state
+ * @param setUser - Function to update user state
+ * @param router - Next.js router instance
+ * @param pathname - Current pathname
+ * @returns Promise<boolean> - Returns true if user is authenticated
+ */
 export const getUser = async (
   setIsLoggedIn: (value: boolean) => void,
-  setUser: (user: any) => void,
-  router: any, // ✅ Pass router from the component
-  pathname: string // ✅ Pass pathname from the component
-) => {
+  setUser: (value: { name: string; image: string }) => void,
+  router: AppRouterInstance,
+  pathname: string
+): Promise<boolean> => {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/get-user/`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include", // ✅ Ensures cookies are sent
-    });
-
-    if (res.status === 200) {
-      const data = await res.json();
-      console.log("User Data:", data);
-
-      // ✅ Save full user data in localStorage
-      localStorage.setItem("userData", JSON.stringify(data));
-      setUser({ name: data.user.full_name, image: data.profile_pic });
-      setIsLoggedIn(true);
-      return true; // ✅ User is logged in
-    } else {
-      // Handle unauthorized state gracefully without throwing an error
-      console.log("User is not logged in or session expired");
-      
-      // Clear user session data
-      localStorage.removeItem("userData");
-      setIsLoggedIn(false);
-      setUser({ name: "", image: "" });
-      
-      return false; // User is not logged in
-    }
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-
-    // ✅ Clear user session data
-    localStorage.removeItem("userData"); // Remove stored user data
+    // Check if we have user data in localStorage
+    const userData = localStorage.getItem('userData');
     
-    // Only sign out if we were previously logged in with NextAuth
-    try {
-      await signOut({ redirect: false }); // ✅ Sign out user from NextAuth without redirect
-    } catch (signOutError) {
-      console.error("Error signing out:", signOutError);
+    if (userData) {
+      const parsedData = JSON.parse(userData);
+      
+      if (parsedData && parsedData.user) {
+        // User is authenticated
+        setIsLoggedIn(true);
+        
+        // Set user data
+        setUser({
+          name: parsedData.user.full_name || parsedData.user.username || '',
+          image: parsedData.profile_pic || '',
+        });
+        
+        return true;
+      }
     }
-
+    
+    // Check if we have authToken as fallback
+    const authToken = localStorage.getItem('authToken');
+    
+    if (authToken) {
+      // We have a token but no user data
+      // Just mark as logged in without setting user details
+      setIsLoggedIn(true);
+      return true;
+    }
+    
+    // No authentication found
     setIsLoggedIn(false);
-    setUser({ name: "", image: "" });
-
-    // ✅ Redirect to login only if the user is not on allowed public pages
-    // if (!["/signin", "/signup", "/about", "/pricing", "/chat"].includes(pathname)) {
-    //   router.push("/signin");
-    // }
-
-    return false; // ✅ User is not logged in
+    setUser({ name: '', image: '' });
+    
+    // Redirect to login if trying to access protected routes
+    const protectedRoutes = ['/profile', '/chat', '/settings'];
+    if (protectedRoutes.some(route => pathname.startsWith(route))) {
+      router.push('/signin');
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in getUser:', error);
+    
+    // Reset state on error
+    setIsLoggedIn(false);
+    setUser({ name: '', image: '' });
+    return false;
   }
-};
+}; 

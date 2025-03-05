@@ -2,13 +2,14 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import TokenManager from './tokenManager';
 
 // Base API URLs - these should match your environment variables
-const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
 
 // Error interface
 export interface ApiError {
   status: number;
   message: string;
   errors?: Record<string, string[]>;
+  data?: any;
 }
 
 // Create axios instance with default config
@@ -94,9 +95,8 @@ export const apiRequest = async <T>(
       status: axiosError.response?.status || 500,
       message: axiosError.response?.data?.message || 'Something went wrong',
       errors: axiosError.response?.data?.errors,
+      data: axiosError.response?.data,
     };
-    
-    console.error('API Error:', apiError);
     throw apiError;
   }
 };

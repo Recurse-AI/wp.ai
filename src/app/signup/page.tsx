@@ -4,7 +4,7 @@
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { getUser } from "@/utils/getUser";
@@ -168,7 +168,6 @@ export default function SignUp() {
     } catch (error) {
       const errorObj = error as any;
       let errorMessage = "Sign-up failed. Please try again.";
-      console.log(error);
       
       // Handle structured API errors (e.g. from DRF)
       if (errorObj?.errors) {
@@ -189,8 +188,21 @@ export default function SignUp() {
       } else if (errorObj?.message) {
         errorMessage = errorObj.message;
       }
-      
-      toast.error(errorMessage, getToastStyle(theme));
+
+      //if data is an object, and there is array of strings, then join them with a new line
+      if (errorObj?.data && typeof errorObj.data === 'object' && !Array.isArray(errorObj.data)) {
+        errorMessage = Object.values(errorObj.data).join('\n');
+      }
+
+      toast.error(errorMessage, {
+        duration: 5000,
+        icon: '🚨',
+        style: {
+          backgroundColor: theme === "dark" ? "#333" : "#fff",
+          color: theme === "dark" ? "#fff" : "#333",
+        },
+        position: 'bottom-right',
+      });
     } finally {
       setLoading(false);
     }
@@ -455,6 +467,7 @@ export default function SignUp() {
           </div>
         </div>
       </div>
+      <Toaster position="bottom-right" reverseOrder={false} />
     </ClientOnly>
   );
 }

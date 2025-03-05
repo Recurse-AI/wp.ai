@@ -7,11 +7,11 @@ const prefixPath = (path: string): string => {
 // All API paths used in the application
 export const ApiPaths = {
   // Authentication
-  REGISTER: prefixPath('users/register/'),
-  LOGIN: prefixPath('users/login/'),
-  REFRESH_TOKEN: prefixPath('users/login/refresh/'),
-  VERIFY_TOKEN: prefixPath('users/login/verify/'),
-  LOGOUT: prefixPath('users/logout/'),
+  REGISTER: prefixPath('users/auth/register/'),
+  LOGIN: prefixPath('users/auth/login/'),
+  REFRESH_TOKEN: prefixPath('users/auth/login/refresh/'),
+  VERIFY_TOKEN: prefixPath('users/auth/login/verify/'),
+  LOGOUT: prefixPath('users/auth/logout/'),
   
   // Social authentication
   GOOGLE_AUTH: prefixPath('users/auth/google/'),
@@ -22,7 +22,7 @@ export const ApiPaths = {
   // Email verification
   EMAIL_VERIFICATION: prefixPath('users/verify-email/'),
   EMAIL_VERIFICATION_CONFIRM: (uidb64: string, token: string) => 
-    prefixPath(`/users/verify-email/${uidb64}/${token}/`),
+    prefixPath(`users/verify-email/${uidb64}/${token}/`),
   
   // Phone verification
   PHONE_VERIFICATION: prefixPath('users/verify-phone/'),

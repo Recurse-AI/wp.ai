@@ -2,9 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/context/ThemeProvider";
+import AuthProvider from "@/context/AuthProvider";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { twMerge } from "tailwind-merge";
@@ -49,13 +49,13 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <SessionProvider>
-            {/* Remove relative positioning and width from this div */}
-            <div className="z-[100]">{shouldShowNavbar && <Navbar />}</div>
+            <AuthProvider>
+              {/* Remove relative positioning and width from this div */}
+              <div className="z-[100]">{shouldShowNavbar && <Navbar />}</div>
 
-            {/* Remove relative positioning and width from this div */}
-            <div className="z-0">{children}</div>
-
-            <Toaster position="bottom-right" reverseOrder={false} />
+              {/* Remove relative positioning and width from this div */}
+              <div className="z-0">{children}</div>
+            </AuthProvider>
           </SessionProvider>
         </ThemeProvider>
       </body>
