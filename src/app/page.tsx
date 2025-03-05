@@ -58,7 +58,7 @@ export default function LandingPage() {
   const { theme } = useTheme();
   const [feedback, setFeedback] = useState("");
 
-  const handleUpgrade = async (planId) => {
+  const handleUpgrade = async (planId : string) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-plan`, {
         method: "POST",

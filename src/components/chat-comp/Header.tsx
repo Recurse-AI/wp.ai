@@ -235,10 +235,7 @@ const Header = () => {
                   />
                 </motion.button>
               </Link>
-          <div className="relative">
-            {/* Desktop View: Buttons */}
-            <div className="hidden md:flex space-x-4">
-              <Link href="/signin">
+              <Link href="/signup">
                 <motion.button
                   className="relative px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition overflow-hidden text-sm md:text-base"
                   whileHover={{ scale: 1.05 }}
@@ -409,7 +406,7 @@ const Header = () => {
           </div>
         )}
       </div>
-    </div>
+          </div>
   );
 };
 
