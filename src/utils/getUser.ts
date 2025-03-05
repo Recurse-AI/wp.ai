@@ -27,16 +27,31 @@ export const getUser = async (
       setIsLoggedIn(true);
       return true; // ✅ User is logged in
     } else {
-      throw new Error("Unauthorized");
+      // Handle unauthorized state gracefully without throwing an error
+      console.log("User is not logged in or session expired");
+      
+      // Clear user session data
+      localStorage.removeItem("userData");
+      setIsLoggedIn(false);
+      setUser({ name: "", image: "" });
+      
+      return false; // User is not logged in
     }
   } catch (error) {
     console.error("Error fetching user data:", error);
 
     // ✅ Clear user session data
     localStorage.removeItem("userData"); // Remove stored user data
-    await signOut({ redirect: false }); // ✅ Sign out user from NextAuth without redirect
+    
+    // Only sign out if we were previously logged in with NextAuth
+    try {
+      await signOut({ redirect: false }); // ✅ Sign out user from NextAuth without redirect
+    } catch (signOutError) {
+      console.error("Error signing out:", signOutError);
+    }
 
     setIsLoggedIn(false);
+    setUser({ name: "", image: "" });
 
     // ✅ Redirect to login only if the user is not on allowed public pages
     // if (!["/signin", "/signup", "/about", "/pricing", "/chat"].includes(pathname)) {

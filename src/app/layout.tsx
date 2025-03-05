@@ -40,11 +40,12 @@ export default function RootLayout({
     !pathname.startsWith("/verify-email");
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={twMerge(
           `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full`
         )}
+        suppressHydrationWarning
       >
         <ThemeProvider>
           <SessionProvider>
@@ -54,7 +55,7 @@ export default function RootLayout({
             {/* Remove relative positioning and width from this div */}
             <div className="z-0">{children}</div>
 
-            {/* <Toaster position="bottom-right" reverseOrder={false} /> */}
+            <Toaster position="bottom-right" reverseOrder={false} />
           </SessionProvider>
         </ThemeProvider>
       </body>

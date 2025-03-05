@@ -29,6 +29,13 @@ const nextConfig = {
     ],
     unoptimized: true, // ⚠️ Disables image optimization (Allows any external image)
   },
+  // Configure React to help with hydration issues
+  reactStrictMode: true,
+  // This helps with browser extensions like Grammarly that might modify the DOM
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 5,
+  },
 };
 
 module.exports = nextConfig;
