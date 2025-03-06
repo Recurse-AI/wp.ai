@@ -10,6 +10,7 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
   data?: any;
+  tokenError?: 'expired_access' | 'expired_refresh' | 'invalid_token' | 'missing_token';
 }
 
 // Create axios instance with default config
@@ -26,10 +27,22 @@ apiClient.interceptors.request.use(
   async (config) => {
     // Only in browser environment
     if (typeof window !== 'undefined') {
-      // Get valid token from TokenManager
-      const token = await TokenManager.getValidToken();
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      try {
+        // Get valid token from TokenManager
+        const token = await TokenManager.getValidToken();
+        console.log('🔍 API Request - Token retrieved:', token ? 'Token exists' : 'No token found');
+        
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('❌ Error getting valid token for request:', error);
+        // If we're not on the login page, redirect if token refresh fails
+        if (typeof window !== 'undefined' && 
+            !window.location.pathname.includes('/signin') && 
+            !window.location.pathname.includes('/signup')) {
+          window.location.href = '/signin?reason=session_expired';
+        }
       }
     }
     return config;
@@ -48,6 +61,23 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
+        // Check if refresh token exists and is not expired
+        const refreshToken = TokenManager.getRefreshToken();
+        if (!refreshToken || TokenManager.isRefreshTokenExpired(refreshToken)) {
+          // If refresh token is missing or expired (1 month validity), force login
+          console.error('❌ No valid refresh token available (1 month validity)');
+          TokenManager.clearTokens();
+          
+          // Avoid redirect loops - only redirect if we're not already on the signin page
+          if (typeof window !== 'undefined' && 
+              !window.location.pathname.includes('/signin') && 
+              !window.location.pathname.includes('/signup')) {
+            window.location.href = '/signin?reason=login_required';
+          }
+          
+          return Promise.reject(error);
+        }
+        
         // Try to refresh the token
         await TokenManager.refreshAccessToken();
         
@@ -63,9 +93,28 @@ apiClient.interceptors.response.use(
         // If refresh fails, clear tokens and let the error pass through
         TokenManager.clearTokens();
         
-        // Redirect to login page if in browser
+        console.error('❌ Token refresh failed:', refreshError);
+        
+        // Avoid redirect loops - only redirect if we're not already on the signin page
+        // and not in the middle of a login request
         if (typeof window !== 'undefined') {
-          window.location.href = '/signin';
+          const currentPath = window.location.pathname;
+          const isLoginRequest = originalRequest.url?.includes('/login') || 
+                               originalRequest.url?.includes('/auth');
+          
+          console.log('🔄 Auth Redirect Check:', { 
+            currentPath, 
+            isLoginRequest,
+            originalUrl: originalRequest.url
+          });
+          
+          // Only redirect if not already on signin page and not in login process
+          if (currentPath !== '/signin' && !isLoginRequest) {
+            console.log('⚠️ Redirecting to signin page due to auth failure');
+            window.location.href = '/signin?reason=auth_failed';
+          } else {
+            console.log('🛑 Prevented redirect loop - already on signin page or in login process');
+          }
         }
       }
     }
@@ -97,6 +146,30 @@ export const apiRequest = async <T>(
       errors: axiosError.response?.data?.errors,
       data: axiosError.response?.data,
     };
+    
+    // Add token-specific error information
+    if (axiosError.response?.status === 401) {
+      const errorDetail = axiosError.response?.data?.detail || '';
+      const errorCode = axiosError.response?.data?.code || '';
+      
+      if (errorDetail.includes('refresh') || errorCode === 'token_not_valid' || errorCode === 'refresh_expired') {
+        apiError.tokenError = 'expired_refresh';
+      } else if (errorDetail.includes('access') || errorCode === 'token_expired') {
+        apiError.tokenError = 'expired_access';
+      } else if (errorDetail.includes('invalid') || errorCode === 'invalid_token') {
+        apiError.tokenError = 'invalid_token';
+      } else {
+        apiError.tokenError = 'missing_token';
+      }
+      
+      console.error(`🔑 Token error detected: ${apiError.tokenError}`, {
+        status: apiError.status,
+        message: apiError.message,
+        errorDetail,
+        errorCode,
+      });
+    }
+    
     throw apiError;
   }
 };

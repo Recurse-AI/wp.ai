@@ -4,7 +4,7 @@
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { getUser } from "@/utils/getUser";
@@ -210,7 +210,7 @@ export default function SignUp() {
 
   return (
     <ClientOnly>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-y-auto py-4">
         {/* Background elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-blue-900" : "bg-blue-200"} opacity-20 blur-3xl`}></div>
@@ -218,11 +218,11 @@ export default function SignUp() {
         </div>
         
         {/* Content */}
-        <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden my-4">
           {/* Left side - Form */}
-          <div className={`w-full lg:w-3/5 p-6 lg:p-10 ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
             {/* Logo and heading section */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">
                 <div className={`absolute inset-0 rounded-full ${theme === "dark" ? "bg-blue-600" : "bg-blue-500"} opacity-20 blur-md`}></div>
                 <div className={`relative flex items-center justify-center w-12 h-12 rounded-full ${theme === "dark" ? "bg-blue-600" : "bg-blue-500"}`}>
@@ -401,8 +401,8 @@ export default function SignUp() {
             </div>
           </div>
           
-          {/* Right side - Illustration/Feature list */}
-          <div className={`hidden lg:block lg:w-2/5 p-10 ${theme === "dark" ? "bg-gray-900" : "bg-blue-50"}`}>
+          {/* Right side - Features and benefits */}
+          <div className={`hidden lg:block lg:w-2/5 p-8 lg:p-10 ${theme === "dark" ? "bg-gray-900" : "bg-blue-50"}`}>
             <div className="h-full flex flex-col justify-center">
               <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
                 Welcome to our platform
@@ -467,7 +467,6 @@ export default function SignUp() {
           </div>
         </div>
       </div>
-      <Toaster position="bottom-right" reverseOrder={false} />
     </ClientOnly>
   );
 }

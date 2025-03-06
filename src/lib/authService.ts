@@ -1,5 +1,6 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './api';
 import { ApiPaths } from './apiPaths';
+import TokenManager from './tokenManager';
 
 // Type definitions
 export type AuthProvider = 'manual' | 'google' | 'facebook' | 'github' | 'wordpress';
@@ -57,20 +58,20 @@ export interface UserProfile {
   id: number;
   email: string;
   username: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   phone_number?: string;
   profile_picture?: string;
-  is_email_verified: boolean;
-  is_phone_verified: boolean;
-  auth_provider: AuthProvider;
+  is_email_verified?: boolean;
+  is_phone_verified?: boolean;
+  auth_provider?: AuthProvider;
   api_key?: string;
   api_key_created_at?: string;
   last_login_ip?: string;
-  created_at: string;
-  updated_at: string;
-  date_joined: string;
-  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  date_joined?: string;
+  is_active?: boolean;
 }
 
 // Auth service with all API endpoints
@@ -88,8 +89,10 @@ const AuthService = {
   verifyToken: (token: string) => 
     apiPost<{ status: string }>(ApiPaths.VERIFY_TOKEN, { token }),
 
-  logout: () => 
-    apiPost<{ detail: string }>(ApiPaths.LOGOUT),
+  logout: () => {
+    const refreshToken = TokenManager.getRefreshToken();
+    return apiPost<{ detail: string }>(ApiPaths.LOGOUT, { refresh_token: refreshToken });
+  },
 
   // Social authentication
   googleAuth: (code: string) => 

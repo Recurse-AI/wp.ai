@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { MessageSquare, Bot, Zap } from "lucide-react";
+import { MessageSquare, Bot, Zap, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/context/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,55 +21,104 @@ const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
             className="relative"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30" />
-            <Card className={`relative border-0 overflow-hidden ${theme === "dark" ? "bg-gray-800/90" : "bg-white/90"} backdrop-blur-sm shadow-xl`}>
-              <CardContent className="p-6 sm:p-8">
-                <div className="flex flex-col space-y-6">
-                  <div className="w-full h-12 bg-gray-200 dark:bg-gray-700 rounded-t-lg flex items-center px-4">
-                    <div className="flex space-x-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <Card className={`relative border-0 overflow-hidden ${theme === "dark" ? "bg-gray-800/90" : "bg-white/90"} backdrop-blur-sm shadow-xl rounded-xl transform transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl`}>
+              <CardContent className="p-0">
+                <div className="flex flex-col">
+                  {/* Enhanced Header */}
+                  <div className={`w-full py-3 px-4 ${theme === "dark" ? "bg-gray-700/80" : "bg-blue-50"} border-b ${theme === "dark" ? "border-gray-600" : "border-blue-100"} rounded-t-xl flex items-center justify-between`}>
+                    <div className="flex items-center">
+                      <div className="flex space-x-2 mr-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+                          <Bot size={16} className="text-white" />
+                        </div>
+                        <div>
+                          <div className="text-gray-800 dark:text-gray-100 font-medium">WP.ai Chat Assistant</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="ml-4 text-gray-800 dark:text-gray-200 font-medium">WP.ai Chat Assistant</div>
+                    <div className={`px-2 py-1 rounded-full text-xs ${theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"} flex items-center`}>
+                      <Sparkles size={10} className="mr-1" />
+                      <span>WordPress Expert</span>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col space-y-4 py-4">
-                    <div className="flex items-start">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                  {/* Chat Messages */}
+                  <div className={`flex flex-col space-y-4 p-6 ${theme === "dark" ? "bg-gray-800/80" : "bg-gray-50/80"}`}>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="flex items-start"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
                         <Bot size={18} className="text-white" />
                       </div>
-                      <div className="ml-3 bg-blue-100 dark:bg-blue-900/40 px-4 py-2 rounded-r-lg rounded-bl-lg max-w-[80%]">
+                      <div className="ml-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-200 dark:border-blue-900/40 px-4 py-3 rounded-r-xl rounded-bl-xl max-w-[85%] shadow-md">
                         <p className="text-gray-800 dark:text-gray-200">Hello! I'm your WordPress AI assistant. How can I help optimize your site today?</p>
                       </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="flex items-start justify-end">
-                      <div className="mr-3 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-l-lg rounded-br-lg max-w-[80%]">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                      className="flex items-start justify-end"
+                    >
+                      <div className="mr-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 px-4 py-3 rounded-l-xl rounded-br-xl max-w-[85%] shadow-md border border-gray-200 dark:border-gray-700">
                         <p className="text-gray-800 dark:text-gray-200">I need to improve my site's loading speed. Can you help?</p>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center flex-shrink-0">
                         <MessageSquare size={16} className="text-gray-600 dark:text-gray-300" />
                       </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="flex items-start">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.6 }}
+                      className="flex items-start"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
                         <Bot size={18} className="text-white" />
                       </div>
-                      <div className="ml-3 bg-blue-100 dark:bg-blue-900/40 px-4 py-2 rounded-r-lg rounded-bl-lg max-w-[80%]">
+                      <div className="ml-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-200 dark:border-blue-900/40 px-4 py-3 rounded-r-xl rounded-bl-xl max-w-[85%] shadow-md">
                         <p className="text-gray-800 dark:text-gray-200">Absolutely! I've analyzed your site and found that optimizing your images and enabling browser caching could improve your speed by 45%. Would you like me to help implement these changes?</p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Image Optimization</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Browser Caching</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">+45% Speed</span>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
                   
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                  {/* Enhanced Input Area */}
+                  <div className={`border-t ${theme === "dark" ? "border-gray-700 bg-gray-800/90" : "border-gray-200 bg-white"} p-4 rounded-b-xl`}>
                     <div className="flex items-center">
-                      <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
-                        <p className="text-gray-400">Chat with our AI assistant...</p>
+                      <div className={`flex-1 ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"} rounded-full px-4 py-3 flex items-center`}>
+                        <input 
+                          type="text" 
+                          placeholder="Ask about WordPress..." 
+                          className={`bg-transparent border-none outline-none w-full ${theme === "dark" ? "text-gray-200 placeholder:text-gray-400" : "text-gray-700 placeholder:text-gray-400"}`}
+                          disabled
+                        />
+                        <Button size="sm" variant="ghost" className="mr-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <Sparkles size={16} />
+                        </Button>
                       </div>
-                      <Button size="icon" className="ml-2 rounded-full bg-blue-600 hover:bg-blue-700">
-                        <Zap size={18} className="text-white" />
+                      <Button size="icon" className="ml-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md">
+                        <Send size={16} className="text-white" />
                       </Button>
+                    </div>
+                    <div className="mt-2 text-center">
+                      <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                        Powered by advanced WordPress AI technology
+                      </span>
                     </div>
                   </div>
                 </div>

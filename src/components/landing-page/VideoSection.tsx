@@ -71,7 +71,7 @@ const VideoSection: React.FC = () => {
                     </div>
                   </div>
                   <Image 
-                    src="/demo-thumbnail.jpg" 
+                    src="/support.jpg"
                     alt="Video thumbnail" 
                     layout="fill" 
                     objectFit="cover"

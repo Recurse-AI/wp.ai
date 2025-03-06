@@ -24,12 +24,17 @@ const ChatPage = ({ params }: Props) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col justify-center h-full w-full">
-      <div className="flex-1 overflow-y-auto w-full">
+    <div className="flex flex-col justify-center h-full w-full relative">
+      <div className="flex-1 overflow-y-auto w-full pb-24">
         <Chat id={id} messages={messages} setMessages={setMessages} fetchMessages={fetchChatMessages} />
       </div>
 
-      <ChatInput id={id} setMessages={setMessages} fetchMessages={fetchChatMessages} />
+      <ChatInput 
+        id={id} 
+        setMessages={setMessages} 
+        fetchMessages={fetchChatMessages}
+        messagesLength={messages.length} 
+      />
     </div>
   );
 };

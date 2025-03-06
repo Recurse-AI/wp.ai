@@ -29,6 +29,12 @@ export default function ProfileContent() {
   const { theme, setTheme } = useTheme();
   const storedUser = JSON.parse(localStorage.getItem("userData") || "{}");
 
+  // Ensure storedUser has expected properties to avoid errors
+  const ensureValidUser = {
+    user: storedUser.user || { full_name: "Guest User", email: "guest@example.com" },
+    profile_pic: storedUser.profile_pic || "/placeholder.svg"
+  };
+
   // useEffect(() => {
   //   const fetchUserData = async () => {
   //     try {
@@ -60,7 +66,7 @@ export default function ProfileContent() {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <Image
-                  src={storedUser.profile_pic || "/placeholder.svg"}
+                  src={ensureValidUser.profile_pic}
                   alt="Profile picture"
                   width={100}
                   height={100}
@@ -68,8 +74,8 @@ export default function ProfileContent() {
                 />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{ storedUser.user.full_name }</h2>
-                <p className="text-muted-foreground">{ storedUser.user.email }</p>
+                <h2 className="text-2xl font-bold">{ensureValidUser.user.full_name}</h2>
+                <p className="text-muted-foreground">{ensureValidUser.user.email}</p>
               </div>
             </div>
           </CardContent>

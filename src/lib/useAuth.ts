@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import { getToastStyle } from './toastConfig';
 import AuthService, { LoginCredentials, UserProfile, UserRegistration } from './authService';
 import TokenManager from './tokenManager';
 
@@ -19,12 +21,157 @@ export default function useAuth() {
     error: null,
   });
 
+  // Helper to safely access localStorage (only in browser)
+  const safeLocalStorage = {
+    getItem: (key: string): string | null => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem(key);
+      }
+      return null;
+    },
+    setItem: (key: string, value: string): void => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    },
+    removeItem: (key: string): void => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(key);
+      }
+    }
+  };
+
+  // Check token validity on mount and periodically
+  useEffect(() => {
+    const checkTokenValidity = async () => {
+      // Check if token exists
+      const token = TokenManager.getToken();
+      if (!token) return;
+  
+      // Check if access token is expired (3 day validity)
+      if (TokenManager.isTokenExpired(token)) {
+        try {
+          // Try to refresh the token
+          await TokenManager.refreshAccessToken();
+          console.log('🔄 Access token refreshed successfully');
+        } catch (error) {
+          console.error('❌ Token refresh failed:', error);
+  
+          // Clear tokens and update state
+          TokenManager.clearTokens();
+          setAuthState({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            error: 'Session expired. Please login again.',
+          });
+  
+          // Get the refresh token to check if it's expired
+          const refreshToken = TokenManager.getRefreshToken();
+          if (refreshToken && TokenManager.isRefreshTokenExpired(refreshToken)) {
+            // If refresh token is expired (1 month validity), redirect with expired message
+            router.push('/signin?reason=expired');
+          } else {
+            // If refresh token is valid but refresh failed for other reasons
+            router.push('/signin?reason=session_expired');
+          }
+        }
+      } else {
+        console.log('✅ Access token still valid (valid for 3 days)');
+      }
+    };
+  
+    // Run initial check
+    checkTokenValidity();
+  
+    // Set up periodic check every 5 minutes
+    const intervalId = setInterval(checkTokenValidity, 5 * 60 * 1000);
+  
+    return () => clearInterval(intervalId);
+  }, [router]);
+
   // Load user data on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
         // Check for token
         if (!TokenManager.getToken()) {
+          // Try to get user data from localStorage as fallback
+          const userDataString = safeLocalStorage.getItem('userData');
+          // Also check for authToken as another fallback
+          const authToken = safeLocalStorage.getItem('token');
+          
+          if (userDataString) {
+            try {
+              const userData = JSON.parse(userDataString);
+              setAuthState({
+                user: userData,
+                loading: false,
+                isAuthenticated: true,
+                error: null,
+              });
+              return;
+            } catch (parseError) {
+              console.error('Failed to parse userData from localStorage:', parseError);
+            }
+          } else if (authToken) {
+            // If we have an authToken but no userData, consider the user authenticated
+            // but with incomplete data - this prevents unnecessary redirects
+            setAuthState({
+              user: { id: 0, email: '', username: '' }, // Minimal placeholder data
+              loading: false,
+              isAuthenticated: true, // Consider user authenticated
+              error: null,
+            });
+            
+            // Try to fetch the full user data in the background
+            try {
+              const user = await AuthService.getCurrentUser();
+              if (user) {
+                setAuthState({
+                  user,
+                  loading: false,
+                  isAuthenticated: true,
+                  error: null,
+                });
+                safeLocalStorage.setItem('userData', JSON.stringify(user));
+              }
+            } catch (fetchError) {
+              const apiError = fetchError as any;
+              
+              // Handle token-specific errors
+              if (apiError.tokenError === 'expired_refresh') {
+                console.error('❌ Refresh token expired (1 month validity)');
+                TokenManager.clearTokens();
+                safeLocalStorage.removeItem('userData');
+                router.push('/signin?reason=expired');
+              } else if (apiError.tokenError === 'expired_access') {
+                // Try to refresh the token
+                try {
+                  await TokenManager.refreshAccessToken();
+                  // If successful, retry loading user
+                  const user = await AuthService.getCurrentUser();
+                  if (user) {
+                    setAuthState({
+                      user,
+                      loading: false,
+                      isAuthenticated: true,
+                      error: null,
+                    });
+                    safeLocalStorage.setItem('userData', JSON.stringify(user));
+                  }
+                } catch (refreshError) {
+                  console.error('Failed to refresh token in background:', refreshError);
+                  // We'll keep the user authenticated with placeholder data
+                }
+              } else {
+                console.error('Failed to fetch user data in background:', fetchError);
+                // We'll keep the user authenticated with placeholder data
+              }
+            }
+            return;
+          }
+          
           setAuthState({
             user: null,
             loading: false,
@@ -37,12 +184,62 @@ export default function useAuth() {
         // Get current user data
         const user = await AuthService.getCurrentUser();
         setAuthState({
-          user,
+            user,
           loading: false,
           isAuthenticated: true,
           error: null,
         });
+        
+        // Store user data in localStorage for fallback
+        safeLocalStorage.setItem('userData', JSON.stringify(user));
       } catch (error) {
+        const apiError = error as any;
+        
+        // Try to get user data from localStorage as fallback
+        const userDataString = safeLocalStorage.getItem('userData');
+        const authToken = safeLocalStorage.getItem('token');
+        
+        // Handle token-specific errors
+        if (apiError.tokenError === 'expired_refresh') {
+          console.error('❌ Refresh token expired (1 month validity)');
+          TokenManager.clearTokens();
+          safeLocalStorage.removeItem('userData');
+          
+          setAuthState({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            error: 'Session expired. Please login again.',
+          });
+          
+          router.push('/signin?reason=expired');
+          return;
+        }
+        
+        if (userDataString) {
+          try {
+            const user = JSON.parse(userDataString);
+            setAuthState({
+              user,
+              loading: false,
+              isAuthenticated: true,
+              error: null,
+            });
+            return;
+          } catch (parseError) {
+            console.error('Failed to parse userData from localStorage:', parseError);
+          }
+        } else if (authToken) {
+          // If we have an authToken but no userData, consider the user authenticated
+          setAuthState({
+            user: { id: 0, email: '', username: '' }, // Minimal placeholder data 
+            loading: false,
+            isAuthenticated: true, // Consider user authenticated
+            error: null,
+          });
+          return;
+        }
+        
         // Handle unauthorized or other errors
         TokenManager.clearTokens();
         setAuthState({
@@ -55,7 +252,7 @@ export default function useAuth() {
     };
 
     loadUser();
-  }, []);
+  }, [router]);
 
   // Login handler
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -65,18 +262,34 @@ export default function useAuth() {
       // Get tokens and user data from API
       const response = await AuthService.login(credentials);
       
+      console.log('🔐 Login Success - Tokens received:', {
+        access: response.access ? 'Access token received' : 'No access token',
+        refresh: response.refresh ? 'Refresh token received' : 'No refresh token',
+        user: response.user ? 'User data received' : 'No user data'
+      });
+      
       // Store tokens
       TokenManager.storeTokens(response.access, response.refresh);
       
       // User data is now included in the login response
       const user = response.user;
-      
+          
       setAuthState({
         user,
         loading: false,
         isAuthenticated: true,
         error: null,
       });
+          
+      // Add a short delay before redirecting to ensure tokens are fully saved
+      setTimeout(() => {
+        if(localStorage.getItem("isChat")){
+          localStorage.removeItem("isChat");
+          router.push("/chat");
+        } else {
+          router.push("/");
+        }
+      }, 500); // 500ms delay
       
       return user;
     } catch (error) {
@@ -91,7 +304,7 @@ export default function useAuth() {
       
       throw error;
     }
-  }, []);
+  }, [router]);
 
   // Register handler
   const register = useCallback(async (userData: UserRegistration) => {
@@ -131,8 +344,19 @@ export default function useAuth() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Store current path before clearing everything
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isProtectedRoute = currentPath.includes('/chat') || 
+                              currentPath.includes('/dashboard') || 
+                              currentPath.includes('/profile') ||
+                              currentPath.includes('/settings');
+      
       // Clear tokens regardless of API success
       TokenManager.clearTokens();
+      
+      // Also clear user data from localStorage
+      safeLocalStorage.removeItem('userData');
+      safeLocalStorage.removeItem('token');
       
       // Update state
       setAuthState({
@@ -142,8 +366,25 @@ export default function useAuth() {
         error: null,
       });
       
-      // Redirect to login
-      router.push('/signin');
+      // Trigger storage event to notify other components about the logout
+      if (typeof window !== 'undefined') {
+        // Create a storage event to notify other components
+        window.dispatchEvent(new Event('storage'));
+        
+        // Set a flag to indicate recent logout (helps with immediate UI updates)
+        safeLocalStorage.setItem('recentLogout', Date.now().toString());
+        // This will be automatically cleaned up on the next auth check
+        setTimeout(() => safeLocalStorage.removeItem('recentLogout'), 1000);
+      }
+      
+      // Redirect to appropriate page based on current route
+      if (isProtectedRoute) {
+        console.log('Logged out from protected route, redirecting to signin');
+        router.push('/signin');
+      } else {
+        console.log('Logged out from public route, redirecting to home');
+        router.push('/');
+      }
     }
   }, [router]);
 
@@ -155,6 +396,10 @@ export default function useAuth() {
         const response = await AuthService.googleAuth(code);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
+        
+        // Store user data in localStorage for fallback
+        safeLocalStorage.setItem('userData', JSON.stringify(user));
+        
         setAuthState({
           user,
           loading: false,
@@ -179,8 +424,12 @@ export default function useAuth() {
         const response = await AuthService.facebookAuth(accessToken);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
+        
+        // Store user data in localStorage for fallback
+        safeLocalStorage.setItem('userData', JSON.stringify(user));
+        
         setAuthState({
-          user,
+            user,
           loading: false,
           isAuthenticated: true,
           error: null,
@@ -203,6 +452,10 @@ export default function useAuth() {
         const response = await AuthService.githubAuth(code);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
+        
+        // Store user data in localStorage for fallback
+        safeLocalStorage.setItem('userData', JSON.stringify(user));
+        
         setAuthState({
           user,
           loading: false,
@@ -227,6 +480,10 @@ export default function useAuth() {
         const response = await AuthService.wordpressAuth(code);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
+        
+        // Store user data in localStorage for fallback
+        safeLocalStorage.setItem('userData', JSON.stringify(user));
+        
         setAuthState({
           user,
           loading: false,
@@ -251,18 +508,33 @@ export default function useAuth() {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      const updatedUser = await AuthService.updateUserProfile(profileData);
+      const updatedProfile = await AuthService.updateUserProfile(profileData);
+      
+      // Update localStorage with new profile data
+      const userDataString = safeLocalStorage.getItem('userData');
+      if (userDataString) {
+        try {
+          const userData = JSON.parse(userDataString);
+          const updatedUserData = { ...userData, ...updatedProfile };
+          safeLocalStorage.setItem('userData', JSON.stringify(updatedUserData));
+        } catch (parseError) {
+          console.error('Failed to update userData in localStorage:', parseError);
+        }
+      } else {
+        // If no existing data, just store the updated profile
+        safeLocalStorage.setItem('userData', JSON.stringify(updatedProfile));
+      }
       
       setAuthState(prev => ({
         ...prev,
-        user: updatedUser,
+        user: updatedProfile,
         loading: false,
         error: null,
       }));
       
-      return updatedUser;
+      return updatedProfile;
     } catch (error) {
-      const errorMessage = (error as any)?.message || 'Profile update failed.';
+      const errorMessage = (error as any)?.message || 'Failed to update profile.';
       
       setAuthState(prev => ({
         ...prev,

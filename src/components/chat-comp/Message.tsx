@@ -111,7 +111,12 @@ const Message = ({ message = defaultMessage }: { message?: MessageType }) => {
             <ReactMarkdown
               className="prose prose-invert"
               components={{
-                code({ inline, className, children, ...props }) {
+                code: ({ node, inline, className, children, ...props }: {
+                  node?: any;
+                  inline?: boolean;
+                  className?: string;
+                  children: React.ReactNode;
+                } & React.HTMLAttributes<HTMLElement>) => {
                   const match = /language-(\w+)/.exec(className || "");
                   return !inline && match ? (
                     <SyntaxHighlighter

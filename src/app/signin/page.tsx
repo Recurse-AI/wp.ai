@@ -4,7 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getUser } from "@/utils/getUser";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import useAuth from "@/lib/useAuth";
@@ -31,6 +31,10 @@ const VALIDATION_MESSAGES = {
   REQUIRED: (field: string) => `${field} is required`,
   INVALID_CREDENTIALS: "Invalid username or password",
   LOGIN_SUCCESS: "Login successful! Redirecting...",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  AUTH_FAILED: "Authentication failed. Please sign in again.",
+  LOGIN_REQUIRED: "Your login session has expired. Please sign in again.",
+  REFRESH_TOKEN_EXPIRED: "Your session has expired after 1 month of inactivity. Please sign in again.",
 };
 
 export default function SignIn() {
@@ -53,6 +57,40 @@ export default function SignIn() {
   const [user, setUser] = useState({ name: "", image: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+  
+  // Check URL parameters for session messages
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reason = urlParams.get('reason');
+      
+      if (reason) {
+        switch(reason) {
+          case 'expired':
+            setSessionMessage(VALIDATION_MESSAGES.REFRESH_TOKEN_EXPIRED);
+            toast.error(VALIDATION_MESSAGES.REFRESH_TOKEN_EXPIRED, getToastStyle(theme));
+            break;
+          case 'session_expired':
+            setSessionMessage(VALIDATION_MESSAGES.SESSION_EXPIRED);
+            toast.error(VALIDATION_MESSAGES.SESSION_EXPIRED, getToastStyle(theme));
+            break;
+          case 'auth_failed':
+            setSessionMessage(VALIDATION_MESSAGES.AUTH_FAILED);
+            toast.error(VALIDATION_MESSAGES.AUTH_FAILED, getToastStyle(theme));
+            break;
+          case 'login_required':
+            setSessionMessage(VALIDATION_MESSAGES.LOGIN_REQUIRED);
+            toast.error(VALIDATION_MESSAGES.LOGIN_REQUIRED, getToastStyle(theme));
+            break;
+        }
+        
+        // Clean up the URL to remove the reason parameter
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, [theme]);
   
   // Check if user is already logged in
   useEffect(() => {
@@ -177,13 +215,9 @@ export default function SignIn() {
       // Save user data to localStorage for immediate access across components
       if (user) {
         const userData = {
-          user: {
             id: user.id,
             email: user.email,
-            username: user.username,
-            full_name: `${user.first_name} ${user.last_name}`.trim()
-          },
-          profile_pic: user.profile_picture || ""
+            username: user.username
         };
         
         localStorage.setItem("userData", JSON.stringify(userData));
@@ -232,7 +266,7 @@ export default function SignIn() {
 
   return (
     <ClientOnly>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-y-auto py-4">
         {/* Background elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-indigo-900" : "bg-indigo-200"} opacity-20 blur-3xl`}></div>
@@ -240,9 +274,9 @@ export default function SignIn() {
         </div>
         
         {/* Content */}
-        <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden my-4">
           {/* Left side - Illustration/Feature list (hidden on mobile) */}
-          <div className={`hidden lg:block lg:w-2/5 p-10 ${theme === "dark" ? "bg-gray-900" : "bg-blue-50"}`}>
+          <div className={`hidden lg:block lg:w-2/5 p-8 lg:p-10 ${theme === "dark" ? "bg-gray-900" : "bg-blue-50"}`}>
             <div className="h-full flex flex-col justify-center">
               <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
                 Welcome Back
@@ -297,9 +331,9 @@ export default function SignIn() {
           </div>
           
           {/* Right side - Form */}
-          <div className={`w-full lg:w-3/5 p-6 lg:p-10 ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
             {/* Logo and heading section */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">
                 <div className={`absolute inset-0 rounded-full ${theme === "dark" ? "bg-indigo-600" : "bg-indigo-500"} opacity-20 blur-md`}></div>
                 <div className={`relative flex items-center justify-center w-12 h-12 rounded-full ${theme === "dark" ? "bg-indigo-600" : "bg-indigo-500"}`}>
@@ -319,11 +353,11 @@ export default function SignIn() {
 
             {/* Main form */}
             <form onSubmit={handleSignIn} className="space-y-5">
-              {errors.general && formSubmitted && (
+              {(errors.general && formSubmitted) || sessionMessage ? (
                 <div className={`p-3 rounded-md ${theme === "dark" ? "bg-red-900/30 text-red-200" : "bg-red-50 text-red-600"} text-sm`}>
-                  {errors.general}
+                  {errors.general || sessionMessage}
                 </div>
-              )}
+              ) : null}
               
               <div className="space-y-1">
                 <label className={`block text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
@@ -442,9 +476,6 @@ export default function SignIn() {
           </div>
         </div>
       </div>
-      
-      {/* Add Toaster component to ensure toast notifications appear */}
-      <Toaster position="bottom-right" reverseOrder={false} />
     </ClientOnly>
   );
 }

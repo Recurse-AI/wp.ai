@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/chat-comp/Header";
 import Sidebar from "@/components/chat-comp/Sidebar";
-import { Toaster } from "react-hot-toast";
 import { FiSidebar } from "react-icons/fi";
 import { useTheme } from "@/context/ThemeProvider";
 import Link from "next/link";
@@ -166,21 +165,6 @@ export default function ChatLayout({
           {children}
         </div>
       </div>
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: theme === "dark" ? "#000000" : "#ffffff",
-            color: theme === "dark" ? "#ffffff" : "#000000",
-            padding: "10px",
-            fontSize: "16px",
-            fontWeight: "bold",
-            border: `2px solid ${theme === "dark" ? "#000000" : "#e0e0e0"}`,
-          },
-        }}
-      />
     </div>
   );
 }

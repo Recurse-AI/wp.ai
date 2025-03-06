@@ -28,7 +28,7 @@ export const getUser = async (
         
         // Set user data
         setUser({
-          name: parsedData.user.full_name || parsedData.user.username || '',
+          name: parsedData.user.username || parsedData.user.full_name || '',
           image: parsedData.profile_pic || '',
         });
         
@@ -37,7 +37,7 @@ export const getUser = async (
     }
     
     // Check if we have authToken as fallback
-    const authToken = localStorage.getItem('authToken');
+    const authToken = localStorage.getItem('token');
     
     if (authToken) {
       // We have a token but no user data
@@ -53,6 +53,10 @@ export const getUser = async (
     // Redirect to login if trying to access protected routes
     const protectedRoutes = ['/profile', '/chat', '/settings'];
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
+      // Save the current path if it's a chat route so we can redirect back after login
+      if (pathname.startsWith('/chat')) {
+        localStorage.setItem('isChat', 'true');
+      }
       router.push('/signin');
     }
     

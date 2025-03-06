@@ -3,7 +3,9 @@
 import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "@/context/ThemeProvider";
+import { ThemeProvider, useTheme } from "@/context/ThemeProvider";
+import { Toaster } from "react-hot-toast";
+import { getToastStyle } from "@/lib/toastConfig";
 import AuthProvider from "@/context/AuthProvider";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -25,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-
+  const { theme } = useTheme();
   // ✅ Hide Navbar for specific pages EXCEPT if the path starts with "/chat/"
   const hideNavbarPages = [
     "/signin",
@@ -55,6 +57,11 @@ export default function RootLayout({
 
               {/* Remove relative positioning and width from this div */}
               <div className="z-0">{children}</div>
+              <Toaster
+                position="top-right"
+                reverseOrder={false}
+                toastOptions={getToastStyle(theme)}
+              />
             </AuthProvider>
           </SessionProvider>
         </ThemeProvider>

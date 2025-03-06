@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTheme } from "@/context/ThemeProvider";
-import toast from "react-hot-toast";
+import {toast} from "react-hot-toast";
 
 // Import all components from the landing-page directory
 import {
@@ -16,12 +16,16 @@ import {
   TestimonialsSection,
   ServicesSection
 } from "@/components/landing-page";
+import { useRouter } from "next/navigation";
+import useAuth from "@/lib/useAuth";
 
 export default function LandingPage() {
   const { theme } = useTheme();
   const [feedback, setFeedback] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
-
+  const { isAuthenticated, user, loading } = useAuth();
+  console.log('isAuthenticated, user, loading', isAuthenticated, user, loading);
+  const router = useRouter();
   // Handle plan upgrade
   const handleUpgrade = (planId: string) => {
     // Simplified version without API call
@@ -42,8 +46,7 @@ export default function LandingPage() {
   // Toggle chat open/close
   const handleChatOpen = () => {
     setIsChatOpen(true);
-    // Here you would typically dispatch an action or call a function to open your chat UI
-    toast.success("Chat opened! This is a placeholder. Implement your actual chat UI opening logic.");
+    router.push("/chat");
   };
 
   return (
