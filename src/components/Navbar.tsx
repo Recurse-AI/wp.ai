@@ -60,20 +60,27 @@ export default function Navbar() {
 
   // Update local state from authUser when it changes
   useEffect(() => {
-    if (!authLoading) {
-      if (authUser && isAuthenticated) {
-        console.log("Navbar: Setting logged in from useAuth:", authUser);
-        setIsLoggedIn(true);
-        setUser({
-          name: authUser.username || '',
-          image: user.image,
-        });
-      } else if (!isAuthenticated && !contextIsLoggedIn) {
-        // Only set logged out if both auth sources are negative
-        console.log("Navbar: Setting logged out (both auth sources negative)");
-        setIsLoggedIn(false);
+    const loadUserData = async () => {
+      if (!authLoading) {
+        if (authUser && isAuthenticated) {
+          console.log("Navbar: Setting logged in from useAuth:", authUser);
+          setIsLoggedIn(true);
+          setUser({
+            name: authUser.username || authUser.name || '',
+            image: authUser.profile_picture || user.image,
+          });
+        } else if (!isAuthenticated && !contextIsLoggedIn) {
+          console.log("Navbar: Setting logged out (both auth sources negative)");
+          setIsLoggedIn(false);
+          setUser({
+            name: "",
+            image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+          });
+        }
       }
-    }
+    };
+
+    loadUserData();
   }, [authUser, isAuthenticated, authLoading, contextIsLoggedIn]);
   
   // Update local state from context when it changes
@@ -146,91 +153,99 @@ export default function Navbar() {
   // ✅ Modified handleLogout to use useAuth's logout
   const handleLogout = async () => {
     try {
-      setShowDropdown(false);
-      
-      // Immediately update local state to reflect logout
-      setIsLoggedIn(false);
-      setUser({ 
-        name: "",
-        image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
-      });
-      
-      // Store current path for potential redirection logic
-      const currentPath = pathname;
-      const isProtectedRoute = currentPath.includes('/chat') || 
-                              currentPath.includes('/dashboard') || 
-                              currentPath.includes('/profile') ||
-                              currentPath.includes('/settings');
-      
       // Show loading toast
       const loadingToast = toast.loading("Signing out...", { 
         style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
       });
+
+      // Close dropdowns
+      setShowDropdown(false);
+      setShowThemeDropdown(false);
+      setIsSettingsOpen(false);
       
-      // Try to clear NextAuth session if it exists
-      if (typeof window !== 'undefined' && session) {
-        try {
-          await signOut({ redirect: false })
-          .then(() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("userData");
-            localStorage.removeItem("isChat");
-          });
-        } catch (signOutError) {
-          console.warn("NextAuth signOut error (non-critical):", signOutError);
-        }
-      }
-      
-      // Use both logout functions to ensure consistent state
-      if (contextLogout) {
-        await contextLogout(); // Use the context logout if available
-      } else {
-        await logout(); // Fallback to useAuth logout
-      }
-      
-      // Dismiss loading toast and show success message
-      toast.dismiss(loadingToast);
-      toast.success("Successfully logged out!", { 
-        style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
-      });
-      
-      // Force update any cached auth state
+      // Clear all local storage first
       if (typeof window !== 'undefined') {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userData");
+        localStorage.removeItem("isChat");
+        
+        // Dispatch storage event to notify other components
         window.dispatchEvent(new Event('storage'));
       }
-      
-      // Let the logout functions handle redirects based on route type
-      // We don't need to redirect here as the useAuth/contextLogout will handle it
-    } catch (error) {
-      console.error("Error logging out:", error);
-      
-      // Still consider the user logged out locally
+
+      // Update local state
       setIsLoggedIn(false);
       setUser({ 
         name: "",
         image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
       });
-      
-      // Show error message
-      toast.error("There was an issue with logout, but you've been signed out locally.", { 
+
+      // Call both logout functions to ensure complete logout
+      if (contextLogout) {
+        await contextLogout();
+      }
+      await logout();
+
+      // Clear NextAuth session if it exists
+      if (session) {
+        await signOut({ redirect: false });
+      }
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success("Successfully signed out!", { 
         style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
       });
-      
-      // Redirect based on current route
+
+      // Redirect based on current route without adding reason parameter
       const currentPath = pathname;
       const isProtectedRoute = currentPath.includes('/chat') || 
-                              currentPath.includes('/dashboard') || 
-                              currentPath.includes('/profile') ||
-                              currentPath.includes('/settings');
-      
-      if (isProtectedRoute) {
-        router.push('/signin');
-      } else {
-        router.push('/');
-      }
+                             currentPath.includes('/dashboard') || 
+                             currentPath.includes('/profile') ||
+                             currentPath.includes('/settings');
+
+      // Small delay to ensure state updates are processed
+      setTimeout(() => {
+        if (isProtectedRoute) {
+          router.replace('/signin');
+        } else {
+          router.replace('/');
+        }
+      }, 100);
+
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to sign out. Please try again.", { 
+        style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
+      });
+
+      // Even if API call fails, clear local state
+      setIsLoggedIn(false);
+      setUser({ 
+        name: "",
+        image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+      });
     }
   };
+
+  // Force check auth state on mount and route change
+  useEffect(() => {
+    const checkAuthState = () => {
+      const hasToken = !!localStorage.getItem('token');
+      const hasUserData = !!localStorage.getItem('userData');
+      
+      if (!hasToken && !hasUserData) {
+        setIsLoggedIn(false);
+        setUser({
+          name: "",
+          image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+        });
+      }
+    };
+
+    checkAuthState();
+  }, [pathname]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -380,35 +395,22 @@ export default function Navbar() {
               </Link>
             </div>
           ) : (
-            <motion.div 
-              className="relative"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <div className="relative">
               <button
-                onClick={() => {
-                  setShowDropdown(!showDropdown);
-                  setShowThemeDropdown(false);
-                }}
-                className="flex items-center gap-2 py-1 px-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
                 ref={buttonRef}
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               >
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
-                <div className="relative h-8 w-8 rounded-full overflow-hidden shadow-inner">
-                  <Image
-                    src={user.image || "/placeholder.svg"}
-                    alt={user.name || "User"}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                </div>
-                <span className="font-medium text-sm hidden md:block relative">
-                  {user.name}
-                </span>
+                <Image
+                  src={user.image}
+                  alt="Profile"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+                <span className="hidden md:inline">{user.name}</span>
               </button>
 
-              {/* User Dropdown Menu with Enhanced Design */}
               {showDropdown && (
                 <motion.div
                   ref={dropdownRef}
@@ -416,7 +418,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg overflow-hidden backdrop-blur-md"
+                  className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm"
                 >
                   {/* User Info Section */}
                   <div className="p-4 bg-gray-50/80 dark:bg-gray-700/50">
@@ -432,54 +434,54 @@ export default function Navbar() {
                       </div>
                       <div>
                         <div className="font-semibold">{user.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">WordPress Expert</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          WordPress Developer
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Simplified Menu with only requested options */}
-                  <motion.div
-                    whileHover={{ x: 5, backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(243, 244, 246, 0.7)' }}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-all duration-200"
-                    onClick={() => {
-                      setIsSettingsOpen(true);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <FaCogs className="text-lg text-gray-600 dark:text-gray-400" />
-                    <span className="font-medium">Settings</span>
-                  </motion.div>
-
-                  <Link href="/help" onClick={() => setShowDropdown(false)}>
-                    <motion.div
-                      whileHover={{ x: 5, backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(243, 244, 246, 0.7)' }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-all duration-200"
+                  {/* Menu Items */}
+                  <div className="p-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                      onClick={() => setShowDropdown(false)}
                     >
-                      <FaInfoCircle className="text-lg text-gray-600 dark:text-gray-400" />
-                      <span className="font-medium">Help & Feedback</span>
-                    </motion.div>
-                  </Link>
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200">
+                        <FaUser className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Profile</span>
+                    </Link>
 
-                  {/* Logout Button with Enhanced Styling */}
-                  <motion.div
-                    whileHover={{ x: 5 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      try {
-                        handleLogout();
-                      } catch (error) {
-                        console.error("Logout failed:", error);
-                        toast.error("Logout failed. Please try again.");
-                      }
-                    }}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-red-50/80 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 cursor-pointer transition-all duration-200"
-                  >
-                    <FaSignOutAlt className="text-lg" />
-                    <span className="font-medium">Sign Out</span>
-                  </motion.div>
+                    <button
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setShowDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                    >
+                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                        <FaCogs className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Settings</span>
+                    </button>
+
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/70 my-1 mx-3"></div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group"
+                    >
+                      <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-all duration-200">
+                        <FaSignOutAlt className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Sign out</span>
+                    </button>
+                  </div>
                 </motion.div>
               )}
-            </motion.div>
+            </div>
           )}
         </div>
       </motion.nav>

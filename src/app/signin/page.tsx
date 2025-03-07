@@ -44,6 +44,7 @@ export default function SignIn() {
   const { login, error: authError } = useAuth();
   const { data: session } = useSession();
   const { setUserData } = useAuthContext();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState<SignInFormData>({
@@ -66,6 +67,7 @@ export default function SignIn() {
       const reason = urlParams.get('reason');
       
       if (reason) {
+        // Only show messages for actual session expiration cases
         switch(reason) {
           case 'expired':
             setSessionMessage(VALIDATION_MESSAGES.REFRESH_TOKEN_EXPIRED);
@@ -79,15 +81,11 @@ export default function SignIn() {
             setSessionMessage(VALIDATION_MESSAGES.AUTH_FAILED);
             toast.error(VALIDATION_MESSAGES.AUTH_FAILED, getToastStyle(theme));
             break;
-          case 'login_required':
-            setSessionMessage(VALIDATION_MESSAGES.LOGIN_REQUIRED);
-            toast.error(VALIDATION_MESSAGES.LOGIN_REQUIRED, getToastStyle(theme));
-            break;
+          // Remove login_required case as it's not needed for normal signouts
         }
         
-        // Clean up the URL to remove the reason parameter
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }, [theme]);
@@ -111,45 +109,74 @@ export default function SignIn() {
 
   useEffect(() => {
     const authenticateUser = async () => {
-      if (session?.user?.name) {
-        try {
-          console.log("🔹 Calling Backend API /authLogin...");
-          const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login-auth/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: session.user.email,
-              name: session.user.name,
-              image: session.user.image,
-              // @ts-ignore - provider is added by our custom NextAuth config
-              provider: session.user.provider,
-            }),
-            credentials: "include",
-          });
+      // Only proceed if explicitly triggered by user action
+      if (!session?.user?.name || !session?.user?.email || !localStorage.getItem('googleAuthInitiated')) {
+        return;
+      }
 
-          if (response.ok) {
-            console.log("🔹 Backend API responded successfully.");
-            const data = await response.json();
-            localStorage.setItem("authToken", data.jwt); // Save backend token
-            toast.success("You are logged in now!", getToastStyle(theme));
-            if(localStorage.getItem("isChat")){
-              localStorage.removeItem("isChat");
-              router.push("/chat");
-            }
-            else router.push("/");
-            setIsLoggedIn(true);
-          } else {
-            console.error("❌ Backend /authLogin API failed");
-            toast.error("Authentication failed", getToastStyle(theme));
-          }
-        } catch (err) {
-          console.error("❌ Error calling /authLogin:", err);
-          toast.error("Connection error. Please try again.", getToastStyle(theme));
+      // Prevent multiple processing attempts
+      if (isProcessing) return;
+      
+      try {
+        setIsProcessing(true);
+        console.log("🔹 Processing Google authentication...");
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: session.user.email,
+            email: session.user.email,
+            name: session.user.name,
+            image: session.user.image || "",
+            provider: "google"
+          }),
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("API Error:", errorData);
+          throw new Error(errorData.error || "Authentication failed");
         }
+
+        console.log("🔹 Google authentication successful");
+        const data = await response.json();
+        console.log("Data comes: ",data)
+        // Store authentication data
+        localStorage.setItem("authToken", data.access);
+        localStorage.setItem("userData", JSON.stringify(data.user));
+        
+        console.log("Hayhay user data aita: ",localStorage.getItem("userData"))
+        // Clean up
+        localStorage.removeItem('googleAuthInitiated');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        toast.success("Successfully signed in with Google!", getToastStyle(theme));
+        
+        // Redirect after successful authentication
+        if(localStorage.getItem("isChat")){
+          localStorage.removeItem("isChat");
+          router.push("/chat");
+        } else {
+          router.push("/");
+        }
+      } catch (err) {
+        console.error("❌ Error in Google authentication:", err);
+        toast.error("Connection error. Please try again.", getToastStyle(theme));
+        localStorage.removeItem('googleAuthInitiated');
+      } finally {
+        setIsProcessing(false);
       }
     };
 
+    // Run authentication whenever session changes
     authenticateUser();
+
+    // Cleanup function
+    return () => {
+      setIsProcessing(false);
+    };
   }, [session, router, theme]);
 
   // Handle form input changes
@@ -264,6 +291,12 @@ export default function SignIn() {
     }
   };
 
+  // Add Google Sign In handler
+  const handleGoogleSignIn = () => {
+    localStorage.setItem('googleAuthInitiated', 'true');
+    signIn('google');
+  };
+
   return (
     <ClientOnly>
       <div className="flex min-h-screen w-full overflow-y-auto py-4">
@@ -361,7 +394,7 @@ export default function SignIn() {
               
               <div className="space-y-1">
                 <label className={`block text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Username or Email
+                  Email
                 </label>
                 <input
                   type="text"
@@ -450,7 +483,7 @@ export default function SignIn() {
                 <SocialButton 
                   provider="google" 
                   theme={theme} 
-                  onClick={() => signIn('google', { callbackUrl: '/auth/callback' })}
+                  onClick={handleGoogleSignIn}
                 />
                 <SocialButton 
                   provider="github" 
