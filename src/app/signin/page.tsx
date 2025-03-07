@@ -41,10 +41,8 @@ export default function SignIn() {
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const { login, error: authError } = useAuth();
-  const { data: session } = useSession();
+  const { login, error: authError, isAuthenticated } = useAuth();
   const { setUserData } = useAuthContext();
-  const [isProcessing, setIsProcessing] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState<SignInFormData>({
@@ -54,8 +52,6 @@ export default function SignIn() {
   
   // UI state
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: "", image: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
@@ -89,96 +85,17 @@ export default function SignIn() {
       }
     }
   }, [theme]);
-  
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const isAuthenticated = await getUser(setIsLoggedIn, setUser, router, pathname);
-        if (isAuthenticated) {
-          router.push('/'); // Redirect to home if already logged in
-        }
-      } catch (error) {
-        // Silently handle errors - we expect users not to be logged in here
-        console.log("Not logged in, which is expected on signin page");
-      }
-    };
-    
-    checkAuthStatus();
-  }, [router, pathname]);
 
   useEffect(() => {
-    const authenticateUser = async () => {
-      // Only proceed if explicitly triggered by user action
-      if (!session?.user?.name || !session?.user?.email || !localStorage.getItem('googleAuthInitiated')) {
-        return;
+    if(isAuthenticated){
+      if(localStorage.getItem("isChat")){
+        localStorage.removeItem("isChat");
+        router.push("/chat");
+      } else {
+        router.push("/");
       }
-
-      // Prevent multiple processing attempts
-      if (isProcessing) return;
-      
-      try {
-        setIsProcessing(true);
-        console.log("🔹 Processing Google authentication...");
-        
-        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: session.user.email,
-            email: session.user.email,
-            name: session.user.name,
-            image: session.user.image || "",
-            provider: "google"
-          }),
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("API Error:", errorData);
-          throw new Error(errorData.error || "Authentication failed");
-        }
-
-        console.log("🔹 Google authentication successful");
-        const data = await response.json();
-        console.log("Data comes: ",data)
-        // Store authentication data
-        localStorage.setItem("authToken", data.access);
-        localStorage.setItem("userData", JSON.stringify(data.user));
-        
-        console.log("Hayhay user data aita: ",localStorage.getItem("userData"))
-        // Clean up
-        localStorage.removeItem('googleAuthInitiated');
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        toast.success("Successfully signed in with Google!", getToastStyle(theme));
-        
-        // Redirect after successful authentication
-        if(localStorage.getItem("isChat")){
-          localStorage.removeItem("isChat");
-          router.push("/chat");
-        } else {
-          router.push("/");
-        }
-      } catch (err) {
-        console.error("❌ Error in Google authentication:", err);
-        toast.error("Connection error. Please try again.", getToastStyle(theme));
-        localStorage.removeItem('googleAuthInitiated');
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    // Run authentication whenever session changes
-    authenticateUser();
-
-    // Cleanup function
-    return () => {
-      setIsProcessing(false);
-    };
-  }, [session, router, theme]);
-
+    }
+  }, [isAuthenticated]);
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -238,19 +155,13 @@ export default function SignIn() {
         login: formData.login,
         password: formData.password
       });
+      console.log(user);
       
       // Save user data to localStorage for immediate access across components
       if (user) {
-        const userData = {
-            id: user.id,
-            email: user.email,
-            username: user.username
-        };
-        
-        localStorage.setItem("userData", JSON.stringify(userData));
-        
+        localStorage.setItem("userData", JSON.stringify(user));
         // Update the auth context with the new user data
-        setUserData(userData);
+        setUserData(user);
       }
       
       toast.success(VALIDATION_MESSAGES.LOGIN_SUCCESS, getToastStyle(theme));

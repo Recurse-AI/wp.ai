@@ -18,52 +18,10 @@ import {
   FaDesktop, 
   FaUser,
   FaSignOutAlt,
-  FaCog,
-  FaWordpress
+  FaCog
 } from "react-icons/fa";
 import { SiOpenai, SiClaude, SiGooglegemini } from "react-icons/si";
 import useAuth from "@/lib/useAuth";
-
-// AI Provider configuration
-const AI_PROVIDERS = [
-  { 
-    id: 'openai', 
-    name: 'OpenAI', 
-    icon: SiOpenai,
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o', wpOptimized: true },
-      { id: 'gpt-4', name: 'GPT-4 Turbo', wpOptimized: true },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', wpOptimized: false }
-    ]
-  },
-  { 
-    id: 'claude', 
-    name: 'Claude',
-    icon: SiClaude,
-    models: [
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', wpOptimized: true },
-      { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', wpOptimized: false },
-      { id: 'claude-3-haiku', name: 'Claude 3 Haiku', wpOptimized: false }
-    ]
-  },
-  { 
-    id: 'gemini', 
-    name: 'Google Gemini',
-    icon: SiGooglegemini,
-    models: [
-      { id: 'gemini-pro', name: 'Gemini Pro', wpOptimized: true },
-      { id: 'gemini-ultra', name: 'Gemini Ultra', wpOptimized: false }
-    ]
-  }
-];
-
-// WordPress-specific features
-const WP_FEATURES = [
-  { id: 'plugin-dev', name: 'Plugin Development', icon: "🧩" },
-  { id: 'theme-dev', name: 'Theme Development', icon: "🎨" },
-  { id: 'gutenberg', name: 'Gutenberg Blocks', icon: "🧱" },
-  { id: 'custom-code', name: 'Custom PHP/JS Code', icon: "💻" }
-];
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,10 +48,6 @@ export default function ChatLayout({
   // Header state
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
-  const [showAIDropdown, setShowAIDropdown] = useState(false);
-  const [showWPFeaturesDropdown, setShowWPFeaturesDropdown] = useState(false);
-  const [currentProvider, setCurrentProvider] = useState(AI_PROVIDERS[0]);
-  const [currentModel, setCurrentModel] = useState(AI_PROVIDERS[0].models[0]);
   const [agentMode, setAgentMode] = useState(false);
   
   // Refs for dropdowns
@@ -101,10 +55,6 @@ export default function ChatLayout({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
-  const aiDropdownRef = useRef<HTMLDivElement>(null);
-  const aiButtonRef = useRef<HTMLButtonElement>(null);
-  const wpFeaturesDropdownRef = useRef<HTMLDivElement>(null);
-  const wpFeaturesButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -133,29 +83,52 @@ export default function ChatLayout({
     if (user) {
       setIsLoggedIn(true);
     }
+  }, []);
+
+  // Add listener for agent mode changes
+  useEffect(() => {
+    const checkAgentMode = () => {
+      const savedAgentMode = localStorage.getItem('selectedAgentMode');
+      
+      if (savedAgentMode === 'agent') {
+        setAgentMode(true);
+      
+      } else {
+        setAgentMode(false);
+        // Reset manual toggle marker when exiting agent mode
+        localStorage.removeItem("userManuallyOpened");
+      }
+    };
+
+    // Initial check - but don't set up the recurring check
+    checkAgentMode();
+
+    // Listen for storage changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selectedAgentMode') {
+        checkAgentMode();
+      }
+    };
     
-    // Load saved AI model preferences
-    const savedModel = localStorage.getItem('selectedAIModel');
-    if (savedModel) {
-      try {
-        const { provider: providerId, model: modelId } = JSON.parse(savedModel);
-        const providerObj = AI_PROVIDERS.find(p => p.id === providerId);
-        if (providerObj) {
-          setCurrentProvider(providerObj);
-          const modelObj = providerObj.models.find(m => m.id === modelId);
-          if (modelObj) setCurrentModel(modelObj);
-        }
-      } catch (e) {
-        console.error("Error loading saved model", e);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [collapseSidebar]); // Add collapseSidebar as dependency to react to its changes
+
+  // Add effect to close sidebar when agent mode is active
+  useEffect(() => {
+    // Only run this when agent mode becomes true
+    if (agentMode) {
+      const userManuallyOpened = localStorage.getItem("userManuallyOpened") === "true";
+      
+      // Only auto-close sidebar if user hasn't manually opened it
+      if (!userManuallyOpened) {
+        setCollapseSidebar(true);
       }
     }
-
-    // Load agent mode preference
-    const savedAgentMode = localStorage.getItem('selectedAgentMode');
-    if (savedAgentMode === 'agent') {
-      setAgentMode(true);
-    }
-  }, [user]);
+  }, [agentMode]);
 
   // Handle click outside dropdowns
   useEffect(() => {
@@ -178,26 +151,6 @@ export default function ChatLayout({
         !themeButtonRef.current.contains(event.target as Node)
       ) {
         setTimeout(() => setShowThemeDropdown(false), 100);
-      }
-
-      // Close AI Provider Dropdown if clicked outside
-      if (
-        aiDropdownRef.current &&
-        !aiDropdownRef.current.contains(event.target as Node) &&
-        aiButtonRef.current &&
-        !aiButtonRef.current.contains(event.target as Node)
-      ) {
-        setTimeout(() => setShowAIDropdown(false), 100);
-      }
-      
-      // Close WP Features Dropdown if clicked outside
-      if (
-        wpFeaturesDropdownRef.current &&
-        !wpFeaturesDropdownRef.current.contains(event.target as Node) &&
-        wpFeaturesButtonRef.current &&
-        !wpFeaturesButtonRef.current.contains(event.target as Node)
-      ) {
-        setTimeout(() => setShowWPFeaturesDropdown(false), 100);
       }
     };
 
@@ -224,7 +177,9 @@ export default function ChatLayout({
   const handleLogout = async () => {
     try {
       setShowDropdown(false);
-      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userData");
       await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/logout/`, {
         method: "GET",
         credentials: "include",
@@ -235,16 +190,6 @@ export default function ChatLayout({
     } catch (error) {
       console.error("Error logging out:", error);
     }
-  };
-
-  // Handle model selection
-  const handleModelSelection = (provider: typeof AI_PROVIDERS[0], model: typeof AI_PROVIDERS[0]['models'][0]) => {
-    setCurrentProvider(provider);
-    setCurrentModel(model);
-    setShowAIDropdown(false);
-    
-    // Save selection to localStorage
-    localStorage.setItem('selectedAIModel', JSON.stringify({provider: provider.id, model: model.id}));
   };
 
   return (
@@ -260,19 +205,15 @@ export default function ChatLayout({
       {/* Sidebar - Collapse when in agent mode */}
       <div
         className={`h-full transition-all duration-300 z-50 ${
-          ismobileorMedium || agentMode
-            ? `fixed top-0 left-0 h-full bg-gray-700 shadow-lg ${
-                collapseSidebar ? "w-0 overflow-hidden" : "w-[290px]"
-              }`
-            : `${
-                collapseSidebar
-                  ? "w-0 overflow-hidden"
-                  : "w-[300px] md:w-[270px]"
-              } ${
-                theme === "dark"
-                  ? "bg-gray-800/90 backdrop-blur-md shadow-md"
-                  : "bg-gray-200/90 border-r border-gray-200"
-              }`
+          collapseSidebar
+            ? "w-0 overflow-hidden"
+            : ismobileorMedium
+              ? "fixed top-0 left-0 h-full w-[290px]"
+              : "w-[300px] md:w-[270px]"
+        } ${
+          theme === "dark"
+            ? "bg-gray-800/90 backdrop-blur-md shadow-md"
+            : "bg-gray-100/95 border-r border-gray-200"
         }`}
       >
         {/* Sidebar Header */}
@@ -318,140 +259,12 @@ export default function ChatLayout({
         {/* Simplified Header - No Background */}
         <div className="w-full relative">
           <div className="flex justify-between items-center w-full px-4 py-3">
-            {/* Left: Sidebar toggle + Two options */}
+            {/* Left: Sidebar toggle */}
             <div className="flex items-center space-x-3">
               {collapseSidebar && (
                 <button className="text-2xl mr-2" onClick={handleSidebarToggle}>
                   <FiSidebar />
                 </button>
-              )}
-              
-              {/* AI Provider Selection - Always visible */}
-              <div className="relative">
-                <button
-                  ref={aiButtonRef}
-                  onClick={() => {
-                    setShowAIDropdown(!showAIDropdown);
-                    setShowDropdown(false);
-                    setShowThemeDropdown(false);
-                    setShowWPFeaturesDropdown(false);
-                  }}
-                  className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
-                    ${
-                      theme === "dark"
-                        ? "bg-gray-700/60 text-white hover:bg-gray-700/70"
-                        : "bg-white text-gray-800 hover:bg-gray-100"
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {currentProvider.id === 'openai' && <SiOpenai className="text-lg" />}
-                    {currentProvider.id === 'claude' && <SiClaude className="text-lg" />}
-                    {currentProvider.id === 'gemini' && <SiGooglegemini className="text-lg" />}
-                    <span>{currentModel.name}</span>
-                    <FiChevronDown />
-                  </div>
-                </button>
-
-                {/* AI Provider Dropdown */}
-                {showAIDropdown && (
-                  <motion.div
-                    ref={aiDropdownRef}
-                    className="absolute left-0 mt-2 w-64 bg-white/95 dark:bg-gray-700/95 rounded-lg shadow-lg overflow-hidden z-50 backdrop-blur-sm border border-gray-200 dark:border-gray-600"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-600">
-                      <h3 className="text-sm font-medium">Select AI Provider & Model</h3>
-                    </div>
-                    
-                    {AI_PROVIDERS.map((provider) => (
-                      <div key={provider.id} className="border-b border-gray-200 dark:border-gray-600 last:border-0">
-                        <div className="flex items-center gap-2 px-4 py-2 font-medium bg-gray-50/80 dark:bg-gray-700/80">
-                          {provider.id === 'openai' && <SiOpenai className="text-lg" />}
-                          {provider.id === 'claude' && <SiClaude className="text-lg" />}
-                          {provider.id === 'gemini' && <SiGooglegemini className="text-lg" />}
-                          <span>{provider.name}</span>
-                        </div>
-                        <div className="pl-4">
-                          {provider.models.map((model) => (
-                            <div 
-                              key={model.id} 
-                              className={`flex items-center justify-between py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${
-                                currentProvider.id === provider.id && currentModel.id === model.id
-                                  ? 'bg-blue-50 dark:bg-blue-900/30'
-                                  : ''
-                              }`}
-                              onClick={() => handleModelSelection(provider, model)}
-                            >
-                              <span className="text-sm">{model.name}</span>
-                              {model.wpOptimized && (
-                                <span className="flex items-center text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                                  <FaWordpress className="mr-1" /> Optimized
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </div>
-              
-              {/* WordPress Features - Only visible in agent mode */}
-              {agentMode && (
-                <div className="relative">
-                  <button
-                    ref={wpFeaturesButtonRef}
-                    onClick={() => {
-                      setShowWPFeaturesDropdown(!showWPFeaturesDropdown);
-                      setShowDropdown(false);
-                      setShowThemeDropdown(false);
-                      setShowAIDropdown(false);
-                    }}
-                    className={`flex items-center gap-1 font-semibold tracking-wide px-3 py-2 rounded-lg duration-300
-                      ${
-                theme === "dark"
-                          ? "bg-blue-800/30 text-white hover:bg-blue-700/40"
-                          : "bg-blue-50 text-blue-800 hover:bg-blue-100"
-                      }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FaWordpress className="text-blue-500" />
-                      <span>WP Features</span>
-                      <FiChevronDown />
-                    </div>
-                  </button>
-
-                  {/* WordPress Features Dropdown */}
-                  {showWPFeaturesDropdown && (
-                    <motion.div
-                      ref={wpFeaturesDropdownRef}
-                      className="absolute left-0 mt-2 w-56 bg-white/95 dark:bg-gray-700/95 rounded-lg shadow-lg overflow-hidden z-50 backdrop-blur-sm border border-gray-200 dark:border-gray-600"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="p-3 border-b border-gray-200 dark:border-gray-600">
-                        <h3 className="text-sm font-medium">WordPress Features</h3>
-                      </div>
-                      
-                      {WP_FEATURES.map((feature) => (
-                        <div 
-                          key={feature.id} 
-                          className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            setShowWPFeaturesDropdown(false);
-                          }}
-                        >
-                          <span className="text-blue-500">{feature.icon}</span>
-                          <span>{feature.name}</span>
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </div>
               )}
             </div>
             
@@ -465,8 +278,6 @@ export default function ChatLayout({
                     e.stopPropagation();
                     setShowThemeDropdown((prev) => !prev);
                     setShowDropdown(false);
-                    setShowAIDropdown(false);
-                    setShowWPFeaturesDropdown(false);
                   }}
                   className="p-2.5 bg-gray-100/80 dark:bg-gray-700/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
                   aria-label="Theme settings"
@@ -525,69 +336,67 @@ export default function ChatLayout({
                   </Link>
                 </div>
               ) : (
-                <div className="relative">
-              <button
-                    ref={buttonRef}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDropdown((prev) => !prev);
-                      setShowThemeDropdown(false);
-                      setShowAIDropdown(false);
-                      setShowWPFeaturesDropdown(false);
-                    }}
-                    className="relative h-10 w-10 rounded-full overflow-hidden shadow-inner hover:shadow-md transition-all duration-300"
-                  >
-                    <Image
-                      src={user?.profile_picture || "/placeholder.svg"}
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
-              </button>
+              <div className="relative">
+                <button
+                  ref={buttonRef}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDropdown((prev) => !prev);
+                    setShowThemeDropdown(false);
+                  }}
+                  className="relative h-10 w-10 rounded-full overflow-hidden shadow-inner hover:shadow-md transition-all duration-300"
+                >
+                  <Image
+                    src={user?.profile_picture || "/placeholder.svg"}
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                </button>
 
-                  {/* User Dropdown Menu - Simplified */}
-                  {showDropdown && (
-                    <motion.div
-                      ref={dropdownRef}
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-700/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-600 backdrop-blur-sm"
-                    >
-                      {/* Menu Options */}
-                      <div>
-                        <Link href="/profile">
-                          <motion.div
-                            whileHover={{ x: 5 }}
-                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          >
-                            <FaUser className="text-gray-500" />
-                            <span>My Profile</span>
-                          </motion.div>
-                        </Link>
-                        <Link href="/settings">
-                          <motion.div
-                            whileHover={{ x: 5 }}
-                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          >
-                            <FaCog className="text-gray-500" />
-                            <span>Settings</span>
-                          </motion.div>
-                        </Link>
+                {/* User Dropdown Menu - Simplified */}
+                {showDropdown && (
+                  <motion.div
+                    ref={dropdownRef}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-700/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-600 backdrop-blur-sm"
+                  >
+                    {/* Menu Options */}
+                    <div>
+                      <Link href="/profile">
                         <motion.div
                           whileHover={{ x: 5 }}
                           className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={handleLogout}
                         >
-                          <FaSignOutAlt className="text-red-500" />
-                          <span className="text-red-500">Sign Out</span>
+                          <FaUser className="text-gray-500" />
+                          <span>My Profile</span>
                         </motion.div>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
+                      </Link>
+                      <Link href="/settings">
+                        <motion.div
+                          whileHover={{ x: 5 }}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          <FaCog className="text-gray-500" />
+                          <span>Settings</span>
+                        </motion.div>
+                      </Link>
+                      <motion.div
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        onClick={handleLogout}
+                      >
+                        <FaSignOutAlt className="text-red-500" />
+                        <span className="text-red-500">Sign Out</span>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
               )}
             </div>
           </div>

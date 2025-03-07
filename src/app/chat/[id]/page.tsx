@@ -3,11 +3,10 @@
 "use client";
 
 import React, { useState, useCallback, use, useEffect } from "react";
-import ChatInput from "@/components/chat-comp/chatInput";
-import Message from "@/components/chat-comp/Message";
 import { fetchMessages } from "@/utils/fetchMessages"; 
 import { useTheme } from "@/context/ThemeProvider";
 import AgentModeInterface from "@/components/chat-comp/AgentModeInterface";
+import DefaultChatInterface from "@/components/chat-comp/DefaultChatInterface";
 import toast from "react-hot-toast";
 
 interface Props {
@@ -23,6 +22,26 @@ const ChatPage = ({ params }: Props) => {
   const [agentMode, setAgentMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Function to clean up old chat sessions in localStorage
+  const cleanupChatSessions = useCallback((currentSessionId: string) => {
+    if (typeof window === 'undefined') return;
+    
+    // Get all keys from localStorage
+    const keys = Object.keys(localStorage);
+    
+    // Filter out chat session keys
+    const chatSessionKeys = keys.filter(key => key.startsWith('chat-session-'));
+    
+    // Delete all chat sessions except the current one
+    chatSessionKeys.forEach(key => {
+      if (key !== `chat-session-${currentSessionId}`) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log(`Cleaned up ${chatSessionKeys.length - 1} old chat sessions`);
+  }, []);
+
   const fetchChatMessages = useCallback(async () => {
     setLoading(true);
     try {
@@ -35,10 +54,11 @@ const ChatPage = ({ params }: Props) => {
     }
   }, [id]);
 
-  // Load messages on initial render
+  // Load messages on initial render and clean up old sessions
   useEffect(() => {
     fetchChatMessages();
-  }, [fetchChatMessages]);
+    cleanupChatSessions(id);
+  }, [fetchChatMessages, cleanupChatSessions, id]);
 
   // Check if agent mode is enabled
   useEffect(() => {
@@ -82,6 +102,20 @@ const ChatPage = ({ params }: Props) => {
           
           setMessages(prev => [...prev, aiResponse]);
         }, 1000);
+      } else {
+        // For agent mode, simulate a different type of response
+        setTimeout(() => {
+          const aiResponse = {
+            message_id: `ai_${Date.now()}`,
+            group: id,
+            owner_name: "AI",
+            user_prompt: "",
+            ai_response: `I'm working on your request as an agent: "${message}". Here's what I can do with your code.`,
+            created_at: new Date().toISOString(),
+          };
+          
+          setMessages(prev => [...prev, aiResponse]);
+        }, 1500);
       }
       
       return { success: true };
@@ -101,32 +135,19 @@ const ChatPage = ({ params }: Props) => {
   }
 
   return (
-    <div className="flex flex-col justify-center h-full w-full relative">
+    <div className="flex flex-col h-full w-full relative">
       {agentMode ? (
-        // Agent Mode Interface
+        // Agent Mode Interface with split screen
         <AgentModeInterface 
           messages={messages}
           onSendMessage={handleSendMessage}
         />
       ) : (
-        // Default Chat Interface
-        <>
-          <div className="flex-1 overflow-y-auto w-full pb-24">
-            {messages.map((message, index) => (
-              <Message 
-                key={message.message_id || index}
-                message={message}
-              />
-            ))}
-          </div>
-
-          <ChatInput 
-            id={id} 
-            setMessages={setMessages} 
-            fetchMessages={fetchChatMessages}
-            onSendMessage={handleSendMessage}
-          />
-        </>
+        // Default Chat Interface with input at bottom
+        <DefaultChatInterface 
+          messages={messages}
+          onSendMessage={handleSendMessage}
+        />
       )}
     </div>
   );

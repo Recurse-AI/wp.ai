@@ -66,7 +66,7 @@ export default function Navbar() {
           console.log("Navbar: Setting logged in from useAuth:", authUser);
           setIsLoggedIn(true);
           setUser({
-            name: authUser.username || authUser.name || '',
+            name: authUser.username || '',
             image: authUser.profile_picture || user.image,
           });
         } else if (!isAuthenticated && !contextIsLoggedIn) {
@@ -89,7 +89,7 @@ export default function Navbar() {
       console.log("Navbar: Setting logged in from context:", contextUser);
       setIsLoggedIn(true);
       setUser({
-        name: contextUser.username || contextUser.name,
+        name: contextUser.username || '',
         image: contextUser.image || user.image,
       });
     }
@@ -114,7 +114,7 @@ export default function Navbar() {
             if (userDataString) {
               const userData = JSON.parse(userDataString);
               setUser({
-                name: userData.username || userData.name || '',
+                name: userData.username || '',
                 image: userData.image || user.image,
               });
             }
