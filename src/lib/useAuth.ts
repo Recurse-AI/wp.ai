@@ -93,17 +93,27 @@ export default function useAuth() {
   // Load user data on mount
   useEffect(() => {
     const loadUser = async () => {
+      console.log('🔄 Starting loadUser function');
       try {
         // Check for token
-        if (!TokenManager.getToken()) {
+        const token = TokenManager.getToken();
+        console.log('Token check:', token ? 'Token exists' : 'No token found');
+        
+        if (!token) {
           // Try to get user data from localStorage as fallback
           const userDataString = safeLocalStorage.getItem('userData');
           // Also check for authToken as another fallback
           const authToken = safeLocalStorage.getItem('token');
           
+          console.log('Fallback checks:', {
+            hasUserData: !!userDataString,
+            hasAuthToken: !!authToken
+          });
+          
           if (userDataString) {
             try {
               const userData = JSON.parse(userDataString);
+              console.log('✅ Using userData from localStorage');
               setAuthState({
                 user: userData,
                 loading: false,
@@ -115,6 +125,7 @@ export default function useAuth() {
               console.error('Failed to parse userData from localStorage:', parseError);
             }
           } else if (authToken) {
+            console.log('🔑 Found authToken, attempting to fetch user data');
             // If we have an authToken but no userData, consider the user authenticated
             // but with incomplete data - this prevents unnecessary redirects
             setAuthState({
@@ -126,8 +137,10 @@ export default function useAuth() {
             
             // Try to fetch the full user data in the background
             try {
-              const user = await AuthService.getCurrentUser();
+              console.log('🔄 Fetching full user data');
+              const user = await AuthService.getUserProfile();
               if (user) {
+                console.log('✅ User data fetched successfully');
                 setAuthState({
                   user,
                   loading: false,
@@ -137,6 +150,7 @@ export default function useAuth() {
                 safeLocalStorage.setItem('userData', JSON.stringify(user));
               }
             } catch (fetchError) {
+              console.error('❌ Error fetching user data:', fetchError);
               const apiError = fetchError as any;
               
               // Handle token-specific errors
@@ -146,12 +160,15 @@ export default function useAuth() {
                 safeLocalStorage.removeItem('userData');
                 router.push('/signin?reason=expired');
               } else if (apiError.tokenError === 'expired_access') {
+                console.log('🔄 Access token expired, attempting refresh');
                 // Try to refresh the token
                 try {
                   await TokenManager.refreshAccessToken();
+                  console.log('✅ Token refreshed, retrying user data fetch');
                   // If successful, retry loading user
-                  const user = await AuthService.getCurrentUser();
+                  const user = await AuthService.getUserProfile();
                   if (user) {
+                    console.log('✅ User data fetched after token refresh');
                     setAuthState({
                       user,
                       loading: false,
@@ -162,16 +179,13 @@ export default function useAuth() {
                   }
                 } catch (refreshError) {
                   console.error('Failed to refresh token in background:', refreshError);
-                  // We'll keep the user authenticated with placeholder data
                 }
-              } else {
-                console.error('Failed to fetch user data in background:', fetchError);
-                // We'll keep the user authenticated with placeholder data
               }
             }
             return;
           }
           
+          console.log('❌ No valid auth data found, setting unauthenticated state');
           setAuthState({
             user: null,
             loading: false,
@@ -181,10 +195,12 @@ export default function useAuth() {
           return;
         }
 
+        console.log('🔄 Valid token found, fetching current user data');
         // Get current user data
-        const user = await AuthService.getCurrentUser();
+        const user = await AuthService.getUserProfile();
+        console.log('✅ User data fetched successfully:', user);
         setAuthState({
-            user,
+          user,
           loading: false,
           isAuthenticated: true,
           error: null,
@@ -193,6 +209,7 @@ export default function useAuth() {
         // Store user data in localStorage for fallback
         safeLocalStorage.setItem('userData', JSON.stringify(user));
       } catch (error) {
+        console.error('❌ Error in loadUser:', error);
         const apiError = error as any;
         
         // Try to get user data from localStorage as fallback

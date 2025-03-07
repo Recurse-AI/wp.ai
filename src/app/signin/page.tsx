@@ -111,45 +111,51 @@ export default function SignIn() {
 
   useEffect(() => {
     const authenticateUser = async () => {
-      if (session?.user?.name) {
+      // Only proceed if we have a session and it's from Google
+      if (session?.user?.name && session?.user?.provider === "google" && session.googleProfile) {
         try {
-          console.log("🔹 Calling Backend API /authLogin...");
-          const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/login-auth/`, {
+          console.log("🔹 Processing Google authentication...");
+          const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: session.user.email,
               name: session.user.name,
               image: session.user.image,
-              // @ts-ignore - provider is added by our custom NextAuth config
-              provider: session.user.provider,
+              provider: "google",
+              googleProfile: session.googleProfile
             }),
             credentials: "include",
           });
 
           if (response.ok) {
-            console.log("🔹 Backend API responded successfully.");
+            console.log("🔹 Google authentication successful");
             const data = await response.json();
-            localStorage.setItem("authToken", data.jwt); // Save backend token
-            toast.success("You are logged in now!", getToastStyle(theme));
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("userData", JSON.stringify(data.user));
+            toast.success("Successfully signed in with Google!", getToastStyle(theme));
+            
             if(localStorage.getItem("isChat")){
               localStorage.removeItem("isChat");
               router.push("/chat");
+            } else {
+              router.push("/");
             }
-            else router.push("/");
-            setIsLoggedIn(true);
           } else {
-            console.error("❌ Backend /authLogin API failed");
-            toast.error("Authentication failed", getToastStyle(theme));
+            console.error("❌ Google authentication failed");
+            toast.error("Google authentication failed", getToastStyle(theme));
           }
         } catch (err) {
-          console.error("❌ Error calling /authLogin:", err);
+          console.error("❌ Error in Google authentication:", err);
           toast.error("Connection error. Please try again.", getToastStyle(theme));
         }
       }
     };
 
-    authenticateUser();
+    // Only run if we have a new session
+    if (session?.user) {
+      authenticateUser();
+    }
   }, [session, router, theme]);
 
   // Handle form input changes
@@ -261,6 +267,18 @@ export default function SignIn() {
       toast.error(errorMessage, getToastStyle(theme));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle Google Sign In
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn("google", {
+        callbackUrl: `${window.location.origin}/signin`,
+      });
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      toast.error("Failed to sign in with Google", getToastStyle(theme));
     }
   };
 
@@ -450,7 +468,7 @@ export default function SignIn() {
                 <SocialButton 
                   provider="google" 
                   theme={theme} 
-                  onClick={() => signIn('google', { callbackUrl: '/auth/callback' })}
+                  onClick={handleGoogleSignIn}
                 />
                 <SocialButton 
                   provider="github" 

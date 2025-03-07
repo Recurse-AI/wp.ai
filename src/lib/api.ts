@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import TokenManager from './tokenManager';
 
 // Base API URLs - these should match your environment variables
-const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://192.168.93.41:8000';
 
 // Error interface
 export interface ApiError {
@@ -131,14 +131,17 @@ export const apiRequest = async <T>(
   config?: AxiosRequestConfig
 ): Promise<T> => {
   try {
+    console.log(`🔄 API Request: ${method} ${url}`, { data });
     const response: AxiosResponse<T> = await apiClient({
       method,
       url,
       data,
       ...config,
     });
+    console.log(`✅ API Response: ${method} ${url}`, { status: response.status, data: response.data });
     return response.data;
   } catch (error) {
+    console.error(`❌ API Error: ${method} ${url}`, error);
     const axiosError = error as AxiosError<any>;
     const apiError: ApiError = {
       status: axiosError.response?.status || 500,
