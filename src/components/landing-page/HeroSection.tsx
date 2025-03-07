@@ -110,32 +110,6 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             </Button>
           </motion.div>
         </motion.div>
-
-        {/* Hero Image */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="mt-16 sm:mt-20"
-        >
-          <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] mx-auto">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-40 animate-pulse" />
-            <motion.div
-              className="relative w-full h-full rounded-full overflow-hidden shadow-2xl"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            >
-              <Image
-                src="/wp.webp"
-                fill
-                priority
-                style={{ objectFit: 'cover' }}
-                alt="AI-powered WordPress"
-                className="rounded-full hover:scale-110 transition-transform duration-500"
-              />
-            </motion.div>
-          </div>
-        </motion.div>
       </Container>
 
       {/* Floating Chat Button for Mobile */}

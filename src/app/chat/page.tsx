@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthProvider";
 import useAuth from "@/lib/useAuth";
 import TokenManager from "@/lib/tokenManager";
+import { useChat } from "@/lib/hooks/useChat";
+import AgentModeInterface from "@/components/chat-comp/AgentModeInterface";
+import toast from "react-hot-toast";
 
 const Page = () => {
   const { theme } = useTheme();
@@ -13,39 +16,33 @@ const Page = () => {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { isLoggedIn } = useAuthContext();
   const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [agentMode, setAgentMode] = useState(false);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
+
+  const {
+    sendMessage,
+    updateSettings,
+    loading: chatLoading,
+    error: chatError,
+  } = useChat();
 
   useEffect(() => {
-    // More comprehensive auth check
     const checkAuth = async () => {
-      // Get all authentication indicators
       const hasToken = !!TokenManager.getToken();
       const hasRefreshToken = !!TokenManager.getRefreshToken();
       const hasUserData = !!localStorage.getItem('userData');
       const hasAuthToken = !!localStorage.getItem('token');
 
-      console.log("Chat page auth check:", { 
-        isAuthenticated, 
-        isLoggedIn, 
-        user,
-        authLoading,
-        hasToken,
-        hasRefreshToken,
-        hasUserData,
-        hasAuthToken
-      });
-
-      // CRITICAL FIX: Only wait if still loading auth state
       if (authLoading) {
         console.log("Chat page: Still loading auth state, waiting...");
-        return; // Still loading auth state, wait for it to resolve
+        return;
       }
 
-      // If authenticated by any method, allow access
       if (isAuthenticated || isLoggedIn || hasToken || hasRefreshToken || hasUserData || hasAuthToken) {
         console.log("Chat page: Authentication confirmed, allowing access");
-        setLoading(false); // Set loading to false to show the chat interface
+        setLoading(false);
       } else {
-        // If all auth methods fail, redirect to signin
         console.log("Chat page: No valid authentication found, redirecting to signin");
         localStorage.setItem('isChat', 'true');
         router.push('/signin');
@@ -54,6 +51,59 @@ const Page = () => {
 
     checkAuth();
   }, [isAuthenticated, isLoggedIn, authLoading, user, router]);
+
+  useEffect(() => {
+    const savedAgentMode = localStorage.getItem('selectedAgentMode');
+    if (savedAgentMode === 'agent') {
+      setAgentMode(true);
+    }
+  }, []);
+
+  const handleSendMessage = async (message: string) => {
+    try {
+      if (!hasStartedChat) {
+        setHasStartedChat(true);
+      }
+
+      if (agentMode) {
+        const userMessage = {
+          message_id: `user_${Date.now()}`,
+          owner_name: "You",
+          user_prompt: message,
+          ai_response: "",
+          created_at: new Date().toISOString(),
+        };
+        
+        setMessages(prev => [...prev, userMessage]);
+        
+        setTimeout(() => {
+          const aiResponse = {
+            message_id: `ai_${Date.now()}`,
+            owner_name: "AI",
+            user_prompt: "",
+            ai_response: `I've analyzed your code request: "${message}". Check the editor tab for changes.`,
+            created_at: new Date().toISOString(),
+          };
+          
+          setMessages(prev => [...prev, aiResponse]);
+        }, 1000);
+        
+        return { success: true };
+      } else {
+        const response = await sendMessage(message);
+        
+        if (!window.location.pathname.includes('/chat/')) {
+          router.push(`/chat/${response.session_id}`);
+        }
+        
+        return response;
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
+      return { success: false, error };
+    }
+  };
 
   if (loading) {
     return (
@@ -64,13 +114,29 @@ const Page = () => {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-2 overflow-hidden">
-      <div className="max-w-4xl mx-auto flex flex-col items-center gap-5 w-full">
-        <h2 className="text-xl md:text-3xl font-semibold">
-          How can I help you?
-        </h2>
-      </div>
-      <ChatInput id={""} setMessages={() => {}} fetchMessages={() => {}} /> 
+    <div className={`h-full flex flex-col items-center justify-center px-2 overflow-hidden ${hasStartedChat ? 'justify-end' : 'justify-center'}`}>
+      {hasStartedChat && agentMode ? (
+        <div className="w-full h-full">
+          <AgentModeInterface 
+            messages={messages}
+            onSendMessage={handleSendMessage}
+          />
+        </div>
+      ) : (
+        <div className={`max-w-4xl mx-auto flex flex-col items-center gap-5 w-full ${hasStartedChat ? 'mb-4' : ''}`}>
+          {!hasStartedChat && (
+            <h2 className="text-xl md:text-3xl font-semibold">
+              How can I help you?
+            </h2>
+          )}
+          <ChatInput 
+            id="" 
+            setMessages={setMessages} 
+            fetchMessages={() => {}}
+            onSendMessage={handleSendMessage}
+          /> 
+        </div>
+      )}
     </div>
   );
 };

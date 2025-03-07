@@ -313,7 +313,7 @@ export default function Navbar() {
                 setShowThemeDropdown(!showThemeDropdown);
                 setShowDropdown(false);
               }}
-              className="p-2.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50"
+              className="p-2.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
               ref={buttonRef}
               aria-label="Theme settings"
             >
@@ -333,7 +333,7 @@ export default function Navbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
+                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
               >
                 {[
                   { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
@@ -390,11 +390,11 @@ export default function Navbar() {
                   setShowDropdown(!showDropdown);
                   setShowThemeDropdown(false);
                 }}
-                className="flex items-center gap-2 py-1 px-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50"
+                className="flex items-center gap-2 py-1 px-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
                 ref={buttonRef}
               >
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
-                <div className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-inner">
+                <div className="relative h-8 w-8 rounded-full overflow-hidden shadow-inner">
                   <Image
                     src={user.image || "/placeholder.svg"}
                     alt={user.name || "User"}
@@ -416,12 +416,12 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-md"
+                  className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg overflow-hidden backdrop-blur-md"
                 >
                   {/* User Info Section */}
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-700/50">
+                  <div className="p-4 bg-gray-50/80 dark:bg-gray-700/50">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700">
+                      <div className="h-10 w-10 rounded-full overflow-hidden shadow-inner">
                         <Image
                           src={user.image || "/placeholder.svg"}
                           alt={user.name || "User"}
@@ -472,7 +472,7 @@ export default function Navbar() {
                         toast.error("Logout failed. Please try again.");
                       }
                     }}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-red-50/80 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 cursor-pointer transition-all duration-200 border-t border-gray-200 dark:border-gray-700"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-red-50/80 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 cursor-pointer transition-all duration-200"
                   >
                     <FaSignOutAlt className="text-lg" />
                     <span className="font-medium">Sign Out</span>

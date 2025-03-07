@@ -43,6 +43,7 @@
     "monaco-editor": "^0.52.2",
     "next": "15.1.6",
     "next-auth": "^4.24.11",
+    "re-resizable": "^6.11.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.1",
@@ -53,6 +54,7 @@
     "tailwind-merge": "^3.0.1",
     "tailwind-scrollbar-hide": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

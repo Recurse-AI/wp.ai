@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { Bot, MessageSquare, Sparkles } from "lucide-react";
+import axios from 'axios';
 
 const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
@@ -39,34 +40,29 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
         return;
       }
 
-      const response = await fetch(
+      const response = await axios.get(
         `${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-group-message/`,
         {
-          method: "GET",
-          credentials: "include",
+          withCredentials: true,
         }
       );
 
-      if (!response.ok) {
-        if (response.status === 401) {
+      // Axios handles non-200 responses as errors, so if we reach here, it's a success
+      console.log("Fetched Chats:", response.data);
+      setChats(Array.isArray(response.data.message) ? response.data.message.reverse() : []);
+    } catch (err) {
+      console.error("Error fetching chats:", err);
+      
+      // Handle specific status codes
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 401) {
           console.log("User not authenticated, clearing chats");
           setChats([]);
           return;
         }
-        console.error(`Error fetching chats: ${response.status} ${response.statusText}`);
-        // Instead of throwing, we'll just set the error and empty the chats
-        setError(true);
-        setChats([]);
-        return;
+        console.error(`Error fetching chats: ${err.response.status} ${err.response.statusText}`);
       }
-
-      const data = await response.json();
-
-      console.log("Fetched Chats:", data);
-
-      setChats(Array.isArray(data.message) ? data.message.reverse() : []);
-    } catch (err) {
-      console.error("Error fetching chats:", err);
+      
       setError(true);
       setChats([]);
     } finally {

@@ -86,7 +86,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
         <div className="relative max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-lg text-gray-600 dark:text-gray-400">© 2024 WP.ai - All rights reserved.</p>
+            <p className="text-lg text-gray-600 dark:text-gray-400">© 2025 WP.ai - All rights reserved.</p>
             <div className="flex gap-8 mt-4 md:mt-0">
               <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Privacy</a>
               <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Terms</a>

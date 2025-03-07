@@ -1,13 +1,8 @@
 import { AIModel } from './aiModels';
 import apiClient from './apiClient';
 import { AxiosResponse } from 'axios';
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  message_id?: string;
-  created_at?: string;
-}
+import { ChatMessage, ChatResponse, ChatOptions, ChatConfig } from '../types/chat';
+import { CHAT_CONFIG, ChatSettings } from './chatConfig';
 
 export interface ChatSession {
   id: string;
@@ -19,112 +14,141 @@ export interface ChatSession {
   provider: string;
 }
 
-export interface ChatOptions {
-  model: AIModel;
-  temperature?: number;
-  max_tokens?: number;
-  stream?: boolean;
-}
+const DEFAULT_CONFIG: ChatConfig = {
+  provider: 'openai',
+  model: 'gpt-4o',
+  temperature: 0.7,
+  max_tokens: 1000,
+  use_vector_search: false,
+};
 
-/**
- * Send a message to the chat API
- * @param chatId - The ID of the existing chat, or null for a new chat
- * @param message - The message content to send
- * @param options - Chat configuration options
- * @returns Response with chat ID, message ID, and response text
- */
-export const sendChatMessage = async (
-  chatId: string | null,
-  message: string,
-  options: ChatOptions
-): Promise<{ 
-  chatId: string; 
-  messageId: string; 
-  response: string; 
-  isNewChat: boolean 
-}> => {
-  try {
-    // Determine if this is a new chat or continuing an existing one
-    const isNewChat = !chatId;
-    const endpoint = '/api/chat';
-    
-    const payload = {
-      prompt: message,
-      model_id: options.model.id,
-      provider: options.model.provider,
-      temperature: options.temperature || 0.7,
-      max_tokens: options.max_tokens || options.model.maxTokens,
-      stream: options.stream || false,
-      ...(chatId ? { group_id: chatId } : {})
+export class ChatService {
+  private config: ChatConfig;
+  private settings: ChatSettings;
+  private sessionId: string | null;
+
+  constructor(config: Partial<ChatConfig> = {}, initialSettings?: Partial<ChatSettings>) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.settings = {
+      ...CHAT_CONFIG.DEFAULT_SETTINGS,
+      ...initialSettings,
     };
-    
-    const response: AxiosResponse = await apiClient.post(endpoint, payload);
-    const data = response.data;
-    
-    return {
-      chatId: data.chat_group.group_id,
-      messageId: data.chat_message.message_id,
-      response: data.chat_message.ai_response,
-      isNewChat
+    this.sessionId = initialSettings?.session_id || null;
+  }
+
+  async sendMessage(query: string, options: Partial<ChatSettings> = {}): Promise<ChatResponse> {
+    const requestBody = {
+      query,
+      session_id: this.sessionId || crypto.randomUUID(),
+      provider: options.provider || this.settings.provider,
+      model: options.model || this.settings.model,
+      temperature: options.temperature || this.settings.temperature,
+      max_tokens: options.max_tokens || this.settings.max_tokens,
+      use_vector_search: options.use_vector_search ?? this.settings.use_vector_search
     };
-  } catch (error) {
-    console.error('Error sending chat message:', error);
-    throw error;
-  }
-};
 
-/**
- * Fetch chat history
- * @returns List of chat sessions
- */
-export const fetchChatHistory = async (): Promise<ChatSession[]> => {
-  try {
-    const endpoint = '/api/chat/history';
-    const response: AxiosResponse = await apiClient.get(endpoint);
-    
-    return response.data.chats || [];
-  } catch (error) {
-    console.error('Error fetching chat history:', error);
-    throw error;
-  }
-};
+    try {
+      const response = await apiClient.post(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/`,
+        requestBody,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
 
-/**
- * Fetch messages for a specific chat
- * @param chatId - The ID of the chat to fetch messages for
- * @returns List of chat messages
- */
-export const fetchChatMessages = async (chatId: string): Promise<ChatMessage[]> => {
-  try {
-    const endpoint = `/api/chat/${chatId}`;
-    const response: AxiosResponse = await apiClient.get(endpoint);
-    
-    // Transform API response to our ChatMessage format
-    return response.data.messages.map((msg: any) => ({
-      role: msg.owner_name === 'You' ? 'user' : 'assistant',
-      content: msg.owner_name === 'You' ? msg.user_prompt : msg.ai_response,
-      message_id: msg.message_id,
-      created_at: msg.created_at
-    }));
-  } catch (error) {
-    console.error('Error fetching chat messages:', error);
-    throw error;
-  }
-};
+      const data = response.data;
 
-/**
- * Delete a chat session
- * @param chatId - The ID of the chat to delete
- * @returns Success boolean
- */
-export const deleteChatSession = async (chatId: string): Promise<boolean> => {
-  try {
-    const endpoint = `/api/chat/${chatId}`;
-    await apiClient.delete(endpoint);
-    
-    return true;
-  } catch (error) {
-    console.error('Error deleting chat session:', error);
-    throw error;
+      // Update session ID if this is a new chat
+      if (!this.sessionId) {
+        this.sessionId = data.session_id;
+      }
+
+      return {
+        response: data.response,
+        response_time: data.response_time,
+        provider: data.provider,
+        model: data.model,
+        used_vector_search: data.used_vector_search,
+        session_id: data.session_id,
+        conversation: {
+          id: data.conversation.id,
+          title: data.conversation.title,
+          created_at: data.conversation.created_at,
+          updated_at: data.conversation.updated_at,
+        },
+      };
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      throw error;
+    }
   }
-}; 
+
+  async getConversationHistory(): Promise<ChatResponse[]> {
+    if (!this.sessionId) {
+      return [];
+    }
+
+    try {
+      const response = await apiClient.get(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/${this.sessionId}`,
+        { withCredentials: true }
+      );
+
+      return response.data.messages.map((msg: any) => ({
+        response: msg.response,
+        response_time: msg.response_time,
+        provider: msg.provider,
+        model: msg.model,
+        used_vector_search: msg.used_vector_search,
+        session_id: msg.session_id,
+        conversation: {
+          id: msg.conversation.id,
+          title: msg.conversation.title,
+          created_at: msg.conversation.created_at,
+          updated_at: msg.conversation.updated_at,
+        },
+      }));
+    } catch (error) {
+      console.error('Error fetching conversation history:', error);
+      throw error;
+    }
+  }
+
+  setSessionId(sessionId: string | null): void {
+    this.sessionId = sessionId;
+  }
+
+  updateSettings(newSettings: Partial<ChatSettings>): void {
+    this.settings = {
+      ...this.settings,
+      ...newSettings,
+    };
+  }
+
+  getSettings(): ChatSettings {
+    return { ...this.settings };
+  }
+
+  getCurrentSessionId(): string | null {
+    return this.sessionId;
+  }
+
+  async deleteChatSession(chatId: string): Promise<boolean> {
+    try {
+      await apiClient.delete(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/${chatId}`,
+        { withCredentials: true }
+      );
+      if (chatId === this.sessionId) {
+        this.sessionId = null;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      throw error;
+    }
+  }
+} 

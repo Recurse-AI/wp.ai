@@ -3,8 +3,8 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import React, { useState, useRef } from "react";
-import { FaCamera, FaCube, FaDatabase, FaBrain, FaWordpress } from "react-icons/fa";
+import React, { useState, useRef, useEffect } from "react";
+import { FaWordpress } from "react-icons/fa";
 import { ImArrowUpRight2 } from "react-icons/im";
 import { IoGlobeOutline } from "react-icons/io5";
 import { MdImage, MdSmartToy } from "react-icons/md";
@@ -16,15 +16,20 @@ import { useTheme } from "@/context/ThemeProvider";
 import { Tooltip } from "react-tooltip";
 import { motion } from "framer-motion";
 import useAuth from "@/lib/useAuth";
+import { Brain, Bot, Book, Send, Database, MessageSquare, SendHorizontal, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
 
-const ChatInput = ({
-  id,
-  setMessages,
-  fetchMessages,
-}: {
+interface ChatInputProps {
   id: string;
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   fetchMessages: () => void;
+  onSendMessage: (message: string) => Promise<any>;
+}
+
+const ChatInput: React.FC<ChatInputProps> = ({
+  id,
+  setMessages,
+  fetchMessages,
+  onSendMessage,
 }) => {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
@@ -34,6 +39,15 @@ const ChatInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showProcessing, setShowProcessing] = useState(false);
   const [embeddingEnabled, setEmbeddingEnabled] = useState(false);
+  const [agentMode, setAgentMode] = useState(false);
+
+  // Initialize agent mode from localStorage
+  useEffect(() => {
+    const savedAgentMode = localStorage.getItem('selectedAgentMode');
+    if (savedAgentMode === 'agent') {
+      setAgentMode(true);
+    }
+  }, []);
 
   // ✅ Handle text input & auto-expand textarea
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -77,100 +91,85 @@ const ChatInput = ({
     );
   };
 
+  // Toggle agent mode
+  const toggleAgentMode = () => {
+    const newAgentMode = !agentMode;
+    setAgentMode(newAgentMode);
+    
+    // Save to localStorage
+    localStorage.setItem('selectedAgentMode', newAgentMode ? 'agent' : 'default');
+    
+    // Show toast notification
+    toast.success(
+      newAgentMode 
+        ? "Agent mode activated" 
+        : "Default mode activated",
+      {
+        icon: newAgentMode ? '∞' : '💬',
+        style: {
+          borderRadius: '10px',
+          background: theme === 'dark' ? '#333' : '#f0f0f0',
+          color: theme === 'dark' ? '#fff' : '#333',
+        },
+      }
+    );
+    
+    // Reload the page to apply the changes
+    // This ensures all components update to reflect the new mode
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
+
   // ✅ Handle chat submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!prompt.trim()) return; // ✅ Avoid empty messages
+    if (!prompt.trim()) return;
 
-    // ✅ Show ProcessingMessage if it's a new chat
+    // Show ProcessingMessage if it's a new chat
     if (!id) {
       setShowProcessing(true);
     }
 
-    // ✅ Temporary Message Object (Shows Immediately)
+    // Temporary Message Object
     const tempMessage = {
-      message_id: "temp_" + new Date().getTime(), // Unique ID for temp message
+      message_id: "temp_" + new Date().getTime(),
       group: id || "new_chat",
-      owner_name: "You", // User who sent the prompt
+      owner_name: "You",
       user_prompt: prompt,
-      ai_response: "Loading...", // ✅ Show this until API responds
+      ai_response: "Loading...",
       created_at: new Date().toISOString(),
-      parent_message: localStorage.getItem("lastMessageId") || null,
     };
 
-    // ✅ Add Temporary Message to UI
-    if (id) {
-      setMessages((prevMessages) => [...prevMessages, tempMessage]);
-    }
-
-    // ✅ Prepare Request Body
-    const requestBody = id
-      ? {
-          prompt: prompt,
-          group_id: id,
-          parent_message_id: localStorage.getItem("lastMessageId") || null,
-          use_embedding: embeddingEnabled,
-        }
-      : { 
-          prompt: prompt,
-          use_embedding: embeddingEnabled,
-        };
+    // Add Temporary Message to UI - do this for both new chats and existing chats
+    setMessages((prevMessages) => [...prevMessages, tempMessage]);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_CHAT_API_URL}/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-        credentials: "include",
-      });
-      console.log(res);
-
-      const data = await res.json();
-
-      if (res.ok) {
-        const newChatId = data.chat_group.group_id;
-
-        if (id) {
-          setMessages((prevMessages) => {
-            const updatedMessages = prevMessages.filter(
-              (msg) => msg.message_id !== tempMessage.message_id
-            );
-            localStorage.setItem("set-to-flow", data.chat_message.message_id);
-
-            return [...updatedMessages, data.chat_message];
-          });
-          setShowProcessing(false);
-        } else {
-          localStorage.setItem("set-to-flow", data.chat_message.message_id);
-          setShowProcessing(false);
-          window.location.href = `/chat/${newChatId}`;
-        }
-
-        setPrompt(""); // ✅ Clear input field
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "40px"; // Reset to default size
-        }
-      } else {
-        toast.error(data.message || "Failed to send message.");
-
-        // ✅ Remove Temporary Message on Error
-        setMessages((prevMessages) =>
-          prevMessages.filter(
-            (msg) => msg.message_id !== tempMessage.message_id
-          )
-        );
+      // Send the message
+      await onSendMessage(prompt);
+      
+      // Clear the input
+      setPrompt("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "40px";
+      }
+      
+      // If in agent mode, don't fetch messages as the agent interface handles this differently
+      if (!agentMode && id) {
+        // Fetch updated messages for existing chats in default mode
+        await fetchMessages();
       }
     } catch (error) {
       console.error("❌ Error sending message:", error);
       toast.error("Something went wrong. Try again later.");
 
-      // ✅ Remove Temporary Message on Error
+      // Remove Temporary Message on Error
       setMessages((prevMessages) =>
         prevMessages.filter((msg) => msg.message_id !== tempMessage.message_id)
       );
+    } finally {
+      setShowProcessing(false);
     }
   };
 
@@ -237,9 +236,19 @@ const ChatInput = ({
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
               <div className="flex items-center gap-1">
                 <FaWordpress className="text-white text-xs" />
-                <FaBrain className="text-white text-xs animate-pulse" />
+                <Brain className="text-white text-xs animate-pulse" />
               </div>
               <span>WordPress Knowledge Active</span>
+            </div>
+          )}
+          
+          {/* Agent Mode Active Indicator */}
+          {agentMode && (
+            <div className="absolute -top-3 right-5 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
+              <div className="flex items-center gap-1">
+                <Zap className="text-white text-xs animate-pulse" />
+              </div>
+              <span>Agent Mode Active</span>
             </div>
           )}
           
@@ -267,26 +276,55 @@ const ChatInput = ({
 
             {/* Icons Below Input */}
             <div className="left-0 mt-2 px-3 flex gap-4 text-gray-500 text-xs">
-              {/* Embedding Toggle Button - Enhanced */}
-              <div className="relative">
-                <motion.button
-                  type="button"
-                  onClick={toggleEmbedding}
-                  whileTap={{ scale: 0.95 }}
-                  data-tooltip-id="tooltip-embedding"
-                  data-tooltip-content={embeddingEnabled ? "WordPress Knowledge Base Active" : "Enable WordPress Knowledge Base"}
-                  className={`flex items-center gap-2 justify-center p-1.5 rounded-lg transition-all ${
-                    embeddingEnabled 
-                      ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
-                  }`}
-                >
-                  <FaDatabase className={`text-lg ${embeddingEnabled ? "text-blue-500" : ""}`} />
-                  <span className={`text-xs font-medium ${embeddingEnabled ? "text-blue-600 dark:text-blue-400" : ""}`}>
-                    {embeddingEnabled ? "KB On" : "KB Off"}
-                  </span>
-                </motion.button>
-                <Tooltip id="tooltip-embedding" place="top" />
+              {/* Mode Toggles Group */}
+              <div className="flex gap-3">
+                {/* Agent/Default Mode Toggle Button */}
+                <div className="relative">
+                  <motion.button
+                    type="button"
+                    onClick={toggleAgentMode}
+                    whileTap={{ scale: 0.95 }}
+                    data-tooltip-id="tooltip-agent-mode"
+                    data-tooltip-content={agentMode ? "Switch to Default Mode" : "Switch to Agent Mode"}
+                    className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
+                      agentMode 
+                        ? "text-purple-500 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                    }`}
+                  >
+                    {agentMode ? (
+                      <Zap className="text-base text-purple-500" />
+                    ) : (
+                      <MessageSquare className="text-base" />
+                    )}
+                    <span className={`text-[11px] font-medium ${agentMode ? "text-purple-600 dark:text-purple-400" : ""}`}>
+                      {agentMode ? "Agent" : "Default"}
+                    </span>
+                  </motion.button>
+                  <Tooltip id="tooltip-agent-mode" place="top" />
+                </div>
+
+                {/* Embedding Toggle Button - Enhanced */}
+                <div className="relative">
+                  <motion.button
+                    type="button"
+                    onClick={toggleEmbedding}
+                    whileTap={{ scale: 0.95 }}
+                    data-tooltip-id="tooltip-embedding"
+                    data-tooltip-content={embeddingEnabled ? "WordPress Knowledge Base Active" : "Enable WordPress Knowledge Base"}
+                    className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
+                      embeddingEnabled 
+                        ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                    }`}
+                  >
+                    <Database className={`text-base ${embeddingEnabled ? "text-blue-500" : ""}`} />
+                    <span className={`text-[11px] font-medium ${embeddingEnabled ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                      {embeddingEnabled ? "KB On" : "KB Off"}
+                    </span>
+                  </motion.button>
+                  <Tooltip id="tooltip-embedding" place="top" />
+                </div>
               </div>
             </div>
           </div>
@@ -294,20 +332,35 @@ const ChatInput = ({
           {/* Send Button on the Right - Enhanced */}
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             disabled={!prompt.trim()} // Disable if input is empty
-            className={`p-2.5 rounded-lg ml-3 ${
+            className={`p-3 rounded-full ml-3 ${
               prompt.trim() 
                 ? theme === "dark"
-                  ? "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
-                  : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600"
+                  ? "bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 shadow-md"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 shadow-md"
                 : theme === "dark"
                   ? "bg-gray-800 text-gray-600"
                   : "bg-gray-100 text-gray-400"
             } flex items-center justify-center transition-all`}
           >
-            <ImArrowUpRight2 className={`text-lg ${prompt.trim() ? "text-white" : ""}`} />
+            <motion.div
+              animate={prompt.trim() ? { 
+                scale: [1, 1.1, 1],
+                y: [0, -2, 0], 
+                x: [0, 2, 0],
+              } : {}}
+              transition={{ 
+                repeat: prompt.trim() ? Number.POSITIVE_INFINITY : 0, 
+                repeatType: "reverse", 
+                duration: 1.2,
+                repeatDelay: 0.5
+              }}
+              className="flex items-center justify-center"
+            >
+              <ArrowUpRight className={`w-5 h-5 ${prompt.trim() ? "text-white" : ""}`} strokeWidth={2.5} />
+            </motion.div>
           </motion.button>
         </form>
       )}
@@ -321,8 +374,17 @@ const ChatInput = ({
         {embeddingEnabled && (
           <>
             <span className="flex items-center gap-1">
-              <FaDatabase className="text-blue-500" />
+              <Database className="text-blue-500" />
               <span className="text-blue-500">WordPress knowledge base active</span>
+            </span>
+            <span className="mx-1">•</span>
+          </>
+        )}
+        {agentMode && (
+          <>
+            <span className="flex items-center gap-1">
+              <Zap className="text-purple-500" />
+              <span className="text-purple-500">Agent mode active</span>
             </span>
             <span className="mx-1">•</span>
           </>

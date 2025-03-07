@@ -71,7 +71,7 @@ const VideoSection: React.FC = () => {
                     </div>
                   </div>
                   <Image 
-                    src="/support.jpg"
+                    src="/wp.webp"
                     alt="Video thumbnail" 
                     layout="fill" 
                     objectFit="cover"
