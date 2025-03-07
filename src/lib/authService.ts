@@ -161,7 +161,7 @@ const AuthService = {
     apiDelete<{ message: string }>(ApiPaths.USER_DETAIL(id)),
 
   getCurrentUser: () => 
-    apiGet<UserProfile>(ApiPaths.USER_ME),
+    apiGet<UserProfile>(ApiPaths.USER_PROFILE),
 
   // Session management
   getUserSessions: () => 
