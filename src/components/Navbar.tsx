@@ -198,7 +198,7 @@ export default function Navbar() {
         style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
       });
 
-      // Redirect based on current route
+      // Redirect based on current route without adding reason parameter
       const currentPath = pathname;
       const isProtectedRoute = currentPath.includes('/chat') || 
                              currentPath.includes('/dashboard') || 
@@ -208,9 +208,9 @@ export default function Navbar() {
       // Small delay to ensure state updates are processed
       setTimeout(() => {
         if (isProtectedRoute) {
-          router.push('/signin');
+          router.replace('/signin');
         } else {
-          router.push('/');
+          router.replace('/');
         }
       }, 100);
 
@@ -412,34 +412,74 @@ export default function Navbar() {
               </button>
 
               {showDropdown && (
-                <div
+                <motion.div
                   ref={dropdownRef}
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50"
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm"
                 >
-                  <Link
-                    href="/profile"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    <FaUser className="mr-2" />
-                    Profile
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => setIsSettingsOpen(true)}
-                  >
-                    <FaCogs className="mr-2" />
-                    Settings
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <FaSignOutAlt className="mr-2" />
-                    Sign out
-                  </button>
-                </div>
+                  {/* User Info Section */}
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-700/50">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700">
+                        <Image
+                          src={user.image || "/placeholder.svg"}
+                          alt={user.name || "User"}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{user.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          WordPress Developer
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200">
+                        <FaUser className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Profile</span>
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setShowDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                    >
+                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                        <FaCogs className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Settings</span>
+                    </button>
+
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/70 my-1 mx-3"></div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group"
+                    >
+                      <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-all duration-200">
+                        <FaSignOutAlt className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Sign out</span>
+                    </button>
+                  </div>
+                </motion.div>
               )}
             </div>
           )}
