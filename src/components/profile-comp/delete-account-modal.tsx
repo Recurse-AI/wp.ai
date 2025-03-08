@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 
@@ -11,39 +10,88 @@ interface DeleteAccountModalProps {
   onClose: () => void;
 }
 
+interface DeleteAccountError {
+  password?: string[];
+  message?: string;
+}
+
 export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps) {
   const { theme } = useTheme();
-  const router = useRouter();
-  const [confirmText, setConfirmText] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // ✅ Handle Delete Account API Call
+  // Reset form when modal closes
+  const handleClose = () => {
+    setPassword("");
+    setErrorMessage("");
+    onClose();
+  };
+
+  // Handle Delete Account API Call
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (confirmText !== "DELETE") {
-      toast.error("Please type DELETE to confirm account deletion.");
+    if (!password) {
+      toast.error("Please enter your password to confirm account deletion.");
       return;
     }
 
     setLoading(true);
+    setErrorMessage("");
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/delete-user/`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/delete-account/`, {
         method: "DELETE",
-        credentials: "include", // ✅ Send cookies for authentication
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `bearer ${token}`
+        },
+        credentials: "include",
+        body: JSON.stringify({ password }),
       });
 
-      if (!res.ok) throw new Error("Failed to delete account");
+      if (!res.ok) {
+        const errorData = await res.json() as DeleteAccountError;
+        console.log("Error data:", errorData);
+        
+        // Create error message from all error fields
+        const errorMessages: string[] = [];
+        if (errorData.password) {
+          errorMessages.push(...errorData.password);
+        }
+        if (errorData.message) {
+          errorMessages.push(errorData.message);
+        }
+        
+        if (errorMessages.length > 0) {
+          throw new Error(errorMessages.join("\n"));
+        } else {
+          throw new Error("Failed to delete account");
+        }
+      }
 
       toast.success("Your account has been deleted.");
-      onClose();
+      handleClose();
 
-      // ✅ Redirect to homepage after deletion
+      // Clear all auth data from localStorage
+      localStorage.removeItem("userData");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("isChat");
+
+      // Redirect to homepage after deletion
       setTimeout(() => {
         window.location.href = "/";
       }, 2000);
     } catch (error) {
-      toast.error("Failed to delete account. Try again.");
-      console.error("Error deleting account:", error);
+      const err = error as Error;
+      setErrorMessage(err.message || "Failed to delete account. Try again.");
+      toast.error(err.message || "Failed to delete account.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +107,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
           <h2 className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
             Delete Account
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          <button onClick={handleClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
             ✕
           </button>
         </div>
@@ -69,17 +117,24 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
           This action <strong>cannot be undone</strong>. Your account and all associated data will be permanently deleted.
         </p>
 
+        {/* Error Messages */}
+        {errorMessage && errorMessage.split("\n").map((error, index) => (
+          <p key={index} className="text-red-400 text-center mb-4">{error}</p>
+        ))}
+
         {/* Form */}
         <form onSubmit={handleDeleteAccount}>
           <div className="mb-4">
-            <label htmlFor="confirm-delete" className={`block text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-              Type <strong>DELETE</strong> to confirm
+            <label htmlFor="confirm-password" className={`block text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              Enter your password to confirm deletion
             </label>
             <input
-              id="confirm-delete"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
+              id="confirm-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className={`w-full mt-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none ${theme === "dark" ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+              placeholder="Enter your password"
               required
             />
           </div>
@@ -88,7 +143,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className={`px-4 py-2 rounded-md transition ${theme === "dark" ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
             >
               Cancel

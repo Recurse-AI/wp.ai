@@ -33,23 +33,30 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
 
-
   // Get authentication state from useAuth hook
-  const { isAuthenticated, user: authUser, logout, loading: authLoading } = useAuth();
+  const {
+    isAuthenticated,
+    user: authUser,
+    logout,
+    loading: authLoading,
+  } = useAuth();
 
   const [user, setUser] = useState({
     name: "",
     image:
       "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
   });
-  
+
   // Get authentication state from AuthContext
-  const { isLoggedIn: contextIsLoggedIn, user: contextUser, logout: contextLogout } = useAuthContext();
+  const {
+    isLoggedIn: contextIsLoggedIn,
+    user: contextUser,
+    logout: contextLogout,
+  } = useAuthContext();
 
   // Determine user state combining both auth sources
   const [isLoggedIn, setIsLoggedIn] = useState(false);
- 
-  
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -67,15 +74,18 @@ export default function Navbar() {
           console.log("Navbar: Setting logged in from useAuth:", authUser);
           setIsLoggedIn(true);
           setUser({
-            name: authUser.username || '',
+            name: authUser.username || "",
             image: authUser.profile_picture || user.image,
           });
         } else if (!isAuthenticated && !contextIsLoggedIn) {
-          console.log("Navbar: Setting logged out (both auth sources negative)");
+          console.log(
+            "Navbar: Setting logged out (both auth sources negative)"
+          );
           setIsLoggedIn(false);
           setUser({
             name: "",
-            image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+            image:
+              "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
           });
         }
       }
@@ -83,14 +93,14 @@ export default function Navbar() {
 
     loadUserData();
   }, [authUser, isAuthenticated, authLoading, contextIsLoggedIn]);
-  
+
   // Update local state from context when it changes
   useEffect(() => {
     if (contextIsLoggedIn && contextUser) {
       console.log("Navbar: Setting logged in from context:", contextUser);
       setIsLoggedIn(true);
       setUser({
-        name: contextUser.username || '',
+        name: contextUser.username || "",
         image: contextUser.image || user.image,
       });
     }
@@ -99,23 +109,26 @@ export default function Navbar() {
   // Check for token and userData directly
   useEffect(() => {
     const checkLocalStorage = () => {
-      if (typeof window !== 'undefined') {
-        const hasToken = !!localStorage.getItem('token');
-        const hasRefreshToken = !!localStorage.getItem('refreshToken');
-        const hasUserData = !!localStorage.getItem('userData');
-        const hasAuthToken = !!localStorage.getItem('token');
-        
-        if ((hasToken || hasRefreshToken || hasUserData || hasAuthToken) && !isLoggedIn) {
+      if (typeof window !== "undefined") {
+        const hasToken = !!localStorage.getItem("token");
+        const hasRefreshToken = !!localStorage.getItem("refreshToken");
+        const hasUserData = !!localStorage.getItem("userData");
+        const hasAuthToken = !!localStorage.getItem("token");
+
+        if (
+          (hasToken || hasRefreshToken || hasUserData || hasAuthToken) &&
+          !isLoggedIn
+        ) {
           console.log("Navbar: Setting logged in from localStorage");
           setIsLoggedIn(true);
-          
+
           // Try to set user data from localStorage
           try {
-            const userDataString = localStorage.getItem('userData');
+            const userDataString = localStorage.getItem("userData");
             if (userDataString) {
               const userData = JSON.parse(userDataString);
               setUser({
-                name: userData.username || '',
+                name: userData.username || "",
                 image: userData.image || user.image,
               });
             }
@@ -125,16 +138,16 @@ export default function Navbar() {
         }
       }
     };
-    
+
     checkLocalStorage();
-    
+
     // Listen for storage events
     const handleStorageChange = () => {
       checkLocalStorage();
     };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [isLoggedIn, user.image]);
 
   // ✅ Detect if page is scrolled
@@ -155,31 +168,35 @@ export default function Navbar() {
   const handleLogout = async () => {
     try {
       // Show loading toast
-      const loadingToast = toast.loading("Signing out...", { 
-        style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
+      const loadingToast = toast.loading("Signing out...", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
       });
 
       // Close dropdowns
       setShowDropdown(false);
       setShowThemeDropdown(false);
       setIsSettingsOpen(false);
-      
+
       // Clear all local storage first
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("userData");
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
-        localStorage.removeItem("userData");
         localStorage.removeItem("isChat");
-        
+
         // Dispatch storage event to notify other components
-        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event("storage"));
       }
 
       // Update local state
       setIsLoggedIn(false);
-      setUser({ 
+      setUser({
         name: "",
-        image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+        image:
+          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
       });
 
       // Call both logout functions to ensure complete logout
@@ -195,37 +212,44 @@ export default function Navbar() {
 
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
-      toast.success("Successfully signed out!", { 
-        style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
+      toast.success("Successfully signed out!", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
       });
 
       // Redirect based on current route without adding reason parameter
       const currentPath = pathname;
-      const isProtectedRoute = currentPath.includes('/chat') || 
-                             currentPath.includes('/dashboard') || 
-                             currentPath.includes('/profile') ||
-                             currentPath.includes('/settings');
+      const isProtectedRoute =
+        currentPath.includes("/chat") ||
+        currentPath.includes("/dashboard") ||
+        currentPath.includes("/profile") ||
+        currentPath.includes("/settings");
 
       // Small delay to ensure state updates are processed
       setTimeout(() => {
         if (isProtectedRoute) {
-          router.replace('/signin');
+          router.replace("/signin");
         } else {
-          router.replace('/');
+          router.replace("/");
         }
       }, 100);
-
     } catch (error) {
       console.error("Logout failed:", error);
-      toast.error("Failed to sign out. Please try again.", { 
-        style: { background: theme === 'dark' ? '#1F2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }
+      toast.error("Failed to sign out. Please try again.", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
       });
 
       // Even if API call fails, clear local state
       setIsLoggedIn(false);
-      setUser({ 
+      setUser({
         name: "",
-        image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+        image:
+          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
       });
     }
   };
@@ -233,14 +257,15 @@ export default function Navbar() {
   // Force check auth state on mount and route change
   useEffect(() => {
     const checkAuthState = () => {
-      const hasToken = !!localStorage.getItem('token');
-      const hasUserData = !!localStorage.getItem('userData');
-      
+      const hasToken = !!localStorage.getItem("token");
+      const hasUserData = !!localStorage.getItem("userData");
+
       if (!hasToken && !hasUserData) {
         setIsLoggedIn(false);
         setUser({
           name: "",
-          image: "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs="
+          image:
+            "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
         });
       }
     };
@@ -273,7 +298,12 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (pathname === "/signin" || pathname === "/signup" || pathname === "/chat" || pathname.startsWith("/verify-email"))
+  if (
+    pathname === "/signin" ||
+    pathname === "/signup" ||
+    pathname === "/chat" ||
+    pathname.startsWith("/verify-email")
+  )
     return null;
 
   return (
@@ -546,7 +576,7 @@ export default function Navbar() {
 
       {/* Spacer */}
       <div className="h-16 md:h-20"></div>
-      
+
       {/* Settings Dialog */}
       {isSettingsOpen && (
         <SettingsDialog

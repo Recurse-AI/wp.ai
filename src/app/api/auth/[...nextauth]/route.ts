@@ -1,17 +1,53 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, DefaultSession } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import WordPressProvider from "next-auth/providers/wordpress";
 
+export interface GoogleProfile {
+  email: string;
+  email_verified: boolean;
+  name: string;
+  picture: string;
+  given_name: string;
+  family_name: string;
+  locale: string;
+  sub: string;
+}
+
+export interface ExtendedSession extends DefaultSession {
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+    provider?: string;
+  } & DefaultSession["user"];
+  accessToken?: string;
+  googleProfile?: GoogleProfile;
+  expires: string;
+}
+
+export interface ExtendedToken extends JWT {
+  id: string;
+  email: string;
+  image: string;
+  name: string;
+  provider?: string;
+  accessToken?: string;
+  googleProfile?: GoogleProfile;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       authorization: {
         params: {
+          prompt: "consent",
           access_type: "offline",
-          prompt: "select_account"
+          response_type: "code"
         }
       }
     }),
@@ -67,9 +103,16 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
+      console.log('NextAuth SignIn Callback:', {
+        user,
+        account,
+        profile,
+        email,
+        credentials
+      });
+      
       if (account?.provider === "google") {
         try {
-          // Instead of automatic API call, store the data in token
           return true;
         } catch (error) {
           console.error("Error in signIn callback:", error);
@@ -78,7 +121,14 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account, profile }): Promise<ExtendedToken> {
+      console.log('NextAuth JWT Callback:', {
+        token,
+        user,
+        account,
+        profile
+      });
+      
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -88,27 +138,33 @@ export const authOptions: NextAuthOptions = {
         if (account) {
           token.accessToken = account.access_token;
           token.provider = account.provider;
-          token.googleProfile = account.provider === "google" ? profile : null;
+          token.googleProfile = account.provider === "google" ? profile as GoogleProfile : undefined;
         }
       }
-      return token;
+      return token as ExtendedToken;
     },
-    async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.image = token.image as string;
-        session.user.name = token.name as string;
-        session.user.provider = token.provider as string;
-        session.accessToken = token.accessToken as string;
+    async session({ session, token }): Promise<ExtendedSession> {
+      console.log('NextAuth Session Callback:', {
+        session,
+        token
+      });
+      
+      const extendedSession = session as ExtendedSession;
+      const extendedToken = token as ExtendedToken;
+      
+      if (extendedSession?.user) {
+        extendedSession.user.id = extendedToken.id;
+        extendedSession.user.email = extendedToken.email;
+        extendedSession.user.image = extendedToken.image;
+        extendedSession.user.name = extendedToken.name;
+        extendedSession.user.provider = extendedToken.provider;
+        extendedSession.accessToken = extendedToken.accessToken;
         
-        // Only call your API when explicitly requested
-        if (token.provider === "google" && token.googleProfile) {
-          // The API call will be handled in the signin page component
-          session.googleProfile = token.googleProfile;
+        if (extendedToken.provider === "google" && extendedToken.googleProfile) {
+          extendedSession.googleProfile = extendedToken.googleProfile;
         }
       }
-      return session;
+      return extendedSession;
     },
     async redirect({ url, baseUrl }) {
       // Always redirect to signin page after OAuth callback

@@ -2,32 +2,60 @@
 
 import React, { useState } from "react";
 import { useTheme } from "@/context/ThemeProvider";
-import { CheckCircle, DollarSign, Clock } from "lucide-react";
+import { CheckCircle, DollarSign, Clock, Zap, Shield, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { ParticlesBackground } from "@/components/landing-page";
 
 const plans = [
   {
     id: "monthly",
-    title: "Monthly Plan",
+    title: "Starter",
     price: 15,
     duration: "per month",
-    features: ["Access to core features", "Basic AI support", "10 WordPress optimizations"],
+    features: [
+      "Access to core features",
+      "Basic AI support",
+      "10 WordPress optimizations",
+      "24/7 Email support",
+      "1 Website",
+      "Basic Analytics"
+    ],
+    icon: <Zap className="w-6 h-6 text-blue-500" />,
+    color: "blue"
   },
   {
     id: "quarterly",
-    title: "Quarterly Plan",
+    title: "Professional",
     price: 40,
     duration: "per 3 months",
-    features: ["Everything in Monthly", "Advanced AI suggestions", "Priority support"],
-    best: true,
+    features: [
+      "Everything in Starter",
+      "Advanced AI suggestions",
+      "Priority support",
+      "3 Websites",
+      "Advanced Analytics",
+      "Custom Integrations"
+    ],
+    icon: <Star className="w-6 h-6 text-purple-500" />,
+    color: "purple",
+    best: true
   },
   {
     id: "yearly",
-    title: "Yearly Plan",
+    title: "Enterprise",
     price: 120,
     duration: "per year",
-    features: ["Everything in Quarterly", "Unlimited WordPress optimizations", "Exclusive WP plugins"],
-  },
+    features: [
+      "Everything in Professional",
+      "Unlimited WordPress optimizations",
+      "Exclusive WP plugins",
+      "Unlimited Websites",
+      "Custom AI Training",
+      "Dedicated Support Team"
+    ],
+    icon: <Shield className="w-6 h-6 text-green-500" />,
+    color: "green"
+  }
 ];
 
 export default function PricingPage() {
@@ -36,156 +64,135 @@ export default function PricingPage() {
 
   const handleSelectPlan = async (planId: string) => {
     setSelectedPlan(planId);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/plan`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planId }),
-      });
-
-      if (!response.ok) throw new Error("Failed to subscribe");
-      alert(`You have selected the ${planId} plan!`);
-    } catch (error) {
-      console.error("Error selecting plan:", error);
-    }
+    // Your plan selection logic here
   };
 
   return (
-    <div
-      className={`relative min-h-screen bg-transparent flex flex-col items-center justify-center px-6 py-12 ${
-        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
-      }`}
-    >
-      {/* ✅ Fixed Background Circles */}
-      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-        {/* 🔵 Large Circles */}
-        <div className="absolute top-10 left-20 w-96 h-96 bg-blue-400 opacity-100 rounded-full blur-3xl animate-pulse" />
-        {/* <div className="absolute top-60 right-20 w-96 h-96 bg-purple-800 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" />
-        {/* <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-pink-500 opacity-100 rounded-full blur-3xl animate-pulse delay-2000" /> */}
-        {/* <div className="absolute top-2/4 right-1/4 w-80 h-80 bg-yellow-500 opacity-100 rounded-full blur-3xl animate-pulse delay-1000" /> */}
+    <div className={`relative min-h-screen overflow-hidden ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
+      {/* Background Elements */}
+      <div className="fixed inset-0 overflow-hidden">
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
+        
+        {/* Glowing Orbs */}
+        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
+        
+        {/* Particles */}
+        <ParticlesBackground />
       </div>
-      
-      {/* ✅ Page Header */}
-      <motion.h1
-        className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text"
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        Choose the Perfect Plan
-      </motion.h1>
-      <motion.p
-        className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-lg text-center"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        Get the best <strong>AI-powered WordPress</strong> optimization with <span className="text-blue-500 font-bold">WP.ai</span>. Choose a plan that fits your needs and elevate your website performance!
-      </motion.p>
 
-      {/* ✅ Pricing Cards with Animation */}
-      <motion.div
-        className="grid md:grid-cols-3 gap-6 w-full max-w-5xl"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: {
-            opacity: 1,
-            y: 0,
-            transition: { delayChildren: 0.2, staggerChildren: 0.2 },
-          },
-        }}
-      >
-        {plans.map((plan) => (
-          <motion.div
-            key={plan.id}
-            className={`relative p-6 border rounded-2xl shadow-lg transition-all duration-300 overflow-hidden
-              ${
-                selectedPlan === plan.id
-                  ? "scale-105 border-blue-500 shadow-xl"
-                  : "border-gray-300 dark:border-gray-700"
-              }
-              ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {/* ✅ "Best Popular" Badge Animation */}
-            {plan.best && (
-              <motion.div
-                className="absolute top-1 right-1 bg-yellow-400 text-black px-2 py-0 rounded-full text-sm font-semibold flex items-center gap-1"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 0.5 }}
-              >
-                ⭐ Best Popular
-              </motion.div>
-            )}
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20">
+        {/* Header Section */}
+        <motion.div
+          className="text-center mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+            Choose Your Plan
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            Unlock the full potential of WordPress with our AI-powered solutions
+          </p>
+        </motion.div>
 
-            {/* ✅ Background Glow Effect (Only for Selected Plan) */}
-            {selectedPlan === plan.id && (
-              <motion.div
-                className="absolute inset-0 bg-blue-500 opacity-10 scale-125 blur-2xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.3 }}
-                transition={{ duration: 0.5 }}
-              />
-            )}
-
-            {/* ✅ Plan Title & Price */}
-            <h2 className="text-2xl font-semibold mb-3 text-center">{plan.title}</h2>
-            <p className="flex justify-center items-center gap-2 text-4xl font-bold mb-4">
-              <DollarSign size={24} /> {plan.price}
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 flex items-center gap-2 justify-center">
-              <Clock size={18} /> {plan.duration}
-            </p>
-
-            {/* ✅ Features List with Entry Animation */}
-            <ul className="mt-6 space-y-2">
-              {plan.features.map((feature, index) => (
-                <motion.li
-                  key={index}
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                >
-                  <CheckCircle className="text-green-500" size={18} /> {feature}
-                </motion.li>
-              ))}
-            </ul>
-
-            {/* ✅ Animated "Get Started" Button */}
-            <motion.button
-              onClick={() => handleSelectPlan(plan.id)}
-              className="mt-6 w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all relative overflow-hidden"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+        {/* Pricing Cards */}
+        <motion.div
+          className="grid md:grid-cols-3 gap-8 mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          {plans.map((plan, index) => (
+            <motion.div
+              key={plan.id}
+              className={`relative p-8 rounded-2xl backdrop-blur-lg border group transition-all duration-300
+                ${selectedPlan === plan.id 
+                  ? `border-${plan.color}-500 bg-${plan.color}-500/10` 
+                  : "border-gray-200/20 dark:border-gray-700/20 bg-white/10 dark:bg-gray-800/50"}
+                ${plan.best ? "lg:-mt-4" : ""}`}
+              whileHover={{
+                boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.2)",
+                transform: "translateY(-8px)"
+              }}
             >
-              Get Started
-              {/* 🔹 Flowing Light Effect */}
-              <motion.div
-                className="absolute inset-0 bg-white opacity-10"
-                animate={{ x: ["-100%", "100%"] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-              />
-            </motion.button>
-          </motion.div>
-        ))}
-      </motion.div>
+              {/* Best Value Badge */}
+              {plan.best && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                  Best Value
+                </div>
+              )}
 
-      {/* ✅ Additional Call-to-Action */}
-      <motion.p
-        className="mt-10 text-lg text-center text-gray-500 dark:text-gray-400"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        Need help choosing a plan? <a href="/contact" className="text-blue-500 font-semibold hover:underline">Contact Us</a>
-      </motion.p>
+              {/* Plan Icon */}
+              <div className="mb-6 flex justify-center group-hover:scale-110 transition-transform duration-300">
+                {plan.icon}
+              </div>
+
+              {/* Plan Details */}
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold mb-2 group-hover:text-${plan.color}-500 transition-colors duration-300">
+                  {plan.title}
+                </h3>
+                <div className="flex items-center justify-center gap-1 text-4xl font-bold mb-2">
+                  <span className="text-2xl">$</span>
+                  {plan.price}
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                  <Clock size={16} /> {plan.duration}
+                </p>
+              </div>
+
+              {/* Features */}
+              <ul className="space-y-4 mb-8">
+                {plan.features.map((feature, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-center gap-3 text-gray-600 dark:text-gray-300"
+                  >
+                    <CheckCircle className={`flex-shrink-0 w-5 h-5 text-${plan.color}-500`} />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Action Button */}
+              <button
+                onClick={() => handleSelectPlan(plan.id)}
+                className={`w-full py-4 px-6 rounded-xl font-semibold relative overflow-hidden transition-all duration-300
+                  ${selectedPlan === plan.id
+                    ? `bg-${plan.color}-600 text-white`
+                    : `bg-${plan.color}-500/10 text-${plan.color}-600 hover:bg-${plan.color}-500 hover:text-white`}
+                  group-hover:shadow-lg
+                `}
+              >
+                Get Started
+              </button>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* FAQ or Additional Info */}
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            All plans include a 14-day free trial. No credit card required.
+          </p>
+          <a
+            href="/contact"
+            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+          >
+            Need help choosing? Contact our team
+          </a>
+        </motion.div>
+      </div>
     </div>
-
   );
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -12,6 +12,20 @@ import useAuth from "@/lib/useAuth";
 import ClientOnly from "@/lib/client-only";
 import Link from 'next/link';
 import { getToastStyle } from "@/lib/toastConfig";
+
+// Add ExtendedSession type
+interface ExtendedSession {
+  user?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    provider?: string;
+  };
+  expires: string;
+  accessToken?: string;
+  googleProfile?: any;
+}
 
 // Password validation regex password must at least 8 characters, 1 uppercase, 1 lowercase, 1 number and 1 special character
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/;
@@ -208,9 +222,103 @@ export default function SignUp() {
     }
   };
 
+  // Add handleSocialSignIn function
+  const handleSocialSignIn = async (provider: string) => {
+    try {
+      localStorage.setItem('socialAuthInitiated', 'true');
+      localStorage.setItem('authProvider', provider);
+      await signIn(provider, { callbackUrl: '/signup' });
+    } catch (error: unknown) {
+      console.error('Social sign-in error:', error);
+      toast.error('Failed to initiate social sign-in', getToastStyle(theme));
+    }
+  };
+
+  // Add useEffect for social callback handling
+  useEffect(() => {
+    const handleSocialCallback = async () => {
+      const socialAuthInitiated = localStorage.getItem('socialAuthInitiated');
+      const authProvider = localStorage.getItem('authProvider');
+      const session = await getSession();
+      const extendedSession = session as unknown as ExtendedSession;
+
+      console.log('Session Data:', extendedSession);
+      console.log('Session User:', extendedSession?.user);
+      console.log('Auth Initiated:', socialAuthInitiated);
+      console.log('Auth Provider:', authProvider);
+      
+      // Check if this is a social auth callback
+      if (extendedSession?.user && socialAuthInitiated === 'true' && authProvider) {
+        console.log('Social Auth Callback Triggered');
+        console.log('Full Session Data:', extendedSession);
+        
+        try {
+          // Call your API with social profile data
+          const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: extendedSession.user.email,
+              image: extendedSession.user.image,
+              provider: authProvider,
+            }),
+          });
+
+          const userData = await response.json();
+          console.log('API Response Data:', userData);
+
+          if (!response.ok) {
+            throw new Error(`${userData.error}`);
+          }
+          
+          // Save user data and clean up
+          localStorage.setItem("userData", JSON.stringify(userData.user));
+          localStorage.removeItem('socialAuthInitiated');
+          localStorage.removeItem('authProvider');
+          
+          // Show success message
+          toast.success(`Successfully signed up with ${authProvider}!`, getToastStyle(theme));
+          
+          // Redirect
+          if(localStorage.getItem("isChat")){
+            localStorage.removeItem("isChat");
+            router.push("/chat");
+          } else {
+            router.push("/");
+          }
+        } catch (error: unknown) {
+          console.error('Social authentication error:', error);
+          const errorMessage = error instanceof Error ? error.message.replace(/^Error:\s*/, '') : 'Failed to complete authentication';
+          toast.error(errorMessage, getToastStyle(theme));
+          localStorage.removeItem('socialAuthInitiated');
+          localStorage.removeItem('authProvider');
+        }
+      }
+    };
+
+    handleSocialCallback();
+  }, [router, theme]);
+
   return (
     <ClientOnly>
       <div className="flex min-h-screen w-full overflow-y-auto py-4">
+        {/* Home Button */}
+        <Link
+          href="/"
+          className={`fixed top-4 right-4 p-3 rounded-lg border ${
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+          } z-50 flex items-center gap-2 transition-all`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+          <span className="hidden sm:inline">Home</span>
+        </Link>
+
         {/* Background elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-blue-900" : "bg-blue-200"} opacity-20 blur-3xl`}></div>
@@ -365,29 +473,61 @@ export default function SignUp() {
               </motion.button>
             </form>
             
-            <div className="mt-8">
-              <div className="flex items-center justify-center space-x-2 mb-6">
-                <div className={`h-px flex-1 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}></div>
-                <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Or continue with</p>
-                <div className={`h-px flex-1 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}></div>
+            {/* Social Sign-in Buttons */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className={`w-full border-t ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className={`px-2 ${theme === "dark" ? "bg-gray-800 text-gray-300" : "bg-white text-gray-500"}`}>
+                    Or continue with
+                  </span>
+                </div>
               </div>
-              
-              <div className="flex items-center justify-center space-x-4">
-                <SocialButton 
-                  provider="google" 
-                  theme={theme} 
-                  onClick={() => signIn('google', { callbackUrl: '/auth/callback' })}
-                />
-                <SocialButton 
-                  provider="github" 
-                  theme={theme} 
-                  onClick={() => signIn('github', { callbackUrl: '/auth/callback' })}
-                />
-                <SocialButton 
-                  provider="facebook" 
-                  theme={theme} 
-                  onClick={() => signIn('facebook', { callbackUrl: '/auth/callback' })}
-                />
+
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSocialSignIn('google')}
+                  className={`w-full inline-flex justify-center py-2 px-4 border rounded-md shadow-sm text-sm font-medium ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSocialSignIn('github')}
+                  className={`w-full inline-flex justify-center py-2 px-4 border rounded-md shadow-sm text-sm font-medium ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSocialSignIn('wordpress')}
+                  className={`w-full inline-flex justify-center py-2 px-4 border rounded-md shadow-sm text-sm font-medium ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.109m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.607-3.582.607M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0" />
+                  </svg>
+                </button>
               </div>
             </div>
             
@@ -468,57 +608,5 @@ export default function SignUp() {
         </div>
       </div>
     </ClientOnly>
-  );
-}
-
-interface SocialButtonProps {
-  provider: "google" | "github" | "facebook";
-  theme: string;
-  onClick: () => void;
-}
-
-// Social login button component
-function SocialButton({ provider, theme, onClick }: SocialButtonProps) {
-  // Icons for different providers
-  const icons = {
-    google: (
-      <svg className="w-5 h-5" viewBox="0 0 24 24">
-        <path
-          fill="currentColor"
-          d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-        />
-      </svg>
-    ),
-    github: (
-      <svg className="w-5 h-5" viewBox="0 0 24 24">
-        <path
-          fill="currentColor"
-          d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-        />
-      </svg>
-    ),
-    facebook: (
-      <svg className="w-5 h-5" viewBox="0 0 24 24">
-        <path
-          fill="currentColor"
-          d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-        />
-      </svg>
-    )
-  };
-
-  return (
-    <motion.button
-      onClick={onClick}
-      className={`p-3 rounded-lg border ${
-        theme === "dark" 
-          ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600" 
-          : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-      }`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {icons[provider]}
-    </motion.button>
   );
 }

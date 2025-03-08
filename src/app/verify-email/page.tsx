@@ -117,7 +117,7 @@ export default function VerifyEmailPage() {
       }
 
       // Call resend verification API
-      const response = await fetch('/api/resend-verification', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/resend-verification/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
