@@ -57,6 +57,7 @@ export default function Navbar() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Update local state from authUser when it changes
   useEffect(() => {
@@ -261,8 +262,8 @@ export default function Navbar() {
       if (
         themeDropdownRef.current &&
         !themeDropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        themeButtonRef.current &&
+        !themeButtonRef.current.contains(event.target as Node)
       ) {
         setShowThemeDropdown(false);
       }
@@ -317,64 +318,64 @@ export default function Navbar() {
 
         {/* Right: Theme & Authentication */}
         <div className="flex gap-3 md:gap-5 items-center relative">
-          {/* Theme Dropdown */}
-          <motion.div 
-            className="relative"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <button
-              onClick={() => {
-                setShowThemeDropdown(!showThemeDropdown);
-                setShowDropdown(false);
-              }}
-              className="p-2.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
-              ref={buttonRef}
-              aria-label="Theme settings"
-            >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
-              <div className="relative">
-                {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
-                {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
-                {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
-              </div>
-            </button>
-
-            {/* Theme Dropdown Menu */}
-            {showThemeDropdown && (
-              <motion.div
-                ref={themeDropdownRef}
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
-              >
-                {[
-                  { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
-                  { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
-                  { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
-                ].map((item) => (
-                  <motion.button
-                    key={item.mode}
-                    whileHover={{ x: 5 }}
-                    className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => {
-                      setTheme(item.mode);
-                      setShowThemeDropdown(false);
-                    }}
-                  >
-                    <item.icon className={`${item.color} text-lg`} />
-                    <span className="font-medium">{item.label}</span>
-                  </motion.button>
-                ))}
-              </motion.div>
-            )}
-          </motion.div>
-
           {/* Authentication */}
           {!isLoggedIn && !isAuthenticated ? (
             <div className="flex items-center gap-3">
+              {/* Theme Button */}
+              <motion.div 
+                className="relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <button
+                  onClick={() => {
+                    setShowThemeDropdown(!showThemeDropdown);
+                    setShowDropdown(false);
+                  }}
+                  className="p-2.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
+                  aria-label="Theme settings"
+                  ref={themeButtonRef}
+                >
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
+                  <div className="relative">
+                    {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
+                    {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
+                    {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
+                  </div>
+                </button>
+
+                {/* Theme Dropdown Menu */}
+                {showThemeDropdown && (
+                  <motion.div
+                    ref={themeDropdownRef}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
+                  >
+                    {[
+                      { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
+                      { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
+                      { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
+                    ].map((item) => (
+                      <motion.button
+                        key={item.mode}
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => {
+                          setTheme(item.mode);
+                          setShowThemeDropdown(false);
+                        }}
+                      >
+                        <item.icon className={`${item.color} text-lg`} />
+                        <span className="font-medium">{item.label}</span>
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </motion.div>
+              
               <Link href="/signin">
                 <motion.button
                   className="relative px-4 md:px-5 py-2 text-sm md:text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition overflow-hidden shadow-md hover:shadow-lg"
@@ -395,92 +396,149 @@ export default function Navbar() {
               </Link>
             </div>
           ) : (
-            <div className="relative">
-              <button
-                ref={buttonRef}
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            <div className="flex items-center gap-3">
+              {/* Theme Button */}
+              <motion.div 
+                className="relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Image
-                  src={user.image}
-                  alt="Profile"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
-                <span className="hidden md:inline">{user.name}</span>
-              </button>
-
-              {showDropdown && (
-                <motion.div
-                  ref={dropdownRef}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm"
+                <button
+                  onClick={() => {
+                    setShowThemeDropdown(!showThemeDropdown);
+                    setShowDropdown(false);
+                  }}
+                  className="p-2.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-full hover:shadow-md transition-all duration-300 relative group backdrop-blur-sm"
+                  aria-label="Theme settings"
+                  ref={themeButtonRef}
                 >
-                  {/* User Info Section */}
-                  <div className="p-4 bg-gray-50/80 dark:bg-gray-700/50">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full overflow-hidden shadow-inner">
-                        <Image
-                          src={user.image || "/placeholder.svg"}
-                          alt={user.name || "User"}
-                          width={40}
-                          height={40}
-                          className="rounded-full"
-                        />
-                      </div>
-                      <div>
-                        <div className="font-semibold">{user.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          WordPress Developer
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
+                  <div className="relative">
+                    {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
+                    {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
+                    {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
+                  </div>
+                </button>
+
+                {/* Theme Dropdown Menu */}
+                {showThemeDropdown && (
+                  <motion.div
+                    ref={themeDropdownRef}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
+                  >
+                    {[
+                      { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
+                      { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
+                      { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
+                    ].map((item) => (
+                      <motion.button
+                        key={item.mode}
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => {
+                          setTheme(item.mode);
+                          setShowThemeDropdown(false);
+                        }}
+                      >
+                        <item.icon className={`${item.color} text-lg`} />
+                        <span className="font-medium">{item.label}</span>
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </motion.div>
+              
+              <div className="relative">
+                <button
+                  ref={buttonRef}
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src={user.image}
+                    alt="Profile"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                  <span className="hidden md:inline">{user.name}</span>
+                </button>
+
+                {showDropdown && (
+                  <motion.div
+                    ref={dropdownRef}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm"
+                  >
+                    {/* User Info Section */}
+                    <div className="p-4 bg-gray-50/80 dark:bg-gray-700/50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full overflow-hidden shadow-inner">
+                          <Image
+                            src={user.image || "/placeholder.svg"}
+                            alt={user.name || "User"}
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                          />
+                        </div>
+                        <div>
+                          <div className="font-semibold">{user.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            WordPress Developer
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Menu Items */}
-                  <div className="p-1">
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200">
-                        <FaUser className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium">Profile</span>
-                    </Link>
+                    {/* Menu Items */}
+                    <div className="p-1">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200">
+                          <FaUser className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium">Profile</span>
+                      </Link>
 
-                    <button
-                      onClick={() => {
-                        setIsSettingsOpen(true);
-                        setShowDropdown(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
-                    >
-                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
-                        <FaCogs className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium">Settings</span>
-                    </button>
+                      <button
+                        onClick={() => {
+                          setIsSettingsOpen(true);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                      >
+                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                          <FaCogs className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium">Settings</span>
+                      </button>
 
-                    <div className="h-px bg-gray-200 dark:bg-gray-700/70 my-1 mx-3"></div>
+                      <div className="h-px bg-gray-200 dark:bg-gray-700/70 my-1 mx-3"></div>
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group"
-                    >
-                      <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-all duration-200">
-                        <FaSignOutAlt className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Sign out</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group"
+                      >
+                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-all duration-200">
+                          <FaSignOutAlt className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Sign out</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -121,27 +121,8 @@ const Page = () => {
         localStorage.removeItem(key);
       }
     });
-    
-    console.log(`Cleaned up ${chatSessionKeys.length - 1} old chat sessions`);
   };
 
-  // Function to clear all chat sessions
-  const clearAllChatSessions = () => {
-    if (typeof window === 'undefined') return;
-    
-    // Get all keys from localStorage
-    const keys = Object.keys(localStorage);
-    
-    // Filter out chat session keys
-    const chatSessionKeys = keys.filter(key => key.startsWith('chat-session-'));
-    
-    // Delete all chat sessions
-    chatSessionKeys.forEach(key => {
-      localStorage.removeItem(key);
-    });
-    
-    toast.success(`Cleared ${chatSessionKeys.length} chat sessions`, getToastStyle(theme));
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -240,7 +221,6 @@ const Page = () => {
           <InfoFooter
             embeddingEnabled={embeddingEnabled}
             agentMode={agentMode}
-            onClearSessions={clearAllChatSessions}
           />
         </div>
       

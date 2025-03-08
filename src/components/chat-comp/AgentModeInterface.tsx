@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Resizable } from 're-resizable';
 import { FiCode, FiEye, FiFolder, FiMessageSquare, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { ChatMessage } from "@/lib/types/chat";
 
 interface AgentModeInterfaceProps {
-  messages: any[];
+  messages: ChatMessage[];
   onSendMessage: (message: string) => Promise<any>;
 }
 
@@ -78,9 +79,10 @@ const AgentModeInterface: React.FC<AgentModeInterfaceProps> = ({
                 {displayMessages && displayMessages.length > 0 ? (
                   displayMessages.map((msg, index) => (
                     <AgentMessage 
-                      key={index}
-                      isUser={msg.owner_name === 'You'}
-                      content={msg.owner_name === 'You' ? msg.user_prompt : msg.ai_response}
+                      key={msg.id || index}
+                      isUser={msg.role === 'user'}
+                      content={msg.content}
+                      isLatestMessage={index === displayMessages.length - 1 && msg.role === 'assistant'}
                     />
                   ))
                 ) : (

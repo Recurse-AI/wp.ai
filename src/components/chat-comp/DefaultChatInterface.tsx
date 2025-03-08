@@ -10,6 +10,7 @@ import { getToastStyle } from "@/lib/toastConfig";
 import { FiChevronDown } from "react-icons/fi";
 import { SiOpenai, SiClaude, SiGooglegemini } from "react-icons/si";
 import { FaWordpress } from "react-icons/fa";
+import { ChatMessage, ChatResponse } from "@/lib/types/chat";
 
 // AI Provider configuration - same as layout.tsx for consistency
 const AI_PROVIDERS = [
@@ -45,8 +46,9 @@ const AI_PROVIDERS = [
 ];
 
 interface DefaultChatInterfaceProps {
-  messages: any[];
-  onSendMessage: (message: string) => Promise<any>;
+  messages: ChatMessage[];
+  onSendMessage: (message: string) => Promise<ChatResponse>;
+  onRegenerateMessage?: () => Promise<ChatResponse>;
 }
 
 // CSS for hiding scrollbars
@@ -61,6 +63,7 @@ const scrollbarHideStyle = {
 const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   messages,
   onSendMessage,
+  onRegenerateMessage,
 }) => {
   const { theme } = useTheme();
   const [message, setMessage] = useState("");
@@ -72,6 +75,7 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const modelButtonRef = useRef<HTMLButtonElement>(null);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -180,6 +184,22 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     
     try {
       setIsProcessing(true);
+      
+      // Store the query in localStorage for potential future use
+      const recentQueries = JSON.parse(localStorage.getItem('recentQueries') || '[]');
+      recentQueries.unshift({
+        query: message,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Keep only the 10 most recent queries
+      if (recentQueries.length > 10) {
+        recentQueries.pop();
+      }
+      
+      localStorage.setItem('recentQueries', JSON.stringify(recentQueries));
+      
+      // Send the message
       await onSendMessage(message);
       
       // Clear the input
@@ -195,26 +215,59 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full overflow-x-hidden">
       {/* Messages Container - Adjusted with more bottom padding */}
       <div 
-        className="flex-1 overflow-y-auto w-full px-4 pb-8" 
-        style={{ 
-          scrollbarWidth: 'none', 
-          msOverflowStyle: 'none'
-        }}
+        className="flex-1 overflow-y-auto overflow-x-hidden w-full px-4 pb-8 custom-scrollbar" 
       >
-        <style jsx>{`
-          div::-webkit-scrollbar {
-            display: none;
+        <style jsx global>{`
+          /* Custom scrollbar styling */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(156, 163, 175, 0.7);
+          }
+          
+          /* For Firefox */
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+          }
+          
+          /* Dark mode adjustments */
+          .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(75, 85, 99, 0.5);
+          }
+          
+          .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(75, 85, 99, 0.7);
+          }
+          
+          .dark .custom-scrollbar {
+            scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
           }
         `}</style>
 
         {messages && messages.length > 0 ? (
           messages.map((msg, index) => (
             <Message 
-              key={msg.message_id || index}
+              key={msg.id || index}
               message={msg}
+              onRegenerateMessage={index === messages.length - 1 && msg.role === 'assistant' ? onRegenerateMessage : undefined}
+              isLatestMessage={index === messages.length - 1 && msg.role === 'assistant'}
             />
           ))
         ) : (
@@ -237,7 +290,7 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
             {/* Model selection dropdown */}
             <div className="relative flex-1" ref={modelDropdownRef}>
               <button
-                ref={modelDropdownRef}
+                ref={modelButtonRef}
                 onClick={() => setShowModelDropdown(!showModelDropdown)}
                 className={`flex items-center gap-1 font-medium text-xs px-2 py-1 rounded-lg duration-300 ${
                   theme === "dark"
@@ -267,18 +320,8 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                   </div>
                   
                   <div 
-                    className="max-h-60 overflow-y-auto" 
-                    style={{ 
-                      scrollbarWidth: 'none', 
-                      msOverflowStyle: 'none'
-                    }}
+                    className="max-h-60 overflow-y-auto custom-scrollbar" 
                   >
-                    <style jsx>{`
-                      div::-webkit-scrollbar {
-                        display: none;
-                      }
-                    `}</style>
-                    
                     {AI_PROVIDERS.map((provider) => (
                       <div key={provider.id} className="border-b border-gray-200 dark:border-gray-600 last:border-0">
                         <div className="flex items-center gap-1.5 px-3 py-1.5 font-medium bg-gray-50/80 dark:bg-gray-700/80 text-xs sticky top-0">
@@ -332,13 +375,16 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                 <span className={`text-[11px] font-medium ${embeddingEnabled ? "text-blue-600 dark:text-blue-400" : ""}`}>
                   {embeddingEnabled ? "KB On" : "KB Off"}
                 </span>
+                {embeddingEnabled && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                )}
               </motion.button>
               <Tooltip id="tooltip-embedding" place="top" />
             </div>
           </div>
           
           {/* Textarea and Send button - Added more bottom margin */}
-          <div className="flex items-end w-full mt-2">
+          <div className="flex items-end w-full mt-2 relative">
             <textarea
               ref={textareaRef}
               value={message}
@@ -346,7 +392,7 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
               onKeyDown={handleKeyDown}
               placeholder="Type your message here..."
               className={`bg-transparent w-full outline-none 
-                font-medium tracking-wide text-base resize-none overflow-y-auto px-3
+                font-medium tracking-wide text-base resize-none overflow-hidden px-3
                 ${theme === "dark" 
                   ? "text-gray-200 placeholder:text-gray-400" 
                   : "text-gray-800 placeholder:text-gray-500"
@@ -357,8 +403,10 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                 maxHeight: "120px", // Stops expanding after 5 lines
                 height: "40px", // Initial height
                 paddingBottom: "16px", // Increased padding at bottom
+                paddingTop: "12px", // Added padding at top
                 lineHeight: "24px", // Maintain proper line spacing
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                overflow: 'hidden' // Hide scrollbar
               }}
               disabled={isProcessing}
             />

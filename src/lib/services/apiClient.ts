@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
+import { getToastStyle } from '../toastConfig';
 
 // Create a custom axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
@@ -15,10 +16,10 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // You can add auth token here if needed
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.set('Authorization', `Bearer ${token}`);
-    // }
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    }
     return config;
   },
   (error: AxiosError) => {
@@ -39,7 +40,7 @@ apiClient.interceptors.response.use(
       switch (response.status) {
         case 401:
           // Handle unauthorized access
-          toast.error('Session expired. Please sign in again.');
+          toast.error('Session expired. Please sign in again.', getToastStyle());
           // Redirect to login page if needed
           // window.location.href = '/signin';
           break;

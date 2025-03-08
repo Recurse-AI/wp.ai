@@ -12,14 +12,19 @@ import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { Bot, MessageSquare, Sparkles } from "lucide-react";
 import axios from 'axios';
+import { ChatService } from "@/lib/services/chatService";
+import { ChatConversation } from "@/lib/types/chat";
+import { getToastStyle } from "@/lib/toastConfig";
+import toast from "react-hot-toast";
 
 const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
-  const [chats, setChats] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [chatService] = useState(() => new ChatService());
 
   const router = useRouter();
   const pathname = usePathname();
@@ -29,42 +34,28 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     getUser(setIsLoggedIn, setUser, router, pathname);
   }, []);
 
-  const fetchChats = async () => {
+  const fetchConversations = async () => {
     setLoading(true);
     setError(false);
     try {
-      // Check if the API URL is defined
-      if (!process.env.NEXT_PUBLIC_CHAT_API_URL) {
-        console.warn("NEXT_PUBLIC_CHAT_API_URL is not defined");
-        setChats([]);
-        return;
-      }
-
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/get-group-message/`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      // Axios handles non-200 responses as errors, so if we reach here, it's a success
-      console.log("Fetched Chats:", response.data);
-      setChats(Array.isArray(response.data.message) ? response.data.message.reverse() : []);
+      // Fetch recent conversations using our ChatService
+      const recentConversations = await chatService.getRecentConversations(10);
+      setConversations(recentConversations);
     } catch (err) {
-      console.error("Error fetching chats:", err);
+      console.error("Error fetching conversations:", err);
       
       // Handle specific status codes
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 401) {
-          console.log("User not authenticated, clearing chats");
-          setChats([]);
+          console.log("User not authenticated, clearing conversations");
+          setConversations([]);
           return;
         }
-        console.error(`Error fetching chats: ${err.response.status} ${err.response.statusText}`);
+        console.error(`Error fetching conversations: ${err.response.status} ${err.response.statusText}`);
       }
       
       setError(true);
-      setChats([]);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -72,13 +63,55 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchChats();
+      fetchConversations();
     }
   }, [isLoggedIn]);
 
-  const handleChatSelect = () => {
+  const handleChatSelect = (sessionId: string) => {
     if (onClose) {
       onClose();
+    }
+    
+    // Mark this as an existing chat session in localStorage
+    try {
+      const sessionData = localStorage.getItem(`chat-session-${sessionId}`);
+      if (sessionData) {
+        const parsedData = JSON.parse(sessionData);
+        // Update the session data to mark it as an existing chat
+        const updatedSessionData = {
+          ...parsedData,
+          isNewChat: false,
+          isExistingChat: true, // Explicitly mark as existing
+          lastAccessed: new Date().toISOString()
+        };
+        localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(updatedSessionData));
+      } else {
+        // If no session data exists yet, create it
+        const initialSessionData = {
+          mode: localStorage.getItem('selectedAgentMode') === 'agent' ? 'agent' : 'default',
+          embedding_enabled: false,
+          prompt: '',
+          isNewChat: false,
+          isExistingChat: true,
+          lastAccessed: new Date().toISOString()
+        };
+        localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(initialSessionData));
+      }
+    } catch (error) {
+      console.error('Error updating session data:', error);
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      const success = await chatService.deleteChatSession(chatId);
+      if (success) {
+        toast.success("Chat deleted successfully", getToastStyle(theme));
+        fetchConversations(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      toast.error("Failed to delete chat", getToastStyle(theme));
     }
   };
 
@@ -138,9 +171,9 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                 Chat History
               </p>
               
-              {chats.length > 0 && (
+              {conversations.length > 0 && (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-300 text-gray-700"}`}>
-                  {chats.length}
+                  {conversations.length}
                 </span>
               )}
             </div>
@@ -163,28 +196,30 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                   Failed to load chats.
                 </p>
               </div>
-            ) : chats.length > 0 ? (
+            ) : conversations.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, staggerChildren: 0.1 }}
-                className="mt-2 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent
-                scrollbar-thumb-rounded-lg gap-2 w-full pr-2"
+                className="mt-2 overflow-y-auto flex-1 custom-scrollbar gap-2 w-full pr-2"
               >
-                {chats.map((chat, index) => (
+                {conversations.map((conversation, index) => (
                   <motion.div
-                    key={chat.group_id}
+                    key={conversation.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.3 }}
                   >
                     <ChatRow
-                      id={chat.group_id}
-                      name={chat.title}
+                      id={conversation.session_id}
+                      name={conversation.title}
                       openDropdown={openDropdown}
                       setOpenDropdown={setOpenDropdown}
-                      refreshChats={fetchChats}
+                      refreshChats={fetchConversations}
                       onSelect={handleChatSelect}
+                      onDelete={() => handleDeleteChat(conversation.id)}
+                      lastMessage={conversation.last_message?.content}
+                      timestamp={conversation.updated_at}
                     />
                   </motion.div>
                 ))}

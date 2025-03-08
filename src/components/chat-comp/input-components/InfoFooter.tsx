@@ -6,13 +6,11 @@ import { useTheme } from "@/context/ThemeProvider";
 interface InfoFooterProps {
   embeddingEnabled: boolean;
   agentMode: boolean;
-  onClearSessions?: () => void;
 }
 
 const InfoFooter: React.FC<InfoFooterProps> = ({ 
   embeddingEnabled, 
   agentMode,
-  onClearSessions
 }) => {
   const { theme } = useTheme();
 
@@ -43,21 +41,6 @@ const InfoFooter: React.FC<InfoFooterProps> = ({
         )}
         <span>WP.AI helps with WordPress development. Verify important info.</span>
       </p>
-
-      {onClearSessions && (
-        <button
-          type="button"
-          onClick={onClearSessions}
-          className={`flex items-center gap-1 mt-2 text-xs px-2 py-1 rounded-md transition-colors ${
-            theme === "dark" 
-              ? "text-gray-400 hover:text-red-400 hover:bg-red-900/20" 
-              : "text-gray-500 hover:text-red-500 hover:bg-red-50"
-          }`}
-        >
-          <Trash2 className="w-3 h-3" />
-          Clear All Sessions
-        </button>
-      )}
     </div>
   );
 };

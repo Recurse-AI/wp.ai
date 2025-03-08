@@ -9,7 +9,7 @@ interface ToastStyle {
   };
 }
 
-export const getToastStyle = (theme: string): ToastStyle => ({
+export const getToastStyle = ( theme = 'dark' ): ToastStyle => ({
   duration: 4000,
   style: {
     background: theme === 'dark' ? '#1F2937' : '#FFFFFF',

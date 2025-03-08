@@ -6,6 +6,7 @@ import { PlusCircle } from "lucide-react";
 import React from "react";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
+import { v4 as uuidv4 } from 'uuid';
 
 const NewChat = ({ onClose }: { onClose?: () => void }) => {
   const router = useRouter();
@@ -15,7 +16,9 @@ const NewChat = ({ onClose }: { onClose?: () => void }) => {
     if (onClose) {
       onClose();
     }
-    router.push("/chat");
+    
+    // Simply redirect to the main chat page
+    router.push('/chat');
   };
 
   return (
