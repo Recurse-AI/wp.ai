@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import ProfileContent from "../../components/profile-comp/profile-content";
 import { getUser } from "@/utils/getUser";
 import { useTheme } from "@/context/ThemeProvider";
-import { motion } from "framer-motion";
 
 interface UserData {
   name: string;
@@ -58,92 +57,45 @@ export default function ProfilePage() {
         {/* Base Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
         
-        {/* Animated Glowing Orbs */}
-        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        
-        {/* Animated Grid Background */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        
-        {/* Particles Effect */}
-        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20" />
+        {/* Glowing Orbs */}
+        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
       </div>
 
       {/* Content */}
       <div className="relative z-10 container mx-auto py-10 px-6 md:px-12 lg:px-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-5xl md:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text animate-gradient">
-              WP.ai
-            </span>{" "}
-            <span className="relative inline-block">
-              User Profile
-              <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transform origin-left scale-x-0 transition-transform group-hover:scale-x-100 animate-shimmer"></span>
-            </span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Manage your account settings and preferences
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
-        >
+        <h1 className="text-4xl font-bold mb-8 text-center">
+          <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text animate-pulse">
+            WP.ai
+          </span>{" "}
+          <span className="relative inline-block">
+            User Profile
+            <span className="absolute -bottom-1 left-0 w-full h-[3px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-wiggle"></span>
+          </span>
+        </h1>
+        <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5" />
-          <div className="relative p-8">
+          <div className="relative p-6">
             <ProfileContent initialUserData={user} />
           </div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Animated Footer */}
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
-        className="relative py-10 mt-20"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10" />
+      {/* Footer */}
+      <footer className="relative py-10 text-center mt-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
         <div className="relative max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              © 2024 WP.ai - All rights reserved.
-            </p>
-            <div className="flex gap-8">
-              <motion.a
-                whileHover={{ scale: 1.05 }}
-                href="#"
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                Privacy
-              </motion.a>
-              <motion.a
-                whileHover={{ scale: 1.05 }}
-                href="#"
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                Terms
-              </motion.a>
-              <motion.a
-                whileHover={{ scale: 1.05 }}
-                href="#"
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                Contact
-              </motion.a>
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-lg text-gray-600 dark:text-gray-400">© 2024 WP.ai - All rights reserved.</p>
+            <div className="flex gap-8 mt-4 md:mt-0">
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Privacy</a>
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Terms</a>
+              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Contact</a>
             </div>
           </div>
         </div>
-      </motion.footer>
+      </footer>
     </div>
   );
 }

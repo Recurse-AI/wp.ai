@@ -2,8 +2,7 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { getUser } from "@/utils/getUser";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
@@ -12,6 +11,7 @@ import ClientOnly from "@/lib/client-only";
 import Link from 'next/link';
 import { getToastStyle } from "@/lib/toastConfig";
 import { useAuthContext } from "@/context/AuthProvider";
+import type { ExtendedSession } from "@/app/api/auth/[...nextauth]/route";
 
 // Interface for form data
 interface SignInFormData {
@@ -40,9 +40,9 @@ const VALIDATION_MESSAGES = {
 export default function SignIn() {
   const { theme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
-  const { login, error: authError, isAuthenticated } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const { setUserData } = useAuthContext();
+  const { data: session } = useSession();
   
   // Form state
   const [formData, setFormData] = useState<SignInFormData>({
@@ -96,6 +96,73 @@ export default function SignIn() {
       }
     }
   }, [isAuthenticated]);
+
+
+  // Handle Social Authentication Callback
+  useEffect(() => {
+    const handleSocialCallback = async () => {
+      const socialAuthInitiated = localStorage.getItem('socialAuthInitiated');
+      const authProvider = localStorage.getItem('authProvider');
+      
+      console.log('Auth Initiated:', socialAuthInitiated);
+      console.log('Auth Provider:', authProvider);
+      
+      if (!session?.user || !socialAuthInitiated || !authProvider) {
+        return;
+      }
+
+      console.log('Social Auth Callback Triggered');
+      console.log('Session User:', session.user);
+      
+      try {
+        // Call your API with social profile data
+        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            image: session.user.image,
+            provider: authProvider,
+          }),
+        });
+
+        const userData = await response.json();
+        console.log('API Response Data:', userData);
+
+        if (!response.ok) {
+          throw new Error(`${userData.error}`);
+        }
+        
+        // Save user data and clean up
+        localStorage.setItem("userData", JSON.stringify(userData.user));
+        localStorage.removeItem('socialAuthInitiated');
+        localStorage.removeItem('authProvider');
+        setUserData(userData.user);
+        
+        // Show success message
+        toast.success(`Successfully signed in with ${authProvider}!`, getToastStyle(theme));
+        
+        // Redirect
+        if(localStorage.getItem("isChat")){
+          localStorage.removeItem("isChat");
+          router.push("/chat");
+        } else {
+          router.push("/");
+        }
+      } catch (error: unknown) {
+        console.error('Social authentication error:', error);
+        const errorMessage = error instanceof Error ? error.message.replace(/^Error:\s*/, '') : 'Failed to complete authentication';
+        toast.error(errorMessage, getToastStyle(theme));
+        localStorage.removeItem('socialAuthInitiated');
+        localStorage.removeItem('authProvider');
+      }
+    };
+
+    handleSocialCallback();
+  }, [session, router, theme, setUserData]);
+
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -155,7 +222,6 @@ export default function SignIn() {
         login: formData.login,
         password: formData.password
       });
-      console.log(user);
       
       // Save user data to localStorage for immediate access across components
       if (user) {
@@ -172,45 +238,45 @@ export default function SignIn() {
       } else {
         router.push("/");
       }
-    } catch (error) {
-      const errorObj = error as any;
-      let errorMessage = VALIDATION_MESSAGES.INVALID_CREDENTIALS;
-      
-      // Handle structured API errors
-      if (errorObj?.errors) {
-        // Extract field-specific errors
-        const fieldErrors: FormErrors = {};
-        Object.entries(errorObj.errors).forEach(([key, value]) => {
-          const messages = Array.isArray(value) ? value : [String(value)];
-          fieldErrors[key as keyof FormErrors] = messages[0];
-        });
-        setErrors(fieldErrors);
-        
-        // Get the first error for toast
-        const firstErrorKey = Object.keys(errorObj.errors)[0];
-        const firstErrorValue = errorObj.errors[firstErrorKey];
-        errorMessage = Array.isArray(firstErrorValue) 
-          ? firstErrorValue[0] 
-          : String(firstErrorValue);
-      } else if (errorObj?.message) {
-        errorMessage = errorObj.message;
-        setErrors({ general: errorMessage });
-      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : VALIDATION_MESSAGES.INVALID_CREDENTIALS;
       toast.error(errorMessage, getToastStyle(theme));
+      setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
-  // Add Google Sign In handler
-  const handleGoogleSignIn = () => {
-    localStorage.setItem('googleAuthInitiated', 'true');
-    signIn('google');
+  // Add Social Sign In handlers
+  const handleSocialSignIn = (provider: string) => {
+    // Clear any existing auth data first
+    localStorage.removeItem('socialAuthInitiated');
+    localStorage.removeItem('authProvider');
+    
+    // Set new auth data
+    localStorage.setItem('socialAuthInitiated', 'true');
+    localStorage.setItem('authProvider', provider);
+    signIn(provider);
   };
 
   return (
     <ClientOnly>
       <div className="flex min-h-screen w-full overflow-y-auto py-4">
+        {/* Home Button */}
+        <Link
+          href="/"
+          className={`fixed top-4 right-4 p-3 rounded-lg border ${
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+          } z-50 flex items-center gap-2 transition-all`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+          <span className="hidden sm:inline">Home</span>
+        </Link>
+
         {/* Background elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-indigo-900" : "bg-indigo-200"} opacity-20 blur-3xl`}></div>
@@ -310,7 +376,7 @@ export default function SignIn() {
                 <input
                   type="text"
                   name="login"
-                  placeholder="Enter your username or email"
+                  placeholder="Enter your email"
                   className={`w-full p-3 rounded-lg border ${
                     theme === "dark" 
                       ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
@@ -394,17 +460,17 @@ export default function SignIn() {
                 <SocialButton 
                   provider="google" 
                   theme={theme} 
-                  onClick={handleGoogleSignIn}
+                  onClick={() => handleSocialSignIn('google')}
                 />
                 <SocialButton 
                   provider="github" 
                   theme={theme} 
-                  onClick={() => signIn('github', { callbackUrl: '/auth/callback' })}
+                  onClick={() => handleSocialSignIn('github')}
                 />
                 <SocialButton 
-                  provider="facebook" 
+                  provider="wordpress" 
                   theme={theme} 
-                  onClick={() => signIn('facebook', { callbackUrl: '/auth/callback' })}
+                  onClick={() => handleSocialSignIn('wordpress')}
                 />
               </div>
             </div>
@@ -425,7 +491,7 @@ export default function SignIn() {
 }
 
 interface SocialButtonProps {
-  provider: "google" | "github" | "facebook";
+  provider: "google" | "github" | "wordpress";
   theme: string;
   onClick: () => void;
 }
@@ -450,11 +516,11 @@ function SocialButton({ provider, theme, onClick }: SocialButtonProps) {
         />
       </svg>
     ),
-    facebook: (
+    wordpress: (
       <svg className="w-5 h-5" viewBox="0 0 24 24">
         <path
           fill="currentColor"
-          d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+          d="M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.109m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.607-3.582.607M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0"
         />
       </svg>
     )
