@@ -14,15 +14,53 @@ import {
 import { LogOut, Archive, Trash2 } from "lucide-react";
 import { useTheme } from "@/context/ThemeProvider";
 
+// Define default settings data
+const DEFAULT_SETTINGS_DATA = [
+  { id: "general", label: "General" },
+  { id: "Account", label: "Account" },
+  { id: "language", label: "Language" },
+  { id: "data", label: "Data" },
+  { id: "security", label: "Security" },
+  { id: "subscription", label: "Subscription" },
+];
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
-  const [settingsData, setSettingsData] = useState([]);
+  const [settingsData, setSettingsData] = useState(DEFAULT_SETTINGS_DATA);
   const { theme, setTheme } = useTheme();
+  const [language, setLanguage] = useState("english");
+  const [codeDataAnalyst, setCodeDataAnalyst] = useState(false);
+
+  const handleDeleteAllChats = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete all chats? This action cannot be undone."
+      )
+    ) {
+      try {
+        const response = await fetch("/api/chats", {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete chats");
+        }
+
+        alert("All chats have been deleted successfully");
+      } catch (error) {
+        console.error("Failed to delete chats:", error);
+        alert("Failed to delete chats. Please try again.");
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch("/settingsData.json"); // No "public/" prefix needed
+        const response = await fetch("/settingsData.json");
+        if (!response.ok) {
+          throw new Error("Failed to fetch settings data");
+        }
         const data = await response.json();
         setSettingsData(data);
       } catch (error) {
@@ -101,42 +139,63 @@ export default function SettingsPage() {
                           <Label>
                             Always show code when using data analyst
                           </Label>
-                          <Switch />
+                          <Switch
+                            checked={codeDataAnalyst}
+                            onCheckedChange={(checked) =>
+                              setCodeDataAnalyst(checked)
+                            }
+                          />
                         </div>
                       </>
                     )}
-                    {item["id"] === "notifications" && (
-                      <p>Manage notification preferences here.</p>
+                    {item["id"] === "Account" && (
+                      <p>Manage Account preferences here.</p>
                     )}
-                    {item["id"] === "personalization" && (
+                    {/* {item["id"] === "personalization" && (
                       <p>Personalization settings go here.</p>
+                    )} */}
+                    {item["id"] === "language" && (
+                      <div className="flex justify-between items-center">
+                        <Label>Select Language</Label>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="capitalize">
+                              {language}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("english")}
+                            >
+                              English
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("spanish")}
+                            >
+                              Español
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("french")}
+                            >
+                              Français
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("german")}
+                            >
+                              Deutsch
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     )}
-                    {item["id"] === "speech" && <p>Speech settings go here.</p>}
                     {item["id"] === "data" && (
                       <>
-                        <div className="flex justify-between items-center">
-                          <Label>Archived Chats</Label>
-                          <Button
-                            variant="outline"
-                            className="flex items-center gap-2"
-                          >
-                            <Archive size={16} /> Manage
-                          </Button>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <Label>Archive all chats</Label>
-                          <Button
-                            variant="outline"
-                            className="flex items-center gap-2"
-                          >
-                            <Archive size={16} /> Archive All
-                          </Button>
-                        </div>
                         <div className="flex justify-between items-center">
                           <Label>Delete all chats</Label>
                           <Button
                             variant="destructive"
                             className="flex items-center gap-2"
+                            onClick={handleDeleteAllChats}
                           >
                             <Trash2 size={16} /> Delete All
                           </Button>

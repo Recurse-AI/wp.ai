@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -18,9 +19,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onClose,
   content,
 }) => {
+  const router = useRouter();
+
   // Handle URL hash when dialog opens/closes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && window.location.hash !== "#settings") {
       window.location.hash = "settings";
     }
 
@@ -41,12 +44,9 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
-          // Remove hash when dialog closes
-          window.history.pushState(
-            "",
-            document.title,
-            window.location.pathname + window.location.search
-          );
+          // Remove the hash using the URL API
+          const newUrl = window.location.pathname + window.location.search;
+          window.history.replaceState(null, '', newUrl);
           onClose();
         }
       }}

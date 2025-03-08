@@ -1,8 +1,7 @@
 [
   { "id": "general", "label": "General" },
-  { "id": "notifications", "label": "Notifications" },
-  { "id": "personalization", "label": "Personalization" },
-  { "id": "speech", "label": "Speech" },
+  { "id": "Account", "label": "Account" },
+  { "id": "language", "label": "Language" },
   { "id": "data", "label": "Data Controls" },
   { "id": "security", "label": "Security" },
   { "id": "subscription", "label": "Subscription" }
