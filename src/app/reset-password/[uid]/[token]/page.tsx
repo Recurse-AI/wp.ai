@@ -1,43 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
-import { getUser } from "@/utils/getUser"; // ✅ Import getUser
+import { getUser } from "@/utils/getUser";
+
+interface ResetPasswordError {
+  token?: string[];
+  new_password?: string[];
+  message?: string;
+}
 
 export default function ResetPassword() {
   const { theme } = useTheme();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useParams();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [token, setToken] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: "", image: "" });
   const [themeLoaded, setThemeLoaded] = useState(false);
-  const pathname = usePathname();
 
-  // ✅ Extract token from URL
-  useEffect(() => {
-    const resetToken = searchParams.get("token");
-    if (!resetToken) {
-      toast.error("Invalid or missing token.");
-      router.push("/signin"); // Redirect if token is missing
-    }
-    setToken(resetToken);
-  }, [searchParams, router]);
+  // Get token from URL parameters
+  const uid = params?.uid as string;
+  const token = params?.token as string;
 
-  // ✅ Check if user is logged in (Redirect if logged in)
+  // Check if user is logged in
   useEffect(() => {
     setThemeLoaded(false);
-    getUser(setIsLoggedIn, setUser, router, pathname).then(() => {
+    getUser(setIsLoggedIn, () => {}, router, `/reset-password/${uid}/${token}`).then(() => {
       setThemeLoaded(true);
     });
-  }, []);
+  }, [uid, token, router]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -46,20 +43,20 @@ export default function ResetPassword() {
     }
   }, [isLoggedIn, router]);
 
-  // ✅ Password Strength Validation
+  // Password Strength Validation
   const isPasswordStrong = (password: string) => {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
   };
 
-  // ✅ Handle Reset Password Submission
+  // Handle Reset Password Submission
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     setErrorMessage("");
 
-    if (!token) {
-      toast.error("Invalid token.");
+    if (!uid || !token) {
+      toast.error("Invalid reset password URL");
       setLoading(false);
       return;
     }
@@ -77,30 +74,51 @@ export default function ResetPassword() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/reset-password/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/reset-password/${uid}/${token}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password: newPassword }),
+        body: JSON.stringify({ token: token, new_password: newPassword }),
       });
 
       console.log("🔹 API Response:", res);
 
-      if (!res.ok) throw new Error("Token expired or invalid request.");
+      if (!res.ok) {
+        const errorData = await res.json() as ResetPasswordError;
+        console.log("Error data:", errorData);
+        
+        // Create error message from all error fields
+        const errorMessages: string[] = [];
+        if (errorData.token) {
+          errorMessages.push(...errorData.token);
+        }
+        if (errorData.new_password) {
+          errorMessages.push(...errorData.new_password);
+        }
+        if (errorData.message) {
+          errorMessages.push(errorData.message);
+        }
+        
+        if (errorMessages.length > 0) {
+          throw new Error(errorMessages.join("\n"));
+        } else {
+          throw new Error("Token expired or invalid request.");
+        }
+      }
 
       setMessage("✅ Password reset successfully! Redirecting to Sign In...");
       toast.success("Password updated!");
 
-      // ✅ Redirect after success
       setTimeout(() => router.push("/signin"), 3000);
     } catch (error) {
-      setErrorMessage("Failed to reset password. Try again.");
-      toast.error("Failed to reset password.");
+      const err = error as Error;
+      setErrorMessage(err.message || "Failed to reset password. Try again.");
+      toast.error(err.message || "Failed to reset password.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Prevent rendering until theme is loaded
+  // Prevent rendering until theme is loaded
   if (!themeLoaded) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
@@ -114,7 +132,9 @@ export default function ResetPassword() {
         </p>
 
         {message && <p className="text-green-400 text-center">{message}</p>}
-        {errorMessage && <p className="text-red-400 text-center">{errorMessage}</p>}
+        {errorMessage && errorMessage.split("\n").map((error, index) => (
+          <p key={index} className="text-red-400 text-center">{error}</p>
+        ))}
 
         <form onSubmit={handleResetPassword} className="space-y-4">
           <input
@@ -163,4 +183,4 @@ export default function ResetPassword() {
       </div>
     </div>
   );
-}
+} 

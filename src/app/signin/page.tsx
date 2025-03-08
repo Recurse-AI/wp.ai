@@ -29,7 +29,7 @@ interface FormErrors {
 // Validation messages
 const VALIDATION_MESSAGES = {
   REQUIRED: (field: string) => `${field} is required`,
-  INVALID_CREDENTIALS: "Invalid username or password",
+  INVALID_CREDENTIALS: "Invalid email or password",
   LOGIN_SUCCESS: "Login successful! Redirecting...",
   SESSION_EXPIRED: "Your session has expired. Please sign in again.",
   AUTH_FAILED: "Authentication failed. Please sign in again.",

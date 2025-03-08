@@ -181,9 +181,9 @@ export default function Navbar() {
 
       // Clear all local storage first
       if (typeof window !== "undefined") {
+        localStorage.removeItem("userData");
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
-        localStorage.removeItem("userData");
         localStorage.removeItem("isChat");
 
         // Dispatch storage event to notify other components
