@@ -19,6 +19,7 @@ interface UserData {
   email: string;
   image: string;
   profile_picture: string;
+  auth_provider?: string;
 }
 
 interface ProfileContentProps {
@@ -54,7 +55,8 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
             username: parsedData.username || fallbackUserData.username,
             email: parsedData.email || fallbackUserData.email,
             image: parsedData.image || parsedData.profile_picture || fallbackUserData.image,
-            profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture
+            profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture,
+            auth_provider: parsedData.auth_provider
           });
         }
       } catch (error) {
@@ -120,12 +122,20 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
-                <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)} className="w-full md:w-auto">
-                  <Lock className="mr-2 h-4 w-4" /> Change Password
-                </Button>
-              </div>
+              {(!userData.auth_provider || userData.auth_provider === 'manual') && (
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
+                  <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)} className="w-full md:w-auto">
+                    <Lock className="mr-2 h-4 w-4" /> Change Password
+                  </Button>
+                </div>
+              )}
+              {userData.auth_provider && userData.auth_provider !== 'manual' && (
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Password change is not available for {userData.auth_provider} login.</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-red-500">Danger Zone</h3>
                 <Button variant="destructive" onClick={() => setIsDeleteAccountModalOpen(true)} className="w-full md:w-auto">

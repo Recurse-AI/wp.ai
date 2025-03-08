@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
@@ -20,14 +20,30 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setErrorMessage("");
+      setSuccessMessage("");
+      setLoading(false);
+    }
+  }, [isOpen]);
+
   // ✅ Password Strength Validation
   const isPasswordStrong = (password: string) => {
-    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password);
   };
 
   // ✅ Handle Change Password Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent multiple submissions
+    if (loading) return;
+    
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -45,9 +61,20 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/change-password/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const userData = localStorage.getItem("userData");
+      const user = userData ? JSON.parse(userData) : null;
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/change-password/`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         credentials: "include",
         body: JSON.stringify({
           old_password: oldPassword,
@@ -55,7 +82,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
         }),
       });
 
-      if (!res.ok) throw new Error("Incorrect old password or invalid request.");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Incorrect old password or invalid request.");
+      }
 
       setSuccessMessage("✅ Password changed successfully!");
       toast.success("Password updated!");
@@ -67,9 +97,9 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
 
       // ✅ Close modal after success
       setTimeout(onClose, 3000);
-    } catch (error) {
-      setErrorMessage("Failed to change password. Try again.");
-      toast.error("Failed to change password.");
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to change password. Try again.");
+      toast.error(error.message || "Failed to change password.");
     } finally {
       setLoading(false);
     }
