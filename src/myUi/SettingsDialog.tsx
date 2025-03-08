@@ -20,12 +20,14 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <div className="w-full flex flex-col items-center justify-center">
-        <DialogContent className="fixed bg-background">
-          <DialogHeader>
+        <DialogContent className="fixed bg-background max-h-[85vh] overflow-hidden rounded-xl p-0">
+          <DialogHeader className="px-6 pt-6">
             <DialogTitle className="mb-2">Settings</DialogTitle>
             <hr className="m-0 border-border" />
           </DialogHeader>
-          <div className="w-full overflow-y-auto">{content}</div>
+          <div className="w-full overflow-y-auto max-h-[calc(85vh-120px)]">
+            {content}
+          </div>
         </DialogContent>
       </div>
     </Dialog>
