@@ -67,44 +67,44 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
   return (
     <Tabs defaultValue="profile" className="w-full">
       <TabsList className="grid w-full grid-cols-3 mb-8">
-        <TabsTrigger value="profile" className="text-lg">Profile</TabsTrigger>
-        <TabsTrigger value="account" className="text-lg">Account</TabsTrigger>
-        <TabsTrigger value="preferences" className="text-lg">Preferences</TabsTrigger>
+        <TabsTrigger value="profile" className="text-lg font-medium transition-all hover:text-blue-600 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">Profile</TabsTrigger>
+        <TabsTrigger value="account" className="text-lg font-medium transition-all hover:text-blue-600 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">Account</TabsTrigger>
+        <TabsTrigger value="preferences" className="text-lg font-medium transition-all hover:text-blue-600 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">Preferences</TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl transform transition-all duration-500 hover:scale-[1.02]">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Profile Information</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Your public profile details.</CardDescription>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">Profile Information</CardTitle>
+            <CardDescription className="text-lg text-gray-600 dark:text-gray-400">Manage your public profile details and information.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col md:flex-row items-center gap-8">
+          <CardContent className="space-y-8">
+            <div className="flex flex-col md:flex-row items-center gap-12">
               <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-1000"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-1000 group-hover:duration-200 animate-tilt"></div>
                 <div className="relative">
                   <Image
                     src={userData.profile_picture}
                     alt="Profile picture"
-                    width={150}
-                    height={150}
-                    className="rounded-full border-4 border-white dark:border-gray-800"
+                    width={180}
+                    height={180}
+                    className="rounded-full border-4 border-white dark:border-gray-800 shadow-xl transform transition-all duration-500 group-hover:scale-105"
                   />
-                  <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                  <button className="absolute bottom-2 right-2 p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:scale-110 transition-all duration-300">
                     <Camera className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-              <div className="flex-1 space-y-4 text-center md:text-left">
-                <div>
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+              <div className="flex-1 space-y-6 text-center md:text-left">
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text animate-gradient">
                     {userData.name}
                   </h2>
-                  <p className="text-xl text-gray-600 dark:text-gray-400">@{userData.username}</p>
-                  <p className="text-gray-500 dark:text-gray-500">{userData.email}</p>
+                  <p className="text-2xl text-gray-600 dark:text-gray-400">@{userData.username}</p>
+                  <p className="text-lg text-gray-500 dark:text-gray-500">{userData.email}</p>
                 </div>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                  <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6 h-auto shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <Edit className="w-5 h-5 mr-3" /> Edit Profile
                 </Button>
               </div>
             </div>
@@ -113,23 +113,31 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
       </TabsContent>
 
       <TabsContent value="account">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl transform transition-all duration-500 hover:scale-[1.02]">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Account Settings</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Manage your account here.</CardDescription>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">Account Settings</CardTitle>
+            <CardDescription className="text-lg text-gray-600 dark:text-gray-400">Manage your account security and preferences.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
-                <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)} className="w-full md:w-auto">
-                  <Lock className="mr-2 h-4 w-4" /> Change Password
+          <CardContent className="space-y-8">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password & Security</h3>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPasswordModalOpen(true)} 
+                  className="w-full md:w-auto text-lg px-8 py-6 h-auto border-2 hover:border-blue-600 hover:text-blue-600 transform hover:scale-105 transition-all duration-300"
+                >
+                  <Lock className="mr-3 h-5 w-5" /> Change Password
                 </Button>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-red-500">Danger Zone</h3>
-                <Button variant="destructive" onClick={() => setIsDeleteAccountModalOpen(true)} className="w-full md:w-auto">
-                  <AlertTriangle className="mr-2 h-4 w-4" /> Delete Account
+              <div className="space-y-4">
+                <h3 className="text-2xl font-semibold text-red-500">Danger Zone</h3>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setIsDeleteAccountModalOpen(true)} 
+                  className="w-full md:w-auto text-lg px-8 py-6 h-auto transform hover:scale-105 transition-all duration-300"
+                >
+                  <AlertTriangle className="mr-3 h-5 w-5" /> Delete Account
                 </Button>
               </div>
             </div>
@@ -138,35 +146,35 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
       </TabsContent>
 
       <TabsContent value="preferences">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl transform transition-all duration-500 hover:scale-[1.02]">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Preferences</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Customize your app experience.</CardDescription>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">Preferences</CardTitle>
+            <CardDescription className="text-lg text-gray-600 dark:text-gray-400">Customize your application experience.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Theme</h3>
-              <div className="flex flex-wrap gap-4">
+          <CardContent className="space-y-8">
+            <div className="space-y-6">
+              <h3 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Theme Settings</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button 
                   variant={theme === "light" ? "default" : "outline"} 
                   onClick={() => setTheme("light")}
-                  className="flex-1 md:flex-none"
+                  className="text-lg px-6 py-8 h-auto transform hover:scale-105 transition-all duration-300"
                 >
-                  <Sun className="mr-2 h-4 w-4" /> Light
+                  <Sun className="mr-3 h-5 w-5" /> Light Mode
                 </Button>
                 <Button 
                   variant={theme === "dark" ? "default" : "outline"} 
                   onClick={() => setTheme("dark")}
-                  className="flex-1 md:flex-none"
+                  className="text-lg px-6 py-8 h-auto transform hover:scale-105 transition-all duration-300"
                 >
-                  <Moon className="mr-2 h-4 w-4" /> Dark
+                  <Moon className="mr-3 h-5 w-5" /> Dark Mode
                 </Button>
                 <Button 
                   variant={theme === "system" ? "default" : "outline"} 
                   onClick={() => setTheme("system")}
-                  className="flex-1 md:flex-none"
+                  className="text-lg px-6 py-8 h-auto transform hover:scale-105 transition-all duration-300"
                 >
-                  <Laptop className="mr-2 h-4 w-4" /> System
+                  <Laptop className="mr-3 h-5 w-5" /> System Default
                 </Button>
               </div>
             </div>
