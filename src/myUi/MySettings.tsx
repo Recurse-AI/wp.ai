@@ -12,11 +12,12 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Archive, Trash2 } from "lucide-react";
+import { useTheme } from "@/context/ThemeProvider";
 
 export default function SettingsPage() {
-  const [theme, setTheme] = useState("Dark");
   const [activeTab, setActiveTab] = useState("general");
   const [settingsData, setSettingsData] = useState([]);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -33,7 +34,7 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="flex w-full min-h-screen bg-background text-foreground">
+    <div className={`flex w-full min-h-screen bg-background text-foreground`}>
       {/* Sidebar Navigation */}
       <aside className="w-auto border-r p-4 bg-background sticky top-0 h-screen overflow-y-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -73,16 +74,23 @@ export default function SettingsPage() {
                           <Label>Theme</Label>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline">{theme}</Button>
+                              <Button variant="outline" className="capitalize">
+                                {theme === "system" ? "Default" : theme}
+                              </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => setTheme("Dark")}
+                                onClick={() => setTheme("system")}
+                              >
+                                Default
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setTheme("dark")}
                               >
                                 Dark
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => setTheme("Light")}
+                                onClick={() => setTheme("light")}
                               >
                                 Light
                               </DropdownMenuItem>
