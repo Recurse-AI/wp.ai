@@ -401,13 +401,15 @@ export default function Navbar() {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               >
-                <Image
-                  src={user.image}
-                  alt="Profile"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
+                <div className="w-8 h-8 rounded-full overflow-hidden">
+                  <Image
+                    src={user.image}
+                    alt="Profile"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <span className="hidden md:inline">{user.name}</span>
               </button>
 
@@ -423,13 +425,13 @@ export default function Navbar() {
                   {/* User Info Section */}
                   <div className="p-4 bg-gray-50/80 dark:bg-gray-700/50">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full overflow-hidden shadow-inner">
+                      <div className="h-10 w-10 rounded-full overflow-hidden">
                         <Image
                           src={user.image || "/placeholder.svg"}
                           alt={user.name || "User"}
                           width={40}
                           height={40}
-                          className="rounded-full"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                       <div>
@@ -443,6 +445,7 @@ export default function Navbar() {
 
                   {/* Menu Items */}
                   <div className="p-1">
+                    {/* Profile - Personal section */}
                     <Link
                       href="/profile"
                       className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
@@ -454,6 +457,30 @@ export default function Navbar() {
                       <span className="font-medium">Profile</span>
                     </Link>
 
+                    {/* About and Pricing section */}
+                    <Link
+                      href="/about"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                        <FaInfoCircle className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">About</span>
+                    </Link>
+
+                    <Link
+                      href="/pricing"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 group-hover:bg-green-600 group-hover:text-white transition-all duration-200">
+                        <FaCrown className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Pricing</span>
+                    </Link>
+
+                    {/* Settings section */}
                     <button
                       onClick={() => {
                         setIsSettingsOpen(true);
@@ -461,7 +488,7 @@ export default function Navbar() {
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
                     >
-                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                      <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 group-hover:bg-orange-600 group-hover:text-white transition-all duration-200">
                         <FaCogs className="w-4 h-4" />
                       </div>
                       <span className="font-medium">Settings</span>
@@ -469,6 +496,7 @@ export default function Navbar() {
 
                     <div className="h-px bg-gray-200 dark:bg-gray-700/70 my-1 mx-3"></div>
 
+                    {/* Sign out section */}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group"
