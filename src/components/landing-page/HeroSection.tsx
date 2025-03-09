@@ -1,60 +1,100 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, MessageCircle, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 
 const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Only enable animations after component is mounted on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // Simplified animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        duration: 0.6,
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : -10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+  
+  const buttonVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+  
+  // Reduced number of nodes for better performance
+  const nodeCount = prefersReducedMotion ? 4 : 8;
   
   return (
     <section className="relative flex flex-col items-center justify-center text-center py-16 sm:py-24 min-h-[calc(100vh-80px)]">
-      {/* Network Grid Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="network-grid"></div>
-        
-        {/* Animated Network Nodes */}
-        <div className="network-nodes">
-          {Array(10).fill(0).map((_, i) => (
-            <div 
-              key={i} 
-              className="node"
-              style={{
-                left: `${10 + Math.random() * 80}%`,
-                top: `${10 + Math.random() * 80}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${5 + Math.random() * 10}s`
-              }}
-            />
-          ))}
+      {/* Network Grid Pattern - Only render if mounted and not reduced motion */}
+      {isMounted && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="network-grid"></div>
+          
+          {/* Animated Network Nodes - Reduced count */}
+          <div className="network-nodes">
+            {!prefersReducedMotion && Array(nodeCount).fill(0).map((_, i) => (
+              <div 
+                key={i} 
+                className="node"
+                style={{
+                  left: `${15 + Math.random() * 70}%`,
+                  top: `${15 + Math.random() * 70}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${8 + Math.random() * 5}s`
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Connection Lines - Only render if not reduced motion */}
+          {!prefersReducedMotion && (
+            <svg className="connections" width="100%" height="100%">
+              <line x1="20%" y1="30%" x2="40%" y2="50%" className="connection-line" style={{ animationDelay: '0.5s' }} />
+              <line x1="40%" y1="50%" x2="70%" y2="30%" className="connection-line" style={{ animationDelay: '1.5s' }} />
+              <line x1="70%" y1="30%" x2="80%" y2="60%" className="connection-line" style={{ animationDelay: '2.5s' }} />
+              <line x1="30%" y1="70%" x2="60%" y2="80%" className="connection-line" style={{ animationDelay: '3.5s' }} />
+            </svg>
+          )}
         </div>
-        
-        {/* Connection Lines */}
-        <svg className="connections" width="100%" height="100%">
-          <line x1="20%" y1="30%" x2="40%" y2="50%" className="connection-line" style={{ animationDelay: '0.5s' }} />
-          <line x1="40%" y1="50%" x2="70%" y2="30%" className="connection-line" style={{ animationDelay: '1.5s' }} />
-          <line x1="70%" y1="30%" x2="80%" y2="60%" className="connection-line" style={{ animationDelay: '2.5s' }} />
-          <line x1="30%" y1="70%" x2="60%" y2="80%" className="connection-line" style={{ animationDelay: '3.5s' }} />
-          <line x1="40%" y1="50%" x2="30%" y2="70%" className="connection-line" style={{ animationDelay: '4.5s' }} />
-          <line x1="60%" y1="80%" x2="80%" y2="60%" className="connection-line" style={{ animationDelay: '5.5s' }} />
-          <line x1="20%" y1="30%" x2="70%" y2="30%" className="connection-line" style={{ animationDelay: '6.5s' }} />
-          <line x1="60%" y1="20%" x2="40%" y2="50%" className="connection-line" style={{ animationDelay: '7.5s' }} />
-        </svg>
-      </div>
+      )}
       
       <Container>
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
+          initial="hidden"
+          animate={isMounted ? "visible" : "hidden"}
+          variants={containerVariants}
           className="max-w-4xl mx-auto"
         >
           <motion.h1
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            variants={itemVariants}
             className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
@@ -62,52 +102,55 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             </span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            variants={itemVariants}
             className="mt-6 text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
           >
             WP.ai supercharges your WordPress site with <span className="font-semibold text-blue-600 dark:text-blue-400">AI automation</span> and <span className="font-semibold text-purple-600 dark:text-purple-400">SEO enhancements</span>, making your website smarter and faster.
           </motion.p>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            variants={buttonVariants}
             className="mt-10 flex flex-col sm:flex-row gap-5 justify-center items-center"
           >
-            <Button 
-              onClick={() => router.push("/chat")} 
-              size="lg"
-              className="group relative text-lg px-8 py-6 text-white rounded-xl font-semibold overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300 w-full sm:w-auto"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Try it Now <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-              </span>
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
-                animate={{
-                  x: ["-100%", "100%"],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 1.5,
-                  ease: "linear",
-                }}
-              />
-            </Button>
+            {/* Try it Now button with Link component for better performance */}
+            <Link href="/chat" passHref className="w-full sm:w-auto">
+              <Button 
+                size="lg"
+                className="group relative text-lg px-8 py-6 text-white rounded-xl font-semibold overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300 w-full"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Try it Now <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                </span>
+                {!prefersReducedMotion && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
+                    style={{ willChange: "transform" }}
+                    animate={{
+                      x: ["-100%", "100%"],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2,
+                      ease: "linear",
+                    }}
+                  />
+                )}
+              </Button>
+            </Link>
 
-            <Button 
-              onClick={onChatOpen} 
-              variant="outline"
-              size="lg"
-              className="text-lg px-8 py-6 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-xl font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 w-full sm:w-auto"
-            >
-              <span className="flex items-center gap-2">
-                <MessageCircle className="text-blue-600" size={20} />
-                Chat with AI
-              </span>
-            </Button>
+            {/* Enhanced Chat with AI button */}
+            <Link href="/chat" passHref className="w-full sm:w-auto">
+              <Button 
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 py-6 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-xl font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 w-full"
+              >
+                <span className="flex items-center gap-2">
+                  <MessageCircle className="text-blue-600 dark:text-blue-400" size={20} />
+                  <span>Chat with AI</span>
+                </span>
+              </Button>
+            </Link>
           </motion.div>
         </motion.div>
       </Container>

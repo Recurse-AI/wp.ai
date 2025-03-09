@@ -30,14 +30,29 @@ export function useChatService({ initialSettings, onError }: UseChatServiceOptio
     }
   }, [chatService.getCurrentSessionId()]);
 
+  // Clean up the chatService when the component unmounts
+  useEffect(() => {
+    return () => {
+      chatService.cleanup();
+    };
+  }, [chatService]);
+
   const loadConversationHistory = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
       const history = await chatService.getConversationHistory();
+      
+      // Map ChatMessage[] to ChatResponse[] by adding missing properties
+      const messagesAsResponses = history.map(msg => ({
+        ...msg,
+        response: msg.content,
+        session_id: chatService.getCurrentSessionId() || ''
+      }));
+      
       setState(prev => ({
         ...prev,
         loading: false,
-        messages: history,
+        messages: messagesAsResponses,
       }));
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load conversation history');

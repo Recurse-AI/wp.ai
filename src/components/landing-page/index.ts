@@ -1,16 +1,9 @@
-export { default as ParticlesBackground } from './ParticlesBackground';
+// Only export HeroSection directly as it's critical for initial render
 export { default as HeroSection } from './HeroSection';
-export { default as VideoSection } from './VideoSection';
-export { default as FeaturesSection } from './FeaturesSection';
-export { default as FeatureCard } from './FeatureCard';
-export { default as PricingSection } from './PricingSection';
-export { default as PricingCard } from './PricingCard';
-export { default as FeedbackSection } from './FeedbackSection';
-export { default as ChatBotSection } from './ChatBotSection';
-export { default as TestimonialsSection } from './TestimonialsSection';
-export { default as TestimonialCard } from './TestimonialCard';
-export { default as ServicesSection } from './ServicesSection';
-export { default as ServiceCard } from './ServiceCard';
 
+// Export types and data
 export * from './types';
-export * from './data'; 
+export * from './data';
+
+// Note: All other components are now dynamically imported directly in the page component
+// to enable proper lazy loading and code splitting 

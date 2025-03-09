@@ -41,11 +41,15 @@ export interface ChatResponse {
   use_vector_search?: boolean;
   response_time?: number;
   used_vector_search?: boolean;
+  message_id?: string;
   conversation?: {
     id: string;
     title: string;
     created_at: string;
     updated_at: string;
+    user_message_id?: string;
+    assistant_message_id?: string;
+    config?: Record<string, any>;
   };
 }
 
@@ -95,3 +99,18 @@ export interface ConversationRequest {
   max_tokens?: number;
   use_vector_search?: boolean;
 } 
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+}
+
+export interface ChatSessionResponse {
+  session_id: string;
+  messages: Message[];
+  created_at: string;
+  updated_at: string;
+}
+

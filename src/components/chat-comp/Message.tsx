@@ -22,9 +22,9 @@ const styles = {
     fontFamily: '"Consolas", "Monaco", "Andale Mono", monospace',
     fontSize: '0.9rem',
     lineHeight: '1.5',
-    overflow: 'hidden',
-    whiteSpace: 'pre-wrap' as const,
-    wordBreak: 'break-word' as const,
+    overflow: 'auto',
+    whiteSpace: 'pre',
+    wordBreak: 'normal',
     color: 'inherit'
   },
   codeWrapper: {
@@ -42,9 +42,9 @@ const styles = {
     color: 'inherit'
   },
   aiResponseContainer: {
-    boxShadow: '0 1px 1px rgba(0,0,0,0.02)',
-    border: '1px solid rgba(0,0,0,0.04)',
-    borderRadius: '1rem',
+    boxShadow: '0 0 0 rgba(0,0,0,0.01)',
+    border: '1px solid rgba(0,0,0,0.02)',
+    borderRadius: '0.75rem',
     padding: '1rem',
     width: '100%',
     transition: 'all 0.2s ease'
@@ -100,11 +100,26 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
     
     // Reset streaming state when message changes and it's the latest message
     if (msg.status === 'delivered' && msg.role === 'assistant' && !streamComplete && isLatestMessage) {
-      setIsStreaming(true);
-      setStreamComplete(false);
-      setDisplayText("");
+      // Only start streaming for new messages, not for loaded old session messages
+      const isOldSessionMessage = msg.created_at && new Date(msg.created_at).getTime() < Date.now() - 5000;
+      
+      if (!isOldSessionMessage) {
+        setIsStreaming(true);
+        setStreamComplete(false);
+        setDisplayText("");
+      } else {
+        // For old session messages, don't stream - just show the full content
+        setIsStreaming(false);
+        setStreamComplete(true);
+        setDisplayText(msg.content || "");
+      }
+    } else if (msg.status === 'delivered' && msg.role === 'assistant' && !isLatestMessage) {
+      // For old messages, don't stream - just show the full content
+      setIsStreaming(false);
+      setStreamComplete(true);
+      setDisplayText(msg.content || "");
     }
-  }, [msg.status, msg.role, streamComplete, isLatestMessage]);
+  }, [msg.status, msg.role, msg.created_at, streamComplete, isLatestMessage]);
 
   // Stream the text for assistant messages
   useEffect(() => {
@@ -112,13 +127,15 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
       let index = 0;
       const content = msg.content || "";
       const length = content.length;
+
       
       // Consistent speed regardless of message length to prevent slowdown
-      const speed = 1; // Fast consistent speed
+      const speed = 1;
+      const process_length = length > 500 ? 10 : length > 200 ? 20 : length > 50 ? 30 : 50;
 
       const interval = setInterval(() => {
         setDisplayText(content.slice(0, index));
-        index += 5; // Process 5 characters at a time for faster streaming
+        index += process_length; // Process 5 characters at a time for faster streaming
 
         if (index > content.length) {
           clearInterval(interval);
@@ -131,37 +148,7 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
     }
   }, [isStreaming, msg.content, msg.role, msg.status, isLatestMessage]);
 
-  // Legacy streaming from localStorage (can be removed if not needed)
-  useEffect(() => {
-    const storedFlowMessages = localStorage.getItem("set-to-flow") || "[]";
-
-    if (msg.id && storedFlowMessages.includes(msg.id)) {
-      setIsStreaming(true);
-      let index = 0;
-      const content = msg.content || "";
-      const length = content.length;
-      const speed =
-        length > 500 ? 10 : length > 200 ? 20 : length > 50 ? 30 : 50;
-
-      const interval = setInterval(() => {
-        setDisplayText(content.slice(0, index));
-        index++;
-
-        if (index > content.length) {
-          clearInterval(interval);
-          setIsStreaming(false);
-          setStreamComplete(true);
-          localStorage.removeItem("set-to-flow");
-        }
-      }, speed);
-
-      return () => clearInterval(interval);
-    } else if (!isStreaming && msg.role === 'assistant' && !streamComplete && isLatestMessage) {
-      // Start streaming for new assistant messages only if it's the latest
-      setIsStreaming(true);
-    }
-  }, [msg.content, msg.id, msg.role, isStreaming, streamComplete, isLatestMessage]);
-
+  
   const handleEdit = () => {
     setIsEditing(true);
     setEditedMessage(msg.role === 'user' ? msg.content : "");
@@ -228,7 +215,7 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
       {isUserMessage && (
         <div className="flex justify-end w-full max-w-3xl px-4 mt-2 overflow-x-hidden">
           <div
-            className={`relative py-3 px-4 rounded-3xl ml-20 ${isEditing ? 'w-[80%] max-w-3xl' : 'w-auto'} group
+            className={`relative py-3 px-4 rounded-xl ml-20 ${isEditing ? 'w-[80%] max-w-3xl' : 'w-auto'} group
             ${
               theme === "dark"
                 ? "bg-[#343541] text-white"
@@ -287,7 +274,7 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
       {isAssistantMessage && (
         <div className="flex justify-start w-full max-w-3xl px-4 mt-3 mb-4 font-inter overflow-x-hidden">
           <div
-            className={`py-4 px-5 rounded-2xl group w-full ${
+            className={`py-4 px-5 rounded-xl group w-full ${
               theme === "dark" 
                 ? "bg-gray-800/60 text-gray-100" 
                 : "bg-white/95 text-gray-800"
@@ -337,6 +324,77 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
                     user-select: none !important;
                     border-right: 1px solid #404040 !important;
                     margin-right: 1em !important;
+                  }
+                  
+                  /* Code block language label */
+                  .code-language-label {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    color: #fff;
+                    font-size: 0.75rem;
+                    padding: 2px 8px;
+                    border-bottom-right-radius: 4px;
+                    font-family: sans-serif;
+                    z-index: 5;
+                  }
+                  
+                  /* Horizontal scrolling for code blocks */
+                  .code-block-content {
+                    overflow-x: auto !important;
+                    max-width: 100% !important;
+                    white-space: pre !important;
+                    display: block !important;
+                  }
+                  
+                  /* Make sure code doesn't wrap */
+                  .code-block-content pre {
+                    white-space: pre !important;
+                    word-wrap: normal !important;
+                    overflow-x: auto !important;
+                  }
+                  
+                  .code-block-content code {
+                    white-space: pre !important;
+                    word-wrap: normal !important;
+                    display: inline-block !important;
+                    min-width: 100% !important;
+                  }
+                  
+                  /* Override any wrapping styles */
+                  .react-syntax-highlighter-line-number, 
+                  .react-syntax-highlighter-line {
+                    white-space: pre !important;
+                    word-wrap: normal !important;
+                  }
+                  
+                  /* Custom scrollbar for horizontal code scrolling */
+                  .code-block-content::-webkit-scrollbar {
+                    height: 6px !important;
+                  }
+                  
+                  .code-block-content::-webkit-scrollbar-track {
+                    background: transparent !important;
+                  }
+                  
+                  .code-block-content::-webkit-scrollbar-thumb {
+                    background-color: rgba(156, 163, 175, 0.5) !important;
+                    border-radius: 20px !important;
+                  }
+                  
+                  .dark .code-block-content::-webkit-scrollbar-thumb {
+                    background-color: rgba(75, 85, 99, 0.5) !important;
+                  }
+                  
+                  /* For Firefox */
+                  .code-block-content {
+                    scrollbar-width: thin !important;
+                    scrollbar-color: rgba(156, 163, 175, 0.5) transparent !important;
+                  }
+                  
+                  .dark .code-block-content {
+                    scrollbar-color: rgba(75, 85, 99, 0.5) transparent !important;
                   }
                   
                   /* Dark mode syntax highlighting overrides for better visibility */
@@ -414,35 +472,48 @@ const Message = ({ message = defaultMessage, onRegenerateMessage, isLatestMessag
                           >
                             {isCopied ? <Check size={16} /> : <Copy size={16} />}
                           </button>
+                          
+                          {/* Language label - moved to top-left */}
+                          <div className="code-language-label">
+                            {match[1].toUpperCase()}
+                          </div>
+                          
                           <div className="code-block-wrapper" style={{
                             ...styles.codeWrapper,
                             border: theme === "dark" ? "1px solid #1e1e1e" : "1px solid #d4d4d4",
                             background: theme === "dark" ? "#1e1e1e" : "#ffffff",
                             boxShadow: theme === "dark" ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "0 2px 4px rgba(0, 0, 0, 0.05)"
                           }}>
-                            <SyntaxHighlighter
-                              // @ts-ignore - Type issues with the SyntaxHighlighter component
-                              style={theme === "dark" ? vscDarkPlus : vs}
-                              language={match[1]}
-                              PreTag="div"
-                              showLineNumbers={true}
-                              lineNumberStyle={{ 
-                                color: theme === "dark" ? '#858585' : '#237893',
-                                borderRight: theme === "dark" ? '1px solid #404040' : '1px solid #d4d4d4',
-                                paddingRight: '1em',
-                                marginRight: '1em'
-                              }}
-                              className={theme === "dark" ? "dark-syntax-theme" : "light-syntax-theme"}
-                              customStyle={{
-                                ...styles.codeBlock,
-                                background: theme === "dark" ? "#1e1e1e" : "#ffffff",
-                              }}
-                              wrapLines={true}
-                              wrapLongLines={true}
-                              useInlineStyles={true}
-                            >
-                              {codeString}
-                            </SyntaxHighlighter>
+                            <div className="code-block-content" style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                              <SyntaxHighlighter
+                                // @ts-ignore - Type issues with the SyntaxHighlighter component
+                                style={theme === "dark" ? vscDarkPlus : vs}
+                                language={match[1]}
+                                PreTag="div"
+                                showLineNumbers={true}
+                                lineNumberStyle={{ 
+                                  color: theme === "dark" ? '#858585' : '#237893',
+                                  borderRight: theme === "dark" ? '1px solid #404040' : '1px solid #d4d4d4',
+                                  paddingRight: '1em',
+                                  marginRight: '1em'
+                                }}
+                                className={theme === "dark" ? "dark-syntax-theme" : "light-syntax-theme"}
+                                customStyle={{
+                                  ...styles.codeBlock,
+                                  background: theme === "dark" ? "#1e1e1e" : "#ffffff",
+                                  overflow: 'auto',
+                                  whiteSpace: 'pre',
+                                  wordWrap: 'normal',
+                                  wordBreak: 'normal',
+                                  minWidth: '100%'
+                                }}
+                                wrapLines={false}
+                                wrapLongLines={false}
+                                useInlineStyles={true}
+                              >
+                                {codeString}
+                              </SyntaxHighlighter>
+                            </div>
                           </div>
                         </div>
                       ) : (

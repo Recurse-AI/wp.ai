@@ -1,5 +1,5 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, useReducedMotion, useInView } from "framer-motion";
 import { MessageSquare, Bot, Zap, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/context/ThemeProvider";
@@ -8,16 +8,50 @@ import { ChatBotSectionProps } from "./types";
 
 const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
   const { theme } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
+  const [isMounted, setIsMounted] = useState(false);
+  const sectionRef = React.useRef(null);
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
+  
+  // Only enable animations after component is mounted on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // Simplified animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: prefersReducedMotion ? 0 : -20 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.6 }
+    }
+  };
+  
+  const messageVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: (custom: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { 
+        duration: 0.4,
+        delay: custom * 0.2
+      }
+    })
+  };
   
   return (
-    <section className="relative py-20 sm:py-28 px-4 sm:px-6" id="chatbot">
+    <section 
+      ref={sectionRef}
+      className="relative py-20 sm:py-28 px-4 sm:px-6" 
+      id="chatbot"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true, margin: "-100px" }}
+            initial="hidden"
+            animate={isInView && isMounted ? "visible" : "hidden"}
+            variants={containerVariants}
             className="relative"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30" />
@@ -47,12 +81,11 @@ const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
                     </div>
                   </div>
                   
-                  {/* Chat Messages */}
+                  {/* Chat Messages - Only animate if in view and not reduced motion */}
                   <div className={`flex flex-col space-y-4 p-6 ${theme === "dark" ? "bg-gray-800/80" : "bg-gray-50/80"}`}>
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
+                      custom={0}
+                      variants={messageVariants}
                       className="flex items-start"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -64,9 +97,8 @@ const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
                     </motion.div>
                     
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
+                      custom={1}
+                      variants={messageVariants}
                       className="flex items-start justify-end"
                     >
                       <div className="mr-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 px-4 py-3 rounded-l-xl rounded-br-xl max-w-[85%] shadow-md border border-gray-200 dark:border-gray-700">
@@ -78,9 +110,8 @@ const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
                     </motion.div>
                     
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.6 }}
+                      custom={2}
+                      variants={messageVariants}
                       className="flex items-start"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">

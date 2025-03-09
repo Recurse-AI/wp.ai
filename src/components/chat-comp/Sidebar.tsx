@@ -67,39 +67,42 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     }
   }, [isLoggedIn]);
 
-  const handleChatSelect = (sessionId: string) => {
+  const handleChatSelect = (sessionId: string, mode: 'agent' | 'default') => {
     if (onClose) {
       onClose();
     }
     
     // Mark this as an existing chat session in localStorage
     try {
-      const sessionData = localStorage.getItem(`chat-session-${sessionId}`);
-      if (sessionData) {
-        const parsedData = JSON.parse(sessionData);
-        // Update the session data to mark it as an existing chat
-        const updatedSessionData = {
-          ...parsedData,
-          isNewChat: false,
-          isExistingChat: true, // Explicitly mark as existing
-          lastAccessed: new Date().toISOString()
-        };
-        localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(updatedSessionData));
-      } else {
-        // If no session data exists yet, create it
-        const initialSessionData = {
-          mode: localStorage.getItem('selectedAgentMode') === 'agent' ? 'agent' : 'default',
-          embedding_enabled: false,
-          prompt: '',
-          isNewChat: false,
-          isExistingChat: true,
-          lastAccessed: new Date().toISOString()
-        };
-        localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(initialSessionData));
+      // const sessionData = localStorage.getItem(`chat-session-${sessionId}`);
+      //remove all items from localStorage that start with chat-session-
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('chat-session-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      const embeddingEnabled = localStorage.getItem('embeddingEnabled') === 'true';
+
+      const sessionData = {
+        mode: mode,
+        embedding_enabled: embeddingEnabled,
+        prompt: '',
+        isNewChat: false
       }
+
+      localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(sessionData));
+
+      router.push(`/chat/${sessionId}`);
+
     } catch (error) {
       console.error('Error updating session data:', error);
     }
+  };
+
+  // Wrapper function that only takes sessionId and uses default mode
+  const handleChatSelectWrapper = (sessionId: string) => {
+    handleChatSelect(sessionId, 'default');
   };
 
   const handleDeleteChat = async (chatId: string) => {
@@ -216,7 +219,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                       openDropdown={openDropdown}
                       setOpenDropdown={setOpenDropdown}
                       refreshChats={fetchConversations}
-                      onSelect={handleChatSelect}
+                      onSelect={handleChatSelectWrapper}
                       onDelete={() => handleDeleteChat(conversation.id)}
                       lastMessage={conversation.last_message?.content}
                       timestamp={conversation.updated_at}

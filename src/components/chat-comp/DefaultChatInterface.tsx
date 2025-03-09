@@ -11,6 +11,7 @@ import { FiChevronDown } from "react-icons/fi";
 import { SiOpenai, SiClaude, SiGooglegemini } from "react-icons/si";
 import { FaWordpress } from "react-icons/fa";
 import { ChatMessage, ChatResponse } from "@/lib/types/chat";
+import { setLocalStorageItem, getLocalStorageItem } from '@/lib/utils/localStorage';
 
 // AI Provider configuration - same as layout.tsx for consistency
 const AI_PROVIDERS = [
@@ -49,6 +50,8 @@ interface DefaultChatInterfaceProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => Promise<ChatResponse>;
   onRegenerateMessage?: () => Promise<ChatResponse>;
+  onUpdateSettings?: (settings: { provider: string; model: string }) => void;
+  isLoading?: boolean;
 }
 
 // CSS for hiding scrollbars
@@ -64,6 +67,8 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   messages,
   onSendMessage,
   onRegenerateMessage,
+  onUpdateSettings,
+  isLoading = false,
 }) => {
   const { theme } = useTheme();
   const [message, setMessage] = useState("");
@@ -72,10 +77,12 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [currentProvider, setCurrentProvider] = useState(AI_PROVIDERS[0]);
   const [currentModel, setCurrentModel] = useState(AI_PROVIDERS[0].models[0]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -91,6 +98,24 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     }
   }, [message]);
 
+  // Check if we need to show the scroll button
+  useEffect(() => {
+    const handleScroll = () => {
+      const messagesContainer = messagesContainerRef.current;
+      if (messagesContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+        // Show button when scrolled up more than 100px from bottom
+        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+      }
+    };
+
+    const messagesContainer = messagesContainerRef.current;
+    messagesContainer?.addEventListener('scroll', handleScroll);
+    return () => {
+      messagesContainer?.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,7 +130,12 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     };
   }, []);
 
-  // Check for stored preferences
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  };
+
+  // Load saved AI model preferences
   useEffect(() => {
     // Load KB state
     const savedEmbeddingEnabled = localStorage.getItem('embeddingEnabled') === 'true';
@@ -114,10 +144,10 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     }
     
     // Load saved AI model preferences
-    const savedModel = localStorage.getItem('selectedAIModel');
+    const savedModel = getLocalStorageItem('selectedAIModel', null);
     if (savedModel) {
       try {
-        const { provider: providerId, model: modelId } = JSON.parse(savedModel);
+        const { provider: providerId, model: modelId } = savedModel;
         const providerObj = AI_PROVIDERS.find(p => p.id === providerId);
         if (providerObj) {
           setCurrentProvider(providerObj);
@@ -130,16 +160,18 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     }
   }, []);
 
-  // Handle input change
+  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
   };
 
-  // Handle key press (Enter to submit)
+  // Handle key presses
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      if (message.trim()) {
+        handleSubmit();
+      }
     }
   };
 
@@ -166,8 +198,18 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     setCurrentModel(model);
     setShowModelDropdown(false);
     
+    const modelSettings = {provider: provider.id, model: model.id};
+    
     // Save selection to localStorage
-    localStorage.setItem('selectedAIModel', JSON.stringify({provider: provider.id, model: model.id}));
+    setLocalStorageItem('selectedAIModel', modelSettings);
+    
+    // Also update the chat service directly if it's available
+    if (onUpdateSettings) {
+      onUpdateSettings({
+        provider: provider.id,
+        model: model.id,
+      });
+    }
     
     toast.success(
       `${model.name} model selected`,
@@ -184,29 +226,12 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     
     try {
       setIsProcessing(true);
-      
-      // Store the query in localStorage for potential future use
-      const recentQueries = JSON.parse(localStorage.getItem('recentQueries') || '[]');
-      recentQueries.unshift({
-        query: message,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Keep only the 10 most recent queries
-      if (recentQueries.length > 10) {
-        recentQueries.pop();
-      }
-      
-      localStorage.setItem('recentQueries', JSON.stringify(recentQueries));
-      
       // Send the message
-      await onSendMessage(message);
-      
-      // Clear the input
+      let text = message;
       setMessage("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "40px";
-      }
+       // Clear the input
+      await onSendMessage(text);
+     
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -218,7 +243,8 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     <div className="flex flex-col h-full w-full overflow-x-hidden">
       {/* Messages Container - Adjusted with more bottom padding */}
       <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full px-4 pb-8 custom-scrollbar" 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden w-full px-4 pb-8 pt-2 custom-scrollbar" 
       >
         <style jsx global>{`
           /* Custom scrollbar styling */
@@ -261,7 +287,12 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
           }
         `}</style>
 
-        {messages && messages.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            <p className="mt-4 text-gray-500">Loading your conversation...</p>
+          </div>
+        ) : messages && messages.length > 0 ? (
           messages.map((msg, index) => (
             <Message 
               key={msg.id || index}
@@ -285,6 +316,23 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
           ? "bg-gray-900/80 border-gray-700 shadow-sm" 
           : "bg-white border-gray-200 shadow-sm"
         } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`}>
+          {/* Scroll to bottom button - repositioned above textarea */}
+          {showScrollButton && (
+            <div className="absolute -top-12 right-2 z-10">
+              <button
+                onClick={scrollToBottom}
+                className={`p-2 rounded-full shadow-md transition-all duration-200 ${
+                  theme === "dark" 
+                    ? "bg-gray-700 text-white hover:bg-gray-600" 
+                    : "bg-white text-gray-800 hover:bg-gray-100"
+                }`}
+                aria-label="Scroll to bottom"
+              >
+                <FiChevronDown className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+          
           {/* Model selection and KB button row */}
           <div className="flex justify-between items-center mb-3">
             {/* Model selection dropdown */}
@@ -390,7 +438,7 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
               value={message}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message here..."
+              placeholder={isLoading ? "Loading your conversation..." : "Type your message here..."}
               className={`bg-transparent w-full outline-none 
                 font-medium tracking-wide text-base resize-none overflow-hidden px-3
                 ${theme === "dark" 
@@ -408,20 +456,20 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                 overflow: 'hidden' // Hide scrollbar
               }}
-              disabled={isProcessing}
+              disabled={isProcessing || isLoading}
             />
             
             <button
               onClick={handleSubmit}
-              disabled={!message.trim() || isProcessing}
+              disabled={!message.trim() || isProcessing || isLoading}
               className={`ml-2 p-2 rounded-md transition-colors ${
-                message.trim() && !isProcessing
+                message.trim() && !isProcessing && !isLoading
                   ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                   : "text-gray-400"
               }`}
               aria-label="Send message"
             >
-              {isProcessing ? (
+              {isProcessing || isLoading ? (
                 <div className="w-5 h-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
               ) : (
                 <SendHorizontal className="w-5 h-5" />

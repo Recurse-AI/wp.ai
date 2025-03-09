@@ -74,6 +74,11 @@ export interface UserProfile {
   is_active?: boolean;
 }
 
+// Add this at the top of the file, after the imports
+let userProfileCache: UserProfile | null = null;
+let userProfileCacheTime: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // Auth service with all API endpoints
 const AuthService = {
   // User registration and authentication
@@ -90,7 +95,13 @@ const AuthService = {
     apiPost<{ status: string }>(ApiPaths.VERIFY_TOKEN, { token }),
 
   logout: () => {
+    // Clear the user profile cache
+    userProfileCache = null;
+    userProfileCacheTime = 0;
+    
     const refreshToken = TokenManager.getRefreshToken();
+    if (!refreshToken) return Promise.resolve({ detail: 'No refresh token' });
+    
     return apiPost<{ detail: string }>(ApiPaths.LOGOUT, { refresh_token: refreshToken });
   },
 
@@ -135,11 +146,28 @@ const AuthService = {
     }),
 
   // Profile management
-  getUserProfile: () => 
-    apiGet<UserProfile>(ApiPaths.USER_PROFILE),
+  getUserProfile: async () => {
+    // Check if we have a cached profile that's not expired
+    const currentTime = Date.now();
+    if (userProfileCache && (currentTime - userProfileCacheTime) < CACHE_DURATION) {
+      return userProfileCache;
+    }
+    
+    // If no cache or expired, fetch from API
+    const profile = await apiGet<UserProfile>(ApiPaths.USER_PROFILE);
+    
+    // Update cache
+    userProfileCache = profile;
+    userProfileCacheTime = currentTime;
+    
+    return profile;
+  },
 
-  updateUserProfile: (profileData: Partial<UserProfile>) => 
-    apiPut<UserProfile>(ApiPaths.USER_PROFILE, profileData),
+  updateUserProfile: (profileData: Partial<UserProfile>) => {
+    // Invalidate cache when profile is updated
+    userProfileCache = null;
+    return apiPut<UserProfile>(ApiPaths.USER_PROFILE, profileData);
+  },
 
   changePassword: (data: ChangePasswordRequest) => 
     apiPost<{ message: string }>(ApiPaths.CHANGE_PASSWORD, data),
@@ -160,15 +188,35 @@ const AuthService = {
   deleteUser: (id: number) => 
     apiDelete<{ message: string }>(ApiPaths.USER_DETAIL(id)),
 
-  getCurrentUser: () => 
-    apiGet<UserProfile>(ApiPaths.USER_PROFILE),
+  getCurrentUser: async () => {
+    // Use the same cache as getUserProfile
+    const currentTime = Date.now();
+    if (userProfileCache && (currentTime - userProfileCacheTime) < CACHE_DURATION) {
+      return userProfileCache;
+    }
+    
+    // If no cache or expired, fetch from API
+    const profile = await apiGet<UserProfile>(ApiPaths.USER_PROFILE);
+    
+    // Update cache
+    userProfileCache = profile;
+    userProfileCacheTime = currentTime;
+    
+    return profile;
+  },
 
   // Session management
   getUserSessions: () => 
     apiGet<{ id: number; device: string; ip_address: string; last_activity: string }[]>(ApiPaths.SESSIONS),
 
   terminateSession: (id: number) => 
-    apiPost<{ message: string }>(ApiPaths.TERMINATE_SESSION(id))
+    apiPost<{ message: string }>(ApiPaths.TERMINATE_SESSION(id)),
+
+  // Cache management
+  clearUserProfileCache: () => {
+    userProfileCache = null;
+    userProfileCacheTime = 0;
+  },
 };
 
 export default AuthService; 

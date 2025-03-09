@@ -67,6 +67,12 @@ export default function useAuth() {
   useEffect(() => {
     const loadUser = async () => {
       try {
+        // Check if we already have user data in state
+        if (authState.user && authState.user.id && !authState.loading) {
+          // User is already loaded, no need to fetch again
+          return;
+        }
+        
         const token = TokenManager.getToken();
         
         if (!token) {
@@ -93,15 +99,19 @@ export default function useAuth() {
             });
             
             try {
-              const user = await AuthService.getUserProfile();
-              if (user) {
-                setAuthState({
-                  user,
-                  loading: false,
-                  isAuthenticated: true,
-                  error: null,
-                });
-                safeLocalStorage.setItem('userData', JSON.stringify(user));
+              // Only fetch user profile if we don't have it in localStorage
+              const userDataString = safeLocalStorage.getItem('userData');
+              if (!userDataString) {
+                const user = await AuthService.getUserProfile();
+                if (user) {
+                  setAuthState({
+                    user,
+                    loading: false,
+                    isAuthenticated: true,
+                    error: null,
+                  });
+                  safeLocalStorage.setItem('userData', JSON.stringify(user));
+                }
               }
             } catch (fetchError) {
               const apiError = fetchError as any;
@@ -138,6 +148,28 @@ export default function useAuth() {
           return;
         }
 
+        // Check if we already have user data in localStorage before making API call
+        const userDataString = safeLocalStorage.getItem('userData');
+        if (userDataString) {
+          try {
+            const userData = JSON.parse(userDataString);
+            // Check if the user data is recent (less than 5 minutes old)
+            const lastFetchTime = safeLocalStorage.getItem('userDataFetchTime');
+            const currentTime = Date.now();
+            if (lastFetchTime && (currentTime - parseInt(lastFetchTime)) < 5 * 60 * 1000) {
+              setAuthState({
+                user: userData,
+                loading: false,
+                isAuthenticated: true,
+                error: null,
+              });
+              return;
+            }
+          } catch (parseError) {
+            // If parsing fails, continue to fetch from API
+          }
+        }
+
         const user = await AuthService.getUserProfile();
         setAuthState({
           user,
@@ -147,6 +179,7 @@ export default function useAuth() {
         });
         
         safeLocalStorage.setItem('userData', JSON.stringify(user));
+        safeLocalStorage.setItem('userDataFetchTime', Date.now().toString());
       } catch (error) {
         const apiError = error as any;
         

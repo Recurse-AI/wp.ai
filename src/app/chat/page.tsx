@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTheme } from "@/context/ThemeProvider";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthProvider";
@@ -16,18 +16,22 @@ import { WordPressIcon, BrainIcon } from "@/components/chat-comp/input-component
 import { Zap } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import { getToastStyle } from "@/lib/toastConfig";
+import { useChatService } from '@/lib/hooks/useChatService';
+import { ChatProvider, ChatModel } from '@/lib/services/chatConfig';
 
 const Page = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { isLoggedIn } = useAuthContext();
-  const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
   const [agentMode, setAgentMode] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [embeddingEnabled, setEmbeddingEnabled] = useState(false);
- 
-
+  
+  // Initialize chat service
+  const { updateSettings } = useChatService();
+  
   useEffect(() => {
     const checkAuth = async () => {
       const hasToken = !!TokenManager.getToken();
@@ -42,7 +46,7 @@ const Page = () => {
 
       if (isAuthenticated || isLoggedIn || hasToken || hasRefreshToken || hasUserData || hasAuthToken) {
         console.log("Chat page: Authentication confirmed, allowing access");
-        setLoading(false);
+        setAuthChecking(false);
       } else {
         console.log("Chat page: No valid authentication found, redirecting to signin");
         localStorage.setItem('isChat', 'true');
@@ -52,8 +56,6 @@ const Page = () => {
 
     checkAuth();
   }, [isAuthenticated, isLoggedIn, authLoading, user, router]);
-
-  
 
   // Handle text input
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -123,6 +125,13 @@ const Page = () => {
     });
   };
 
+  // Handle model change
+  const handleModelChange = useCallback((settings: { provider: string; model: string }) => {
+    updateSettings({
+      provider: settings.provider as ChatProvider,
+      model: settings.model as ChatModel
+    });
+  }, [updateSettings]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,6 +141,8 @@ const Page = () => {
       mode: agentMode ? 'agent' : 'default',
       embedding_enabled: embeddingEnabled,
       prompt: prompt,
+      isNewChat: true,
+      isExistingChat: false,
     };
 
     // Generate a UUID for the new chat session
@@ -147,11 +158,10 @@ const Page = () => {
     router.push(`/chat/${sessionId}`);
   };
 
-
-  if (loading) {
+  if (authChecking) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -209,7 +219,10 @@ const Page = () => {
                   />
                   
                   {/* AI Provider Selection */}
-                  <AIProviderSelect className="mt-0.5" />
+                  <AIProviderSelect 
+                    className="mt-0.5" 
+                    onModelChange={handleModelChange}
+                  />
                 </div>
               </div>
 

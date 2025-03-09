@@ -5,6 +5,7 @@ import { SiOpenai, SiClaude, SiGooglegemini } from "react-icons/si";
 import { FaWordpress } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
 import { useTheme } from "@/context/ThemeProvider";
+import { setLocalStorageItem, getLocalStorageItem } from '@/lib/utils/localStorage';
 
 // AI Provider configuration
 const AI_PROVIDERS = [
@@ -41,9 +42,10 @@ const AI_PROVIDERS = [
 
 interface AIProviderSelectProps {
   className?: string;
+  onModelChange?: (settings: { provider: string; model: string }) => void;
 }
 
-const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className }) => {
+const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelChange }) => {
   const { theme } = useTheme();
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [currentProvider, setCurrentProvider] = useState(AI_PROVIDERS[0]);
@@ -54,10 +56,10 @@ const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className }) => {
 
   // Load saved AI model preferences on component mount
   useEffect(() => {
-    const savedModel = localStorage.getItem('selectedAIModel');
+    const savedModel = getLocalStorageItem('selectedAIModel', null);
     if (savedModel) {
       try {
-        const { provider: providerId, model: modelId } = JSON.parse(savedModel);
+        const { provider: providerId, model: modelId } = savedModel;
         const providerObj = AI_PROVIDERS.find(p => p.id === providerId);
         if (providerObj) {
           setCurrentProvider(providerObj);
@@ -93,8 +95,15 @@ const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className }) => {
     setCurrentModel(model);
     setShowAIDropdown(false);
     
+    const modelSettings = {provider: provider.id, model: model.id};
+    
     // Save selection to localStorage
-    localStorage.setItem('selectedAIModel', JSON.stringify({provider: provider.id, model: model.id}));
+    setLocalStorageItem('selectedAIModel', modelSettings);
+    
+    // Also update the chat service directly if callback is provided
+    if (onModelChange) {
+      onModelChange(modelSettings);
+    }
   };
 
   return (

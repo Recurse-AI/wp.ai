@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, MessageSquare, MessageSquarePlus } from "lucide-react";
+import { ArrowRight, MessageSquare, MessageSquarePlus, Zap } from "lucide-react";
 import { useTheme } from "@/context/ThemeProvider";
 import { ServiceCardProps } from "./types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import Link from "next/link";
 
 const ServiceCard = ({ service, index, onChatOpen }: ServiceCardProps) => {
   const { theme } = useTheme();
@@ -34,17 +35,18 @@ const ServiceCard = ({ service, index, onChatOpen }: ServiceCardProps) => {
             <p className="text-sm italic">"{example}"</p>
           </div>
           
-          <Button 
-            onClick={onChatOpen}
-            className="w-full mt-auto group"
-            variant="outline"
-            style={{ borderColor: `${color}40` }}
-          >
-            <span className="text-foreground group-hover:text-primary transition-colors duration-300">
-              Try it now
-            </span>
-            <MessageSquarePlus className="ml-2 w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-          </Button>
+          <Link href={`/chat?service=${encodeURIComponent(title)}`} passHref>
+            <Button 
+              className="w-full mt-auto group"
+              variant="outline"
+              style={{ borderColor: `${color}40` }}
+            >
+              <span className="text-foreground group-hover:text-primary transition-colors duration-300 flex items-center">
+                Try it now
+                <MessageSquarePlus className="ml-2 w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+              </span>
+            </Button>
+          </Link>
         </div>
       </Card>
     </motion.div>

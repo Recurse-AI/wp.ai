@@ -9,8 +9,10 @@ import DefaultChatInterface from "@/components/chat-comp/DefaultChatInterface";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { ChatService } from "@/lib/services/chatService";
-import { ChatMessage, ChatResponse } from "@/lib/types/chat";
+import { ChatMessage, ChatResponse, Message } from "@/lib/types/chat";
 import { getToastStyle } from "@/lib/toastConfig";
+import { ChatProvider, ChatModel } from "@/lib/services/chatConfig";
+import ChatHeader from "@/components/chat-comp/ChatHeader";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,11 +23,6 @@ interface SessionData {
   embedding_enabled: boolean;
   prompt: string;
   isNewChat?: boolean;
-  isExistingChat?: boolean;
-  maintainHistory?: boolean;
-  previousSessionId?: string | null;
-  createdAt?: string;
-  lastAccessed?: string;
 }
 
 const ChatPage = ({ params }: Props) => {
@@ -33,16 +30,13 @@ const ChatPage = ({ params }: Props) => {
 
   const { id } = use(params);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [error, setError] = useState(false);
   const [agentMode, setAgentMode] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [chatService] = useState(() => new ChatService({}, { session_id: id }));
   const [initialPrompt, setInitialPrompt] = useState<string | null>(null);
-  const [isNewChatSession, setIsNewChatSession] = useState(false);
-  const [maintainHistory, setMaintainHistory] = useState(false);
-  const [previousSessionId, setPreviousSessionId] = useState<string | null>(null);
-
-  const router = useRouter();
+  const [isOldChatSession, setIsOldChatSession] = useState(false);
+  const [title, setTitle] = useState('New Chat');
 
   // Get initial session data from localStorage
   useEffect(() => {
@@ -51,25 +45,7 @@ const ChatPage = ({ params }: Props) => {
         const sessionData = localStorage.getItem(`chat-session-${id}`);
         if (sessionData) {
           const parsedData = JSON.parse(sessionData) as SessionData;
-          
-          // Check if this is a new chat session
-          if (parsedData.isNewChat) {
-            setIsNewChatSession(true);
-            
-            // Check if we should maintain history from a previous session
-            if (parsedData.maintainHistory && parsedData.previousSessionId) {
-              setMaintainHistory(true);
-              setPreviousSessionId(parsedData.previousSessionId);
-            }
-            
-            // Update the session data to mark it as no longer new
-            const updatedSessionData = {
-              ...parsedData,
-              isNewChat: false
-            };
-            localStorage.setItem(`chat-session-${id}`, JSON.stringify(updatedSessionData));
-          }
-          
+
           // Set agent mode based on session data
           if (parsedData.mode === 'agent') {
             setAgentMode(true);
@@ -79,8 +55,20 @@ const ChatPage = ({ params }: Props) => {
             localStorage.removeItem('selectedAgentMode');
           }
           
+          // Check if this is a new chat session
+          if (!parsedData.isNewChat) {
+            setIsOldChatSession(true);
+            setLoading(true);
+          } else {
+            let data = {
+              ...parsedData,
+              isNewChat: false
+            }
+            localStorage.setItem(`chat-session-${id}`, JSON.stringify(data));
+          }
+          
           // Store the initial prompt
-          if (parsedData.prompt) {
+          if (parsedData.prompt && parsedData.isNewChat) {
             setInitialPrompt(parsedData.prompt);
           }
           
@@ -89,58 +77,61 @@ const ChatPage = ({ params }: Props) => {
             use_vector_search: parsedData.embedding_enabled
           });
         }
+        
+        // Initial loading is complete after checking session data
+        setInitialLoading(false);
       } catch (error) {
         console.error('Error parsing session data from localStorage:', error);
+        setInitialLoading(false);
       }
     }
   }, [id, chatService]);
 
+  const handleMakeMessage = async (messages: Message[]): Promise<ChatMessage[]> => {
+    const chatMessages: ChatMessage[] = [];
+    for (const message of messages) {
+      let messageId = message.id;
+      let content = message.content;
+      let role = message.role;
+      let created_at = message.created_at;
+
+      const userMessage: ChatMessage = {
+        id: messageId,
+        role: role,
+        content: content,
+        created_at: created_at,
+        status: 'delivered'
+      };
+
+      chatMessages.push(userMessage);
+    }
+
+    return chatMessages;
+  };
+
   const fetchChatMessages = useCallback(async () => {
-    setLoading(true);
+    if (isOldChatSession) {
+      setLoading(true);
+    }
+    
     try {
-      // If it's a new chat session but we should maintain history, fetch from previous session
-      if (isNewChatSession && maintainHistory && previousSessionId) {
-        console.log("New chat session with history maintenance, fetching from previous session:", previousSessionId);
-        
-        // Create a temporary chat service for the previous session
-        const previousChatService = new ChatService({}, { session_id: previousSessionId });
-        
-        // Fetch messages from the previous session
-        const previousMessages = await previousChatService.getConversationHistory();
-        
-        if (previousMessages && previousMessages.length > 0) {
-          setMessages(previousMessages);
-          setInitialPrompt(null);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // If it's a new chat session without history or previous fetch failed, don't try to fetch messages
-      if (isNewChatSession && !maintainHistory) {
-        console.log("New chat session detected, skipping database fetch");
-        if (initialPrompt) {
-          await handleSendMessage(initialPrompt);
-          setInitialPrompt(null);
-        }
-        setLoading(false);
-        return;
-      }
-      
       // For existing sessions, fetch messages from the database
-      const chatMessages = await chatService.getConversationHistory();
+      if (isOldChatSession) {
+        const chatMessages = await chatService.getSessionHistory();
+        if (chatMessages && chatMessages.length > 0) {
+          const messages = await handleMakeMessage(chatMessages);
+          setMessages(messages);
+          setInitialPrompt(null); // Clear initial prompt as we have real messages
+        }
+      }
       
       // If we have messages from the API, use them
-      if (chatMessages && chatMessages.length > 0) {
-        setMessages(chatMessages);
-        setInitialPrompt(null); // Clear initial prompt as we have real messages
-      } else if (initialPrompt) {
+      if (initialPrompt) {
         // If no messages from API but we have an initial prompt, send it
         await handleSendMessage(initialPrompt);
         setInitialPrompt(null); // Clear initial prompt after sending
       }
       
-      setError(false);
     } catch (error) {
       console.error("Error fetching messages:", error);
       
@@ -151,16 +142,20 @@ const ChatPage = ({ params }: Props) => {
       }
       
       toast.error("Failed to load chat messages", getToastStyle(theme));
-      setError(true);
     } finally {
       setLoading(false);
     }
-  }, [chatService, theme, initialPrompt, isNewChatSession, maintainHistory, previousSessionId]);
+  }, [chatService, theme, initialPrompt, isOldChatSession]);
 
   // Load messages on initial render
   useEffect(() => {
     fetchChatMessages();
-  }, [fetchChatMessages, id]);
+    
+    // Cleanup function
+    return () => {
+      // Cancel any pending requests if component unmounts
+    };
+  }, [fetchChatMessages, id, isOldChatSession]);
 
   // Handle sending a message
   const handleSendMessage = async (content: string): Promise<ChatResponse> => {
@@ -194,7 +189,7 @@ const ChatPage = ({ params }: Props) => {
       
       // Replace the pending message with the actual AI response
       const aiMessage: ChatMessage = {
-        id: `ai_${Date.now()}`,
+        id: response.conversation?.assistant_message_id || `ai_${Date.now()}`,
         role: 'assistant',
         content: response.response,
         created_at: new Date().toISOString(),
@@ -324,29 +319,61 @@ const ChatPage = ({ params }: Props) => {
     cleanupChatSessions();
   }, [cleanupChatSessions]);
 
-  if (loading && messages.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  // Add a handler for updating chat settings
+  const handleUpdateSettings = useCallback((settings: { provider: string; model: string }) => {
+    chatService.updateSettings({
+      provider: settings.provider as ChatProvider,
+      model: settings.model as ChatModel
+    });
+  }, [chatService]);
+
+  // Handle title change
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    // You might want to save this to the backend or localStorage
+  }, []);
+  
+  // Handle toggle agent mode
+  const handleToggleAgentMode = useCallback(() => {
+    setAgentMode(prev => !prev);
+  }, []);
 
   return (
-    <div className="flex flex-col h-full w-full relative">
-      {agentMode ? (
-        // Agent Mode Interface with split screen
-        <AgentModeInterface 
-          messages={messages}
-          onSendMessage={handleSendMessage}
-        />
+    <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-shrink-0 z-10 mt-1 bg-transparent">
+          <ChatHeader 
+            title={title} 
+            onTitleChange={handleTitleChange} 
+            onToggleAgentMode={handleToggleAgentMode}
+            agentMode={agentMode}
+          />
+        </div>
+
+      {initialLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading chat...</p>
+          </div>
+        </div>
       ) : (
-        // Default Chat Interface with input at bottom
-        <DefaultChatInterface 
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onRegenerateMessage={handleRegenerateMessage}
-        />
+        <div className="flex-1 overflow-hidden">
+          {agentMode ? (
+            <AgentModeInterface 
+              messages={messages} 
+              onSendMessage={handleSendMessage}
+              isLoading={loading}
+            />
+          ) : (
+            <DefaultChatInterface 
+              messages={messages} 
+              onSendMessage={handleSendMessage} 
+              onRegenerateMessage={handleRegenerateMessage}
+              onUpdateSettings={handleUpdateSettings}
+              isLoading={loading}
+            />
+          )}
+        </div>
       )}
     </div>
   );

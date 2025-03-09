@@ -11,7 +11,9 @@ import {
   ChatMessagesResponse,
   RegenerateRequest,
   ConversationRequest,
-  ChatFeedback
+  ChatFeedback,
+  ChatSessionResponse,
+  Message
 } from '../types/chat';
 import { CHAT_CONFIG, ChatSettings } from './chatConfig';
 
@@ -38,6 +40,7 @@ export class ChatService {
   private settings: ChatSettings;
   private sessionId: string | null;
   private apiUrl: string;
+  private storageListener: ((this: Window, ev: StorageEvent) => any) | null = null;
 
   constructor(config: Partial<ChatConfig> = {}, initialSettings?: Partial<ChatSettings>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -47,6 +50,92 @@ export class ChatService {
     };
     this.sessionId = initialSettings?.session_id || null;
     this.apiUrl = process.env.NEXT_PUBLIC_CHAT_API_URL || '';
+    
+    // Initialize with localStorage value if available
+    this.initFromLocalStorage();
+    
+    // Set up localStorage listener
+    if (typeof window !== 'undefined') {
+      this.setupLocalStorageListener();
+    }
+  }
+  
+  /**
+   * Initialize settings from localStorage if available
+   */
+  private initFromLocalStorage(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedModel = localStorage.getItem('selectedAIModel');
+        if (savedModel) {
+          const { provider, model } = JSON.parse(savedModel);
+          this.updateSettings({
+            provider,
+            model,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading AI model from localStorage:', error);
+      }
+    }
+  }
+  
+  /**
+   * Set up listener for localStorage changes
+   */
+  private setupLocalStorageListener(): void {
+    // Remove any existing listener
+    if (this.storageListener) {
+      window.removeEventListener('storage', this.storageListener);
+    }
+    
+    // Create and add new listener for changes from other tabs/windows
+    this.storageListener = (event: StorageEvent) => {
+      if (event.key === 'selectedAIModel' && event.newValue) {
+        try {
+          const { provider, model } = JSON.parse(event.newValue);
+          this.updateSettings({
+            provider,
+            model,
+          });
+          console.log('ChatService updated with new AI model settings from another tab:', { provider, model });
+        } catch (error) {
+          console.error('Error parsing selectedAIModel from localStorage:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', this.storageListener);
+    
+    // Also listen for a custom event for changes within the same window
+    window.addEventListener('localStorageChange', ((event: CustomEvent) => {
+      if (event.detail && event.detail.key === 'selectedAIModel' && event.detail.newValue) {
+        try {
+          const { provider, model } = JSON.parse(event.detail.newValue);
+          this.updateSettings({
+            provider,
+            model,
+          });
+          console.log('ChatService updated with new AI model settings from same window:', { provider, model });
+        } catch (error) {
+          console.error('Error parsing selectedAIModel from custom event:', error);
+        }
+      }
+    }) as EventListener);
+  }
+  
+  /**
+   * Clean up listener when service is destroyed
+   */
+  public cleanup(): void {
+    if (typeof window !== 'undefined') {
+      if (this.storageListener) {
+        window.removeEventListener('storage', this.storageListener);
+        // Also remove the custom event listener
+        window.removeEventListener('localStorageChange', this.storageListener as EventListener);
+        this.storageListener = null;
+      }
+    }
   }
 
   /**
@@ -124,18 +213,18 @@ export class ChatService {
   /**
    * Get conversation history for a specific session
    */
-  async getConversationHistory(): Promise<ChatMessage[]> {
+  async getSessionHistory(): Promise<Message[]> {
     if (!this.sessionId) {
       return [];
     }
 
     try {
-      const response = await apiClient.get<ChatMessagesResponse>(
+      const response = await apiClient.get<ChatSessionResponse>(
         `${this.apiUrl}/get_history/?session_id=${this.sessionId}`,
         { withCredentials: true }
       );
 
-      return response.data.results;
+      return response.data.messages;
     } catch (error) {
       console.error('Error fetching conversation history:', error);
       throw error;
