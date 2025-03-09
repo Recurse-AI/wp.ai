@@ -45,7 +45,7 @@ export default function ResetPassword() {
 
   // Password Strength Validation
   const isPasswordStrong = (password: string) => {
-    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+    return  /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/.test(password);
   };
 
   // Handle Reset Password Submission

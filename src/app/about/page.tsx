@@ -1,11 +1,18 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeProvider";
 import { ChevronDown } from "lucide-react";
-import { ParticlesBackground } from "@/components/landing-page";
+import dynamic from "next/dynamic";
 import Image from "next/image";
+
+// Lazy load ParticlesBackground
+const ParticlesBackground = dynamic(
+  () => import("@/components/landing-page/ParticlesBackground"),
+  { ssr: false, loading: () => null }
+);
 
 const teamMembers = [
   {

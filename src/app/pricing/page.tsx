@@ -2,9 +2,15 @@
 
 import React, { useState } from "react";
 import { useTheme } from "@/context/ThemeProvider";
-import { CheckCircle, DollarSign, Clock, Zap, Shield, Star } from "lucide-react";
+import { CheckCircle, Clock, Zap, Shield, Star } from "lucide-react";
 import { motion } from "framer-motion";
-import { ParticlesBackground } from "@/components/landing-page";
+import dynamic from "next/dynamic";
+
+// Lazy load ParticlesBackground
+const ParticlesBackground = dynamic(
+  () => import("@/components/landing-page/ParticlesBackground"),
+  { ssr: false, loading: () => null }
+);
 
 const plans = [
   {
@@ -107,7 +113,7 @@ export default function PricingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <motion.div
               key={plan.id}
               className={`relative p-8 rounded-2xl backdrop-blur-lg border group transition-all duration-300
