@@ -541,6 +541,29 @@ export default function Navbar() {
                         <span className="font-medium">Profile</span>
                       </Link>
 
+                      {/* About and Pricing section */}
+                      <Link
+                        href="/about"
+                        className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                          <FaInfoCircle className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium">About</span>
+                      </Link>
+
+                      <Link
+                        href="/pricing"
+                        className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 group-hover:bg-green-600 group-hover:text-white transition-all duration-200">
+                          <FaCrown className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium">Pricing</span>
+                      </Link>
+
                       <button
                         onClick={() => {
                           setIsSettingsOpen(true);
