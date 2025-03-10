@@ -1,0 +1,157 @@
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hide scrollbars */
+.code-block-wrapper::-webkit-scrollbar {
+  display: none;
+}
+.code-block-wrapper {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Code styling */
+.code-block-wrapper pre {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 1rem !important;
+  overflow: hidden !important;
+}
+
+.code-block-wrapper code {
+  font-family: Consolas, Monaco, 'Andale Mono', monospace !important;
+  text-shadow: none !important;
+}
+
+/* VS Code-like line numbers */
+.code-block-wrapper .linenumber {
+  color: rgba(133, 133, 133, 0.7) !important;
+  min-width: 2.5em !important;
+  padding-right: 1em !important;
+  text-align: right !important;
+  user-select: none !important;
+  border-right: none !important;
+  margin-right: 1em !important;
+}
+
+/* Code block language label */
+.code-language-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-bottom-right-radius: 4px;
+  font-family: sans-serif;
+  z-index: 5;
+}
+
+/* Horizontal scrolling for code blocks */
+.code-block-content {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  white-space: pre !important;
+  display: block !important;
+}
+
+/* Make sure code doesn't wrap */
+.code-block-content pre {
+  white-space: pre !important;
+  word-wrap: normal !important;
+  overflow-x: auto !important;
+}
+
+.code-block-content code {
+  white-space: pre !important;
+  word-wrap: normal !important;
+  display: inline-block !important;
+  min-width: 100% !important;
+}
+
+/* Override any wrapping styles */
+.react-syntax-highlighter-line-number, 
+.react-syntax-highlighter-line {
+  white-space: pre !important;
+  word-wrap: normal !important;
+}
+
+/* Custom scrollbar for horizontal code scrolling */
+.code-block-content::-webkit-scrollbar {
+  height: 6px !important;
+}
+
+.code-block-content::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.code-block-content::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5) !important;
+  border-radius: 20px !important;
+}
+
+.dark .code-block-content::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5) !important;
+}
+
+/* For Firefox */
+.code-block-content {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent !important;
+}
+
+.dark .code-block-content {
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent !important;
+}
+
+/* Dark mode syntax highlighting overrides for better visibility */
+.dark-syntax-theme .token.comment { color: #6A9955 !important; }
+.dark-syntax-theme .token.string { color: #ce9178 !important; }
+.dark-syntax-theme .token.keyword { color: #569cd6 !important; }
+.dark-syntax-theme .token.function { color: #dcdcaa !important; }
+.dark-syntax-theme .token.number { color: #b5cea8 !important; }
+.dark-syntax-theme .token.operator { color: #d4d4d4 !important; }
+.dark-syntax-theme .token.class-name { color: #4ec9b0 !important; }
+.dark-syntax-theme .token.property { color: #9cdcfe !important; }
+.dark-syntax-theme .token.punctuation { color: #d4d4d4 !important; }
+.dark-syntax-theme .token.tag { color: #569cd6 !important; }
+.dark-syntax-theme .token.attr-name { color: #9cdcfe !important; }
+.dark-syntax-theme .token.attr-value { color: #ce9178 !important; }
+.dark-syntax-theme .token.variable { color: #9cdcfe !important; }
+.dark-syntax-theme .token.constant { color: #4fc1ff !important; }
+.dark-syntax-theme .token.boolean { color: #569cd6 !important; }
+.dark-syntax-theme .token.regex { color: #d16969 !important; }
+
+/* Light mode syntax highlighting overrides for better visibility */
+.light-syntax-theme .token.comment { color: #008000 !important; }
+.light-syntax-theme .token.string { color: #a31515 !important; }
+.light-syntax-theme .token.keyword { color: #0000ff !important; }
+.light-syntax-theme .token.function { color: #795e26 !important; }
+.light-syntax-theme .token.number { color: #098658 !important; }
+.light-syntax-theme .token.operator { color: #000000 !important; }
+.light-syntax-theme .token.class-name { color: #267f99 !important; }
+.light-syntax-theme .token.property { color: #0070c1 !important; }
+.light-syntax-theme .token.punctuation { color: #000000 !important; }
+.light-syntax-theme .token.tag { color: #800000 !important; }
+.light-syntax-theme .token.attr-name { color: #ff0000 !important; }
+.light-syntax-theme .token.attr-value { color: #0000ff !important; }
+.light-syntax-theme .linenumber { color: rgba(35, 120, 147, 0.7) !important; border-right: none !important; }
+
+/* Inline code */
+p code {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0000ff !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 3px !important;
+  font-family: Consolas, Monaco, 'Andale Mono', monospace !important;
+  font-size: 0.9em !important;
+}
+
+/* Dark mode inline code */
+.prose-invert p code {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #569cd6 !important;
+} 
