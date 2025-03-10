@@ -1,0 +1,168 @@
+.commentContainer {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.commentBox {
+    flex: 1;
+    background-color: #f6f8fa;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    padding: 12px;
+    position: relative;
+}
+
+.commentHeader {
+    background-color: #e1e4e8;
+    padding: 6px 12px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.commentText {
+    padding: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #24292e;
+}
+
+.moreOptions {
+    cursor: pointer;
+    font-size: 16px;
+    color: #6a737d;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #d1d5da;
+}
+
+.titleSection h1 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #24292f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.issueId {
+    color: #6a737d;
+    font-weight: 400;
+}
+
+.issueStatus {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 2em;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.statusIcon {
+    font-size: 16px;
+}
+
+.open {
+    background-color: #2da44e;
+    color: #ffffff;
+}
+
+.closed {
+    background-color: #8250df;
+    color: #ffffff;
+}
+
+.issueInfo {
+    color: #57606a;
+    font-size: 14px;
+}
+
+.timeline {
+    margin-bottom: 24px;
+}
+
+.mainComment {
+    margin-bottom: 24px;
+}
+
+.comments {
+    margin-top: 24px;
+}
+
+.noComments {
+    text-align: center;
+    padding: 40px;
+    background-color: #f6f8fa;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    margin: 24px 0;
+}
+
+.noComments p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #24292f;
+    margin-bottom: 8px;
+}
+
+.noComments span {
+    color: #57606a;
+    font-size: 14px;
+}
+
+.addComment {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #d1d5da;
+}
+
+.notFound {
+    text-align: center;
+    padding: 48px 24px;
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    margin: 48px auto;
+    max-width: 600px;
+}
+
+.notFound h2 {
+    font-size: 24px;
+    color: #24292f;
+    margin-bottom: 12px;
+}
+
+.notFound p {
+    color: #57606a;
+    font-size: 16px;
+}

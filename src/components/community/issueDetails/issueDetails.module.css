@@ -1,0 +1,79 @@
+/* Main post styling */
+.mainPost {
+    background: #fff;
+    border: 1px solid rgba(208, 215, 222, 1);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mainPostHeader {
+    padding: 16px;
+    background: #f6f8fa;
+    border-bottom: 1px solid rgba(208, 215, 222, 1);
+    border-radius: 6px 6px 0 0;
+}
+
+.timestamp {
+    color: #57606a;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.mainPostContent {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #24292f;
+    background: #fff;
+}
+
+/* Comments section styling */
+.commentsSection {
+    margin-top: 32px;
+    border-top: 8px solid #f6f8fa;
+    padding-top: 24px;
+}
+
+.commentItem {
+    background: #fff;
+    border: 1px solid rgba(208, 215, 222, 0.8);
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.commentHeader {
+    padding: 8px 16px;
+    background: #f6f8fa;
+    border-bottom: 1px solid rgba(208, 215, 222, 0.8);
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.commentMetadata {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.commentTimestamp {
+    color: #57606a;
+    font-size: 12px;
+}
+
+.commentContent {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #24292f;
+}
+
+/* Reply box styling */
+.replyBox {
+    margin-top: 24px;
+    border: 1px solid rgba(208, 215, 222, 1);
+    border-radius: 6px;
+    background: #f6f8fa;
+} 
