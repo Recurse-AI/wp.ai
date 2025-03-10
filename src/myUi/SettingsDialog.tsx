@@ -46,22 +46,29 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
         if (!open) {
           // Remove the hash using the URL API
           const newUrl = window.location.pathname + window.location.search;
-          window.history.replaceState(null, '', newUrl);
+          window.history.replaceState(null, "", newUrl);
           onClose();
         }
       }}
     >
-      <div className="w-full flex flex-col items-center justify-center">
-        <DialogContent className="fixed bg-background max-h-[85vh] overflow-hidden rounded-xl p-0">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle className="mb-2">Settings</DialogTitle>
-            <hr className="m-0 border-border" />
-          </DialogHeader>
-          <div className="w-full overflow-y-auto max-h-[calc(85vh-120px)]">
-            {content}
-          </div>
-        </DialogContent>
-      </div>
+      {/* <div className="w-full flex flex-col"> */}
+      <DialogContent
+        className="fixed bg-background rounded-xl p-0 flex flex-col 
+             w-[90%] sm:w-[80%] md:w-[60%] lg:w-[50%] xl:w-[40%] 
+             max-w-[500px] h-[85vh] sm:h-[80vh] md:h-[75vh] 
+             translate-x-[-50%] translate-y-[-50%] left-1/2 top-1/2 
+             overflow-hidden shadow-lg"
+      >
+        <DialogHeader className="px-6 pt-6">
+          <DialogTitle className="mb-2">Settings</DialogTitle>
+          <hr className="m-0 border-border" />
+        </DialogHeader>
+
+        {/* Content area should take full height */}
+        <div className="flex-1 overflow-auto p-6">{content}</div>
+      </DialogContent>
+
+      {/* </div> */}
     </Dialog>
   );
 };
