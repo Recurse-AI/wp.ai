@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [fontSize, setFontSize] = useState("medium");
   const [user, setUser] = useState<UserData>({
     name: "Guest User",
     username: "guest_user",
@@ -104,14 +105,14 @@ export default function SettingsPage() {
   return (
     <div className="flex w-full h-full bg-background text-foreground">
       {/* Sidebar Navigation */}
-      <div className="border-r py-4 px-1 bg-background overflow-y-auto mx-0">
+      <div className="py-4 px-1 bg-background overflow-y-auto mx-0">
         <div className="w-full">
           <div className="flex flex-col w-full space-y-2 bg-transparent h-auto">
             {settingsData.map((item) => (
               <div
                 key={item["id"]}
                 onClick={() => setActiveTab(item["id"])}
-                className={`w-full text-left justify-start p-2 rounded-md hover:bg-muted cursor-pointer text-sm ml-0 ${
+                className={`w-full text-left justify-start p-2 rounded-md hover:bg-muted cursor-pointer ml-0 text-base ${
                   activeTab === item["id"] ? "bg-muted" : ""
                 }`}
               >
@@ -123,7 +124,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full">
         <div className="flex-1 p-6 overflow-y-auto">
           {settingsData.map((item) => (
             <div
@@ -132,12 +133,13 @@ export default function SettingsPage() {
                 activeTab === item["id"] ? "" : "hidden"
               }`}
             >
-              <Card className="w-full h-full">
-                <CardContent className="h-full p-6">
+              <Card className="w-full h-full border-0 shadow-none">
+                <CardContent className="h-full p-6 text-lg">
                   {item["id"] === "general" && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      {/* Theme Toggle */}
                       <div className="flex justify-between items-center w-full">
-                        <Label>Theme</Label>
+                        <Label className="text-base">Theme</Label>
                         <div className="px-4 py-2">
                           <div className="flex gap-2">
                             <button
@@ -173,8 +175,12 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Always Show Code Toggle */}
                       <div className="flex justify-between items-center w-full">
-                        <Label>Always show code when using data analyst</Label>
+                        <Label className="text-base">
+                          Always show code when using data analyst
+                        </Label>
                         <Switch
                           checked={codeDataAnalyst}
                           onCheckedChange={(checked) =>
@@ -182,42 +188,122 @@ export default function SettingsPage() {
                           }
                         />
                       </div>
+
+                      {/* Font Size */}
+                      <div className="flex justify-between items-center w-full">
+                        <Label className="text-base">Font Size</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setFontSize("small")}
+                            variant={
+                              fontSize === "small" ? "default" : "outline"
+                            }
+                            className="min-w-[80px]"
+                          >
+                            Small
+                          </Button>
+                          <Button
+                            onClick={() => setFontSize("medium")}
+                            variant={
+                              fontSize === "medium" ? "default" : "outline"
+                            }
+                            className="min-w-[80px]"
+                          >
+                            Medium
+                          </Button>
+                          <Button
+                            onClick={() => setFontSize("large")}
+                            variant={
+                              fontSize === "large" ? "default" : "outline"
+                            }
+                            className="min-w-[80px]"
+                          >
+                            Large
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Reduce Motion */}
+                      {/* <div className="flex justify-between items-center w-full">
+                        <Label>Reduce Motion</Label>
+                        <Switch
+                          checked={reduceMotion}
+                          onCheckedChange={(checked) =>
+                            setReduceMotion(checked)
+                          }
+                        />
+                      </div> */}
+
+                      {/* Sidebar Position */}
+                      {/* <div className="flex justify-between items-center w-full">
+                        <Label>Sidebar Position</Label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSidebarPosition("left")}
+                            className={`p-2 rounded-md ${
+                              sidebarPosition === "left"
+                                ? "bg-blue-100 dark:bg-blue-800"
+                                : "bg-gray-100 dark:bg-gray-700"
+                            }`}
+                          >
+                            Left
+                          </button>
+                          <button
+                            onClick={() => setSidebarPosition("right")}
+                            className={`p-2 rounded-md ${
+                              sidebarPosition === "right"
+                                ? "bg-blue-100 dark:bg-blue-800"
+                                : "bg-gray-100 dark:bg-gray-700"
+                            }`}
+                          >
+                            Right
+                          </button>
+                        </div>
+                      </div> */}
                     </div>
                   )}
+
                   {item["id"] === "Account" && (
-                    <div className="space-y-4">
-                      <p className="text-gray-600 dark:text-gray-400 text-center">
-                        Account Details.
-                      </p>
+                    <div className="space-y-6">
+                      <h2 className="text-xl font-semibold text-foreground text-center">
+                        Account Details
+                      </h2>
 
-                      <div className="grid grid-cols-2 gap-2 text-sm break-words">
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Name
-                        </div>
-                        <div>{user?.name || "Not set"}</div>
-
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Email
-                        </div>
-                        <div
-                          // className="truncate"
-                          title={user?.email || "Not set"}
-                        >
-                          {user?.email || "Not set"}
+                      <div className="grid grid-cols-2 gap-4 text-base">
+                        <div className="bg-muted/50 p-3 rounded-lg">
+                          <p className="text-muted-foreground font-medium">
+                            Name
+                          </p>
+                          <p className="mt-1">{user?.name || "Not set"}</p>
                         </div>
 
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Account Type
+                        <div className="bg-muted/50 p-3 rounded-lg">
+                          <p className="text-muted-foreground font-medium">
+                            Email
+                          </p>
+                          <p className="mt-1 break-all">
+                            {user?.email || "Not set"}
+                          </p>
                         </div>
-                        <div>{user?.accountType || "Standard"}</div>
 
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Join Date
+                        <div className="bg-muted/50 p-3 rounded-lg">
+                          <p className="text-muted-foreground font-medium">
+                            Account Type
+                          </p>
+                          <p className="mt-1">
+                            {user?.accountType || "Standard"}
+                          </p>
                         </div>
-                        <div>
-                          {user?.joinDate
-                            ? new Date(user.joinDate).toLocaleDateString()
-                            : "Not available"}
+
+                        <div className="bg-muted/50 p-3 rounded-lg">
+                          <p className="text-muted-foreground font-medium">
+                            Join Date
+                          </p>
+                          <p className="mt-1">
+                            {user?.joinDate
+                              ? new Date(user.joinDate).toLocaleDateString()
+                              : "Not available"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -226,106 +312,151 @@ export default function SettingsPage() {
                       <p>Personalization settings go here.</p>
                     )} */}
                   {item["id"] === "language" && (
-                    <div className="flex justify-between items-center">
-                      <Label>Select Language</Label>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="capitalize">
-                            {language}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setLanguage("english")}
+                    <div className="space-y-6">
+                      <h2 className="text-xl font-semibold text-foreground text-center">
+                        Language Settings
+                      </h2>
+
+                      <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                        <Label className="text-base font-medium">
+                          Select Language
+                        </Label>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="capitalize text-base min-w-[120px]"
+                            >
+                              {language}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-[120px]"
                           >
-                            English
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setLanguage("spanish")}
-                          >
-                            Español
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setLanguage("french")}
-                          >
-                            Français
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setLanguage("german")}
-                          >
-                            Deutsch
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("english")}
+                              className="text-base cursor-pointer"
+                            >
+                              English
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("spanish")}
+                              className="text-base cursor-pointer"
+                            >
+                              Español
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("french")}
+                              className="text-base cursor-pointer"
+                            >
+                              Français
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setLanguage("german")}
+                              className="text-base cursor-pointer"
+                            >
+                              Deutsch
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="text-sm text-muted-foreground text-center">
+                        Changes will be applied immediately across your account
+                      </div>
                     </div>
                   )}
                   {item["id"] === "chats" && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <Label>Delete all chats</Label>
-                        <Button
-                          variant="destructive"
-                          className="flex items-center gap-2"
-                          onClick={handleDeleteAllChats}
-                        >
-                          <Trash2 size={16} /> Delete All
-                        </Button>
+                    <div className="space-y-6">
+                      <h2 className="text-xl font-semibold text-foreground text-center">
+                        Chat Management
+                      </h2>
+
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="flex flex-col space-y-4">
+                          <div className="flex justify-between items-center">
+                            <div className="space-y-1">
+                              <Label className="text-base font-medium">
+                                Delete all chats
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                This will permanently remove all your chat
+                                history
+                              </p>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              className="flex items-center gap-2 text-base"
+                              onClick={handleDeleteAllChats}
+                            >
+                              <Trash2 size={18} /> Delete All
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </>
+
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          Note: This action cannot be undone. All your chat
+                          history will be permanently deleted.
+                        </p>
+                      </div>
+                    </div>
                   )}
                   {item["id"] === "security" && (
-                    <div className="w-full">
-                      <div className="max-w-xl mx-auto p-4 bg-white dark:bg-gray-800 rounded-lg shadow space-y-6">
+                    <div className="w-full space-y-4">
+                      <div className="max-w-xl mx-auto p-4 bg-background rounded-lg space-y-6">
                         <h2 className="text-center font-medium text-lg text-gray-800 dark:text-gray-200 mb-4">
                           Security Settings
                         </h2>
 
                         {/* MFA Section */}
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1 flex-1">
                             <h3 className="font-medium text-gray-900 dark:text-gray-100">
                               Multi-factor authentication
                             </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               Require an extra security challenge when logging
                               in. If you are unable to pass this challenge, you
                               will have the option to recover your account via
                               email.
                             </p>
                           </div>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                          <Button variant="outline" className="shrink-0">
                             Enable
-                          </button>
+                          </Button>
                         </div>
 
                         {/* Logout Section */}
-                        <div className="flex justify-between items-start pt-4 border-t border-gray-200 dark:border-gray-700">
-                          <div className="space-y-1">
+                        <div className="flex justify-between items-start gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="space-y-1 flex-1">
                             <h3 className="font-medium text-gray-900 dark:text-gray-100">
                               Log out of all devices
                             </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               Log out of all active sessions across all devices,
                               including your current session. It may take up to
                               30 minutes for other devices to be logged out.
                             </p>
                           </div>
-                          <button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                          <Button variant="destructive" className="shrink-0">
                             Log out all
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
                   )}
                   {item["id"] === "subscription" && (
-                    <div className="w-full">
-                      <div className="max-w-xl mx-auto p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div className="w-full space-y-4">
+                      <div className="max-w-xl mx-auto p-4 bg-background rounded-lg">
                         <div className="space-y-4">
                           <h2 className="text-center font-medium text-lg text-gray-800 dark:text-gray-200">
                             Current Subscription
                           </h2>
 
-                          <div className="p-4 border rounded-lg border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                          <div className="p-4 border rounded-lg border-blue-200 dark:border-blue-800 bg-background">
                             <div className="flex justify-between items-center">
                               <div>
                                 <h3 className="font-medium text-gray-900 dark:text-gray-100">

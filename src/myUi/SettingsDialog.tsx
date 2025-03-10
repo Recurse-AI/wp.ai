@@ -21,7 +21,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 }) => {
   const router = useRouter();
 
-  // Handle URL hash when dialog opens/closes
   useEffect(() => {
     if (isOpen && window.location.hash !== "#settings") {
       window.location.hash = "settings";
@@ -44,32 +43,29 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
-          // Remove the hash using the URL API
           const newUrl = window.location.pathname + window.location.search;
           window.history.replaceState(null, "", newUrl);
           onClose();
         }
       }}
     >
-      {/* <div className="w-full flex flex-col"> */}
       <DialogContent
         className="fixed bg-background rounded-xl p-0 flex flex-col 
              w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%]  
-             max-w-[800px] h-[85vh]  
+             max-w-[800px] h-[75vh] py-6 
              translate-x-[-50%] translate-y-[-50%] left-1/2 top-1/2 
              overflow-hidden shadow-lg"
       >
-        <DialogHeader className="px-6 pt-6 flex-shrink-0">
-          <DialogTitle className="mb-2">Settings</DialogTitle>
+        <DialogHeader className="px-6 pt-4 flex-shrink-0">
+          <DialogTitle className="mb-2 text-center text-2xl font-medium">Settings</DialogTitle>
           <hr className="m-0 border-border" />
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">{content}</div>
+        <div className="flex-1 overflow-y-auto px-6">{content}</div>
       </DialogContent>
-
-      {/* </div> */}
     </Dialog>
   );
 };
+
 
 export default SettingsDialog;
