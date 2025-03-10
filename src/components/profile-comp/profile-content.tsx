@@ -68,10 +68,10 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
 
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-8">
-        <TabsTrigger value="profile" className="text-lg">Profile</TabsTrigger>
-        <TabsTrigger value="account" className="text-lg">Account</TabsTrigger>
-        <TabsTrigger value="preferences" className="text-lg">Preferences</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-3 mb-8 gap-2">
+        <TabsTrigger value="profile" className="text-sm md:text-lg px-2 md:px-4">Profile</TabsTrigger>
+        <TabsTrigger value="account" className="text-sm md:text-lg px-2 md:px-4">Account</TabsTrigger>
+        <TabsTrigger value="preferences" className="text-sm md:text-lg px-2 md:px-4">Preferences</TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile">
@@ -90,11 +90,11 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
                     alt="Profile picture"
                     width={150}
                     height={150}
-                    className="rounded-full border-4 border-white dark:border-gray-800"
+                    className="rounded-full border-4 border-white dark:border-gray-800 aspect-square object-cover"
                   />
-                  <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                  {/* <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
                     <Camera className="w-5 h-5" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
               <div className="flex-1 space-y-4 text-center md:text-left">
@@ -106,7 +106,7 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
                   <p className="text-gray-500 dark:text-gray-500">{userData.email}</p>
                 </div>
                 <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                  <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                  <Edit className="w-4 h-4 mr-2" /> Edit Username
                 </Button>
               </div>
             </div>
