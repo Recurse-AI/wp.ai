@@ -279,6 +279,8 @@ export default function SignUp() {
           localStorage.setItem("userData", JSON.stringify(userData.user));
           localStorage.removeItem('socialAuthInitiated');
           localStorage.removeItem('authProvider');
+
+          localStorage.setItem("token", userData.access);
           
           // Show success message
           toast.success(`Successfully signed up with ${authProvider}!`, getToastStyle(theme));
