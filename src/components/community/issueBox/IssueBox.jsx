@@ -4,25 +4,15 @@ import { FaEllipsisH } from "react-icons/fa";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getRandomAvatar } from '@/utils/avatarUtils';
+import { formatDate } from '@/utils/dateUtils';
 
-const IssueBox = ({ author, date, description, avatar }) => {
-    const formatDate = (dateString) => {
-        const options = { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        return new Date(dateString).toLocaleString('en-US', options);
-    };
-
+const IssueBox = ({ issue }) => {
     return (
         <div className={styles.commentContainer}>
             {/* User Avatar */}
             <img 
-                src={getRandomAvatar(author)} 
-                alt={`${author}'s avatar`} 
+                src={getRandomAvatar(issue.created_by.username)} 
+                alt={`${issue.created_by.username}'s avatar`} 
                 className={styles.avatar} 
             />
 
@@ -31,8 +21,8 @@ const IssueBox = ({ author, date, description, avatar }) => {
                 {/* Comment Header */}
                 <div className={styles.commentHeader}>
                     <span>
-                        <strong>{author}</strong> 
-                        <span className={styles.commentDate}>opened on {formatDate(date)}</span>
+                        <strong>{issue.created_by.username}</strong> 
+                        <span className={styles.commentDate}>opened on {formatDate(issue.created_at)}</span>
                     </span>
                     <FaEllipsisH className={styles.moreOptions} />
                 </div>
@@ -51,7 +41,7 @@ const IssueBox = ({ author, date, description, avatar }) => {
                             ol: ({node, ...props}) => <ol className={styles.list} {...props} />
                         }}
                     >
-                        {description}
+                        {issue.description}
                     </ReactMarkdown>
                 </div>
             </div>

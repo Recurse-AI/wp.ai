@@ -6,6 +6,7 @@ import { getTotalCommentCount } from "@/utils/commentUtils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { IssueContext } from "@/context/IssueContext";
+import { formatDate } from '@/utils/dateUtils';
 
 const truncateText = (text, maxLength = 280) => {
     if (!text || text.length <= maxLength) return text;
@@ -46,17 +47,6 @@ const IssueList = ({ issues }) => {
         return <div className={styles.loading}>Loading issues...</div>;
     }
     
-    const formatDate = (dateString) => {
-        const options = { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        return new Date(dateString).toLocaleString('en-US', options);
-    };
-
     if (issues.length === 0) {
         return (
             <div className={styles.noItems}>
@@ -98,7 +88,7 @@ const IssueList = ({ issues }) => {
                                             ul: ({node, children}) => <span>{children}</span>,
                                             ol: ({node, children}) => <span>{children}</span>,
                                             li: ({node, children}) => <span>{children} </span>,
-                                            sup: ({node, children}) => null // Remove superscript references
+                                            sup: ({node, children}) => null
                                         }}
                                     >
                                         {truncatedDescription}
@@ -111,8 +101,10 @@ const IssueList = ({ issues }) => {
                             </div>
                             <div className={styles.meta}>
                                 <span>#{issue.id}</span>
-                                <span>by {issue.author}</span>
-                                <span>was closed on {formatDate(issue.date)}</span>
+                                <span>by {issue.created_by.username}</span>
+                                <span>
+                                    {issue.status === 'closed' ? 'was closed on' : 'opened'} {formatDate(issue.created_at)}
+                                </span>
                             </div>
                         </div>
                     </div>
