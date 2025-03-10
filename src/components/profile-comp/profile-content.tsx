@@ -38,33 +38,89 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
   const [userData, setUserData] = useState<UserData>(initialUserData);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   
   useEffect(() => {
-    const storedUserData = localStorage.getItem("userData");
-    console.log('ProfileContent - Raw userData:', storedUserData);
-    
-    if (storedUserData) {
+    const loadUserData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
-        const parsedData = JSON.parse(storedUserData);
-        console.log('ProfileContent - Parsed userData:', parsedData);
+        // Add a small delay to ensure loading state is visible
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        if (parsedData) {
-          setUserData({
-            name: parsedData.name || parsedData.username || fallbackUserData.name,
-            username: parsedData.username || fallbackUserData.username,
-            email: parsedData.email || fallbackUserData.email,
-            image: parsedData.image || parsedData.profile_picture || fallbackUserData.image,
-            profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture,
-            auth_provider: parsedData.auth_provider
-          });
+        const storedUserData = localStorage.getItem("userData");
+        console.log('ProfileContent - Raw userData:', storedUserData);
+        
+        if (storedUserData) {
+          // First try to parse as JSON
+          let parsedData;
+          try {
+            parsedData = JSON.parse(storedUserData);
+          } catch (parseError) {
+            // If not JSON, create a JSON object from the string
+            parsedData = {
+              name: storedUserData,
+              username: storedUserData,
+              email: `${storedUserData}@example.com`,
+              image: fallbackUserData.image,
+              profile_picture: fallbackUserData.profile_picture,
+              auth_provider: 'manual'
+            };
+          }
+          
+          console.log('ProfileContent - Parsed userData:', parsedData);
+          
+          if (parsedData) {
+            setUserData({
+              name: parsedData.name || parsedData.username || fallbackUserData.name,
+              username: parsedData.username || fallbackUserData.username,
+              email: parsedData.email || fallbackUserData.email,
+              image: parsedData.image || parsedData.profile_picture || fallbackUserData.image,
+              profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture,
+              auth_provider: parsedData.auth_provider
+            });
+          }
+        } else {
+          console.log('ProfileContent - No user data found');
+          setError("Login required to view this page");
         }
       } catch (error) {
-        console.error("Error parsing user data:", error);
+        console.error("Error loading user data:", error);
+        setError("Failed to load user data");
         setUserData(fallbackUserData);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    loadUserData();
   }, [initialUserData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600 dark:text-gray-400 animate-pulse">Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="text-xl font-semibold text-red-500">{error}</div>
+        <Button 
+          onClick={() => window.location.href = '/signin'} 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+        >
+          Go to Sign In
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Tabs defaultValue="profile" className="w-full">

@@ -120,7 +120,7 @@ export default function LandingPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-14 md:pt-16">
         {/* Hero section is loaded immediately */}
         <HeroSection onChatOpen={handleChatOpen} />
         

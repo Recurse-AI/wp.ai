@@ -309,14 +309,12 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 100 }}
+        initial={{ y: 0 }}
         className={`fixed top-0 left-0 w-full py-3 md:py-4 px-4 md:px-6 flex justify-between items-center z-50 transition-all duration-300
         ${
-          isScrolled
-            ? "bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-b border-gray-200 dark:border-gray-800"
-            : "bg-white/40 dark:bg-gray-900/40 backdrop-blur-md"
+          !isScrolled
+            ? "bg-[#F8FAFC]/80 dark:bg-[#0A0F1C]/90 backdrop-blur-xl shadow-lg border-b border-gray-200 dark:border-gray-800"
+            : "bg-[#F8FAFC]/40 dark:bg-[#0A0F1C]/40 backdrop-blur-md"
         }`}
       >
         {/* Left: Logo */}
@@ -598,7 +596,7 @@ export default function Navbar() {
       </motion.nav>
 
       {/* Spacer */}
-      <div className="h-16 md:h-20"></div>
+      <div className="h-14 md:h-16"></div>
 
       {/* Settings Dialog */}
       {isSettingsOpen && (

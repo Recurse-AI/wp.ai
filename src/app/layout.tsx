@@ -42,10 +42,10 @@ export default function RootLayout({
     !pathname.startsWith("/verify-email");
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={theme === "dark" ? "dark" : ""}>
       <body
         className={twMerge(
-          `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full`
+          `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full bg-[#F8FAFC] dark:bg-[#0A0F1C] text-gray-900 dark:text-white`
         )}
         suppressHydrationWarning
       >
