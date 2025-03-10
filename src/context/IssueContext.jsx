@@ -4,142 +4,181 @@ import { formatText } from "@/utils/textUtils";
 
 export const IssueContext = createContext();
 
-const STORAGE_KEY = 'github_issues';
-
-// Format the initial data
-const initialIssues = [
-    {
-        id: 1,
-        title: "Bug in authentication flow",
-        author: "johndoe",
-        date: "2024-03-15",
-        status: "open",
-        description: "Users are getting logged out randomly.\n\nThis needs to be fixed ASAP.",
-        formattedDescription: "Users are getting logged out randomly.\n\nThis needs to be fixed ASAP.",
-        avatar: "https://avatars.githubusercontent.com/u/1?v=4",
-        comments: []
-    },
-    {
-        id: 2,
-        title: "Update documentation",
-        author: "janedoe",
-        date: "2024-03-14",
-        status: "closed",
-        description: "Documentation needs to be updated for v2.0\n\nPlease review the API changes.",
-        formattedDescription: "Documentation needs to be updated for v2.0\n\nPlease review the API changes.",
-        avatar: "https://avatars.githubusercontent.com/u/2?v=4",
-        comments: []
-    }
-];
+const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
 export const IssueProvider = ({ children }) => {
-    // Track if we're on the client side
-    const [isClient, setIsClient] = useState(false);
-    // Initialize with empty array to match server-side rendering
     const [issues, setIssues] = useState([]);
+    const [isClient, setIsClient] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Set isClient to true once component mounts (client-side only)
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    // Only load from localStorage on the client side
-    useEffect(() => {
-        if (!isClient) return;
-        
-        try {
-            const storedIssues = localStorage.getItem(STORAGE_KEY);
-            if (storedIssues) {
-                const parsedIssues = JSON.parse(storedIssues);
-                // Ensure all issues have formatted descriptions
-                const formattedIssues = parsedIssues.map(issue => ({
-                    ...issue,
-                    formattedDescription: formatText(issue.description)
-                }));
-                setIssues(formattedIssues);
-            } else {
-                setIssues(initialIssues);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(initialIssues));
-            }
-        } catch (error) {
-            console.error("Error loading issues from localStorage:", error);
-            setIssues(initialIssues);
-        }
-    }, [isClient]);
-
-    // Only save to localStorage on the client side when issues change
-    useEffect(() => {
-        if (!isClient) return;
-        
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(issues));
-        } catch (error) {
-            console.error("Error saving issues to localStorage:", error);
-        }
-    }, [issues, isClient]);
-
-    const addIssue = (newIssue) => {
-        setIssues(prev => {
-            const issueWithFormatting = {
-                ...newIssue,
-                id: prev.length + 1,
-                formattedDescription: formatText(newIssue.description)
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('token');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             };
-            return [...prev, issueWithFormatting];
-        });
+        }
+        return {
+            'Content-Type': 'application/json'
+        };
     };
 
-    const updateIssue = (id, updatedData) => {
-        setIssues(prev => prev.map(issue => 
-            issue.id === id ? {
-                ...issue,
-                ...updatedData,
-                formattedDescription: formatText(updatedData.description || issue.description)
-            } : issue
-        ));
+    // Fetch all issues
+    const fetchIssues = async () => {
+        try {
+            setIsLoading(true);
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
+                headers: getAuthHeaders()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch issues');
+            }
+            
+            const data = await response.json();
+            setIssues(Array.isArray(data) ? data : []);  // Ensure issues is always an array
+        } catch (err) {
+            console.error('Error fetching issues:', err);
+            setError(err.message);
+            setIssues([]); // Set empty array on error
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const getIssueById = (id) => {
-        return issues.find(issue => issue.id === Number(id));
+    // Add new issue
+    const addIssue = async (newIssue) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(newIssue),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to create issue');
+            }
+            
+            const data = await response.json();
+            setIssues(prev => [...prev, data]);
+            return data;
+        } catch (err) {
+            console.error('Error adding issue:', err);
+            setError(err.message);
+            throw err;
+        }
     };
 
-    const addComment = (issueId, comment, parentCommentId = null) => {
-        setIssues(prev => prev.map(issue => {
-            if (issue.id === issueId) {
-                if (!parentCommentId) {
-                    // Add top-level comment
+    // Update issue
+    const updateIssue = async (id, updatedData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/${id}/`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(updatedData),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update issue');
+            }
+            
+            const data = await response.json();
+            setIssues(prev => prev.map(issue => 
+                issue.id === id ? data : issue
+            ));
+            return data;
+        } catch (err) {
+            console.error('Error updating issue:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // Get issue by ID
+    const getIssueById = async (id) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/${id}/`, {
+                headers: getAuthHeaders()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch issue');
+            }
+            
+            return await response.json();
+        } catch (err) {
+            console.error('Error fetching issue:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // Add comment to an issue
+    const addComment = async (issueId, comment) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/${issueId}/add_comment/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(comment),
+            });
+            if (!response.ok) throw new Error('Failed to add comment');
+            const data = await response.json();
+            
+            // Update the local state with the new comment
+            setIssues(prev => prev.map(issue => {
+                if (issue.id === issueId) {
                     return {
                         ...issue,
-                        comments: [...(issue.comments || []), { ...comment, replies: [] }]
-                    };
-                } else {
-                    // Add nested reply
-                    return {
-                        ...issue,
-                        comments: issue.comments.map(c => {
-                            if (c.id === parentCommentId) {
-                                return {
-                                    ...c,
-                                    replies: [...(c.replies || []), comment]
-                                };
-                            }
-                            return c;
-                        })
+                        comments: [...issue.comments, data]
                     };
                 }
-            }
-            return issue;
-        }));
+                return issue;
+            }));
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
     };
+
+    // Get all comments for an issue
+    const getComments = async (issueId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/${issueId}/comments/`);
+            if (!response.ok) throw new Error('Failed to fetch comments');
+            const data = await response.json();
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // Initial setup
+    useEffect(() => {
+        setIsClient(true);
+        if (typeof window !== 'undefined') {
+            fetchIssues();
+        }
+    }, []);
 
     return (
         <IssueContext.Provider value={{ 
-            issues, 
-            addIssue, 
-            updateIssue, 
+            issues,
+            addIssue,
+            updateIssue,
             getIssueById,
             addComment,
-            isLoaded: isClient // Add this to let components know when data is ready
+            getComments,
+            isLoading,
+            error,
+            isLoaded: isClient && !isLoading,
+            refetchIssues: fetchIssues
         }}>
             {children}
         </IssueContext.Provider>
