@@ -1,0 +1,92 @@
+.commentForm {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.avatarContainer {
+    margin-right: 10px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.inputContainer {
+    flex: 1;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    background-color: #f6f8fa;
+    padding: 6px;
+    border: 1px solid #d1d5da;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.toolbar button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #6a737d;
+}
+
+.toolbar button:hover {
+    color: #24292e;
+}
+
+.textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.attachFile {
+    background: none;
+    border: none;
+    color: #0366d6;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.primaryButton {
+    background-color: #2ea44f;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.primaryButton:disabled {
+    background-color: #94d3a2;
+    cursor: not-allowed;
+}
+
+.secondaryButton {
+    background-color: #f6f8fa;
+    border: 1px solid #d1d5da;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
