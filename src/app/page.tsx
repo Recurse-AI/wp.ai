@@ -11,10 +11,23 @@ import dynamic from "next/dynamic";
 // Import HeroSection directly as it's critical for initial render
 import { HeroSection } from "@/components/landing-page";
 
-// Lazy load all other components
+// Loading component for ParticlesBackground
+const LoadingBackground = () => (
+  <div className="fixed inset-0 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
+    <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+    <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
+    <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
+  </div>
+);
+
+// Lazy load ParticlesBackground with loading state
 const ParticlesBackground = dynamic(
   () => import("@/components/landing-page/ParticlesBackground"),
-  { ssr: false, loading: () => null }
+  { 
+    ssr: false,
+    loading: () => <LoadingBackground />
+  }
 );
 
 const VideoSection = dynamic(
@@ -101,7 +114,9 @@ export default function LandingPage() {
         <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
         
         {/* Particles - client-side only */}
-        <ParticlesBackground />
+        <Suspense fallback={<LoadingBackground />}>
+          <ParticlesBackground />
+        </Suspense>
       </div>
 
       {/* Content */}
