@@ -106,3 +106,33 @@ a {
     word-break: break-word;
     max-width: 100%;
 }
+
+.loading-auth {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: var(--textColor);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--softBg);
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dark .loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--softBg);
+}

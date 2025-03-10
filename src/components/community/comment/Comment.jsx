@@ -4,20 +4,10 @@ import remarkGfm from 'remark-gfm';
 import styles from './comment.module.css';
 import CommentForm from '../commentForm/CommentForm';
 import { getRandomAvatar } from '@/utils/avatarUtils';
+import { formatDate } from '@/utils/dateUtils';
 
 const Comment = ({ comment, onReply, level = 0 }) => {
     const [isReplying, setIsReplying] = useState(false);
-
-    const formatDate = (dateString) => {
-        const options = { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        return new Date(dateString).toLocaleString('en-US', options);
-    };
 
     const handleReply = (text) => {
         onReply(text, comment.id);
@@ -28,14 +18,14 @@ const Comment = ({ comment, onReply, level = 0 }) => {
         <div className={`${styles.comment} ${styles[`level-${level}`]}`}>
             <div className={styles.commentContainer}>
                 <img 
-                    src={getRandomAvatar(comment.author)} 
-                    alt={`${comment.author}'s avatar`} 
+                    src={getRandomAvatar(comment.author.username)} 
+                    alt={`${comment.author.username}'s avatar`} 
                     className={styles.avatar} 
                 />
                 <div className={styles.commentContent}>
                     <div className={styles.commentHeader}>
-                        <span className={styles.author}>{comment.author}</span>
-                        <span className={styles.date}>{formatDate(comment.date)}</span>
+                        <span className={styles.author}>{comment.author.username}</span>
+                        <span className={styles.date}>{formatDate(comment.created_at)}</span>
                     </div>
                     <div className={styles.commentText}>
                         <ReactMarkdown 
