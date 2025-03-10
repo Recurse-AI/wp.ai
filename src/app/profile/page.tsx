@@ -86,7 +86,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto py-10 px-6 md:px-12 lg:px-20">
+      <div className="relative z-10 container mx-auto py-10 px-6 md:px-12 lg:px-20 pt-14 md:pt-16">
         <h1 className="text-4xl font-bold mb-8 text-center">
           <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text animate-pulse">
             WP.ai

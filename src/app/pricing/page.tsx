@@ -90,7 +90,7 @@ export default function PricingPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 pt-14 md:pt-16">
         {/* Header Section */}
         <motion.div
           className="text-center mb-20"
