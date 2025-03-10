@@ -1,0 +1,141 @@
+.comment {
+    margin: 16px 0;
+}
+
+.commentContainer {
+    display: flex;
+    gap: 12px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.commentContent {
+    flex: 1;
+    background-color: #f6f8fa;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.commentHeader {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.author {
+    font-weight: 600;
+    color: #24292f;
+}
+
+.date {
+    color: #6a737d;
+}
+
+.commentText {
+    color: #24292f;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    overflow-wrap: break-word;
+}
+
+.commentText > *:first-child {
+    margin-top: 0;
+}
+
+.commentText > *:last-child {
+    margin-bottom: 0;
+}
+
+.replyButton {
+    background: none;
+    border: none;
+    color: #6a737d;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.replyButton:hover {
+    color: #0366d6;
+    text-decoration: underline;
+}
+
+.replyForm {
+    margin-left: 52px;
+    margin-top: 8px;
+}
+
+.replies {
+    margin-left: 52px;
+}
+
+/* Indentation levels */
+.level-1 {
+    margin-left: 20px;
+}
+
+.level-2 {
+    margin-left: 40px;
+}
+
+.level-3 {
+    margin-left: 60px;
+}
+
+/* Markdown styles */
+.paragraph {
+    margin: 8px 0;
+}
+
+.code {
+    background-color: #f6f8fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 85%;
+}
+
+.blockquote {
+    margin: 8px 0;
+    padding: 0 16px;
+    color: #6a737d;
+    border-left: 4px solid #dfe2e5;
+}
+
+.list {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+/* Add these to your existing styles */
+.commentText pre {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    margin: 16px 0;
+}
+
+.commentText pre code {
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    font-size: inherit;
+}
+
+.commentText a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.commentText a:hover {
+    text-decoration: underline;
+} 
