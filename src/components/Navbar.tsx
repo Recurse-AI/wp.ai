@@ -493,7 +493,7 @@ export default function Navbar() {
                     alt="Profile"
                     width={32}
                     height={32}
-                    className="rounded-full"
+                    className="rounded-full aspect-square object-cover"
                   />
                   <span className="hidden md:inline">{user.name}</span>
                 </button>
@@ -516,7 +516,7 @@ export default function Navbar() {
                             alt={user.name || "User"}
                             width={40}
                             height={40}
-                            className="rounded-full"
+                            className="rounded-full aspect-square object-cover"
                           />
                         </div>
                         <div>
