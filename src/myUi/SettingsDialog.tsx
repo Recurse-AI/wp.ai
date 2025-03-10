@@ -54,18 +54,17 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       {/* <div className="w-full flex flex-col"> */}
       <DialogContent
         className="fixed bg-background rounded-xl p-0 flex flex-col 
-             w-[90%] sm:w-[80%] md:w-[60%] lg:w-[50%] xl:w-[40%] 
-             max-w-[500px] h-[85vh] sm:h-[80vh] md:h-[75vh] 
+             w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%]  
+             max-w-[800px] h-[85vh]  
              translate-x-[-50%] translate-y-[-50%] left-1/2 top-1/2 
              overflow-hidden shadow-lg"
       >
-        <DialogHeader className="px-6 pt-6">
+        <DialogHeader className="px-6 pt-6 flex-shrink-0">
           <DialogTitle className="mb-2">Settings</DialogTitle>
           <hr className="m-0 border-border" />
         </DialogHeader>
 
-        {/* Content area should take full height */}
-        <div className="flex-1 overflow-auto p-6">{content}</div>
+        <div className="flex-1 overflow-hidden">{content}</div>
       </DialogContent>
 
       {/* </div> */}
