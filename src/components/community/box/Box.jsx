@@ -26,20 +26,26 @@ const Box = () => {
             return (
                 issue.title.toLowerCase().includes(search) ||
                 issue.description.toLowerCase().includes(search) ||
-                issue.author.toLowerCase().includes(search) ||
+                issue.created_by.username.toLowerCase().includes(search) ||
                 issue.id.toString().includes(search)
             );
         })
         // Then sort
         .sort((a, b) => {
             if (sortConfig.type === 'comments') {
-                const countA = getTotalCommentCount(a);
-                const countB = getTotalCommentCount(b);
+                const countA = a.comments ? a.comments.length : 0;
+                const countB = b.comments ? b.comments.length : 0;
                 return sortConfig.order === 'desc' ? countB - countA : countA - countB;
             } else {
-                const timeA = new Date(a.date).getTime();
-                const timeB = new Date(b.date).getTime();
-                return sortConfig.order === 'desc' ? timeB - timeA : timeA - timeB;
+                // Compare ISO date strings directly for more accurate sorting
+                const dateA = a.created_at || a.updated_at;
+                const dateB = b.created_at || b.updated_at;
+                
+                if (sortConfig.order === 'desc') {
+                    return dateB.localeCompare(dateA);
+                } else {
+                    return dateA.localeCompare(dateB);
+                }
             }
         });
 
