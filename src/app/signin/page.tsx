@@ -263,30 +263,21 @@ export default function SignIn() {
 
   return (
     <ClientOnly>
-      <div className="flex min-h-screen w-full overflow-y-auto py-4">
-        {/* Home Button */}
-        <Link
-          href="/"
-          className={`fixed top-4 right-4 p-3 rounded-lg border ${
-            theme === "dark"
-              ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-          } z-50 flex items-center gap-2 transition-all`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-          </svg>
-          <span className="hidden sm:inline">Home</span>
-        </Link>
+      <div className="fixed inset-0 overflow-hidden">
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
+        
+        {/* Glowing Orbs */}
+        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
+      </div>
 
-        {/* Background elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-indigo-900" : "bg-indigo-200"} opacity-20 blur-3xl`}></div>
-          <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-blue-800" : "bg-blue-200"} opacity-20 blur-3xl`}></div>
-        </div>
+      <div className="relative z-10 flex min-h-screen w-full overflow-y-auto py-4">
         
         {/* Content */}
         <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden my-4">
+          
           {/* Left side - Illustration/Feature list (hidden on mobile) */}
           <div className={`hidden lg:block lg:w-2/5 p-8 lg:p-10 ${theme === "dark" ? "bg-gray-900" : "bg-blue-50"}`}>
             <div className="h-full flex flex-col justify-center">
@@ -343,7 +334,20 @@ export default function SignIn() {
           </div>
           
           {/* Right side - Form */}
-          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none relative ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+            {/* Home Button */}
+            <Link
+              href="/"
+              className={`absolute top-4 right-4 p-3 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+              } z-50 flex items-center gap-2 transition-all`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+            </Link>
             {/* Logo and heading section */}
             <div className="text-center mb-6">
               <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">

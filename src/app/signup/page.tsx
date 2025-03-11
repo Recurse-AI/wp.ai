@@ -307,32 +307,35 @@ export default function SignUp() {
 
   return (
     <ClientOnly>
-      <div className="flex min-h-screen w-full overflow-y-auto py-4">
-        {/* Home Button */}
-        <Link
-          href="/"
-          className={`fixed top-4 right-4 p-3 rounded-lg border ${
-            theme === "dark"
-              ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-          } z-50 flex items-center gap-2 transition-all`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-          </svg>
-          <span className="hidden sm:inline">Home</span>
-        </Link>
-
-        {/* Background elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-blue-900" : "bg-blue-200"} opacity-20 blur-3xl`}></div>
-          <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full ${theme === "dark" ? "bg-indigo-800" : "bg-indigo-200"} opacity-20 blur-3xl`}></div>
-        </div>
+      <div className="fixed inset-0 overflow-hidden">
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
         
+        {/* Glowing Orbs */}
+        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen w-full overflow-y-auto py-4">
         {/* Content */}
         <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden my-4">
           {/* Left side - Form */}
-          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+          <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none relative ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+            {/* Home Button */}
+            <Link
+              href="/"
+              className={`absolute top-4 right-4 p-3 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+              } z-50 flex items-center gap-2 transition-all`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+            </Link>
+            
             {/* Logo and heading section */}
             <div className="text-center mb-6">
               <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">
@@ -348,7 +351,7 @@ export default function SignUp() {
                 Create an Account
               </h1>
               <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                Join our community today
+                Join your WP.ai today
               </p>
             </div>
 
@@ -560,8 +563,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Premium Content Access</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Unlock exclusive content and resources</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>AI-Powered WordPress Assistant</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Get instant help with your WordPress tasks using our advanced AI chatbot</p>
                   </div>
                 </div>
                 
@@ -572,8 +575,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Secure Account</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Your data is encrypted and never shared</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Smart WordPress Agent</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Let our AI agent handle complex WordPress tasks and customizations for you</p>
                   </div>
                 </div>
                 
@@ -584,8 +587,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Community Access</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Connect with like-minded professionals</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>WordPress Community Support</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Join our community of WordPress users and get AI-powered solutions to your questions</p>
                   </div>
                 </div>
               </div>

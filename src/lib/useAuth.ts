@@ -241,6 +241,7 @@ export default function useAuth() {
     try {
       const response = await AuthService.login(credentials);
       TokenManager.storeTokens(response.access, response.refresh);
+      localStorage.setItem("token", response.access);
       const user = response.user;
       console.log('user', user);
       setAuthState({

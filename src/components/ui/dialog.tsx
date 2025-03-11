@@ -38,18 +38,27 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        `fixed left-[50%] top-[50%] z-50 grid w-[90%] max-w-[90%] md:max-w-[85%] 
-        lg:max-w-[65%] xl:max-w-[55%] h-[80vh] translate-x-[-50%] translate-y-[-50%] 
-        gap-4 border bg-background p-8 shadow-lg duration-200 sm:rounded-lg data-[state=open]:animate-in 
-        data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
-        data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 
-        data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 
-        data-[state=open]:slide-in-from-top-[48%]`,
+        `fixed left-[50%] top-[50%] z-50 
+        w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%] 
+        max-w-[800px] h-[65vh] rounded-3xl
+        translate-x-[-50%] translate-y-[-50%] border bg-background shadow-lg my-8
+        flex flex-col`, // Ensuring the layout does not shrink
         className
       )}
       {...props}
     >
-      {children}
+      {/* Header (Fixed height) */}
+      <div className="px-6 pt-4 flex-shrink-0">
+        <DialogPrimitive.Title className="text-2xl font-medium text-center mb-2">
+          Settings
+        </DialogPrimitive.Title>
+        <hr className="m-0 border-border" />
+      </div>
+
+      {/* Content Wrapper (Enforces Scrollable Content) */}
+      <div className="flex-1 overflow-y-auto p-6">{children}</div>
+
+      {/* Close Button (Fixed Position) */}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
@@ -57,6 +66,7 @@ const DialogContent = React.forwardRef<
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
+
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({

@@ -16,6 +16,7 @@ interface UserData {
 
 export default function ProfilePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserData>({
     name: "Guest User",
     username: "guest_user",
@@ -29,19 +30,40 @@ export default function ProfilePage() {
   const { theme } = useTheme();
 
   useEffect(() => {
-    getUser(setIsLoggedIn, setUser, router, pathname);
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true);
+        await getUser(setIsLoggedIn, setUser, router, pathname);
+      } catch (error) {
+        console.error("Error checking auth:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  // ✅ If user is NOT logged in, show login message
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={`flex flex-col items-center justify-center min-h-screen ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-400 animate-pulse">Loading profile...</p>
+      </div>
+    );
+  }
+
+  // Show login message if not logged in
   if (!isLoggedIn) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
+      <div className={`flex flex-col items-center justify-center min-h-screen ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
         <h2 className="text-2xl font-bold text-red-500 mb-4">
           🚫 Login required to access this page!
         </h2>
         <button
           onClick={() => router.push("/signin")}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition"
         >
           Sign In
         </button>
@@ -49,7 +71,7 @@ export default function ProfilePage() {
     );
   }
 
-  // ✅ Show profile page if user is logged in
+  // Show profile page if logged in
   return (
     <div className={`relative min-h-screen overflow-hidden ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
       {/* Background Elements */}
@@ -64,7 +86,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto py-10 px-6 md:px-12 lg:px-20">
+      <div className="relative z-10 container mx-auto py-10 px-6 md:px-12 lg:px-20 pt-14 md:pt-16">
         <h1 className="text-4xl font-bold mb-8 text-center">
           <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text animate-pulse">
             WP.ai
