@@ -17,6 +17,7 @@ const Box = () => {
     const [showSortMenu, setShowSortMenu] = useState(false);
 
     // Filter and sort issues
+    console.log(issues);
     const filteredAndSortedIssues = [...issues]
         // First filter
         .filter(issue => {
