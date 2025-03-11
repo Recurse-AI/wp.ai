@@ -39,15 +39,26 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         `fixed left-[50%] top-[50%] z-50 
-        w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%]  
-        max-w-[800px] h-[85vh] overflow-hidden  
-        translate-x-[-50%] translate-y-[-50%] border bg-background shadow-lg 
-        duration-200 sm:rounded-lg`,
+        w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%] 
+        max-w-[800px] h-[65vh] 
+        translate-x-[-50%] translate-y-[-50%] border bg-background shadow-lg my-8
+        flex flex-col`, // Ensuring the layout does not shrink
         className
       )}
       {...props}
     >
-      {children}
+      {/* Header (Fixed height) */}
+      <div className="px-6 pt-4 flex-shrink-0">
+        <DialogPrimitive.Title className="text-2xl font-medium text-center mb-2">
+          Settings
+        </DialogPrimitive.Title>
+        <hr className="m-0 border-border" />
+      </div>
+
+      {/* Content Wrapper (Enforces Scrollable Content) */}
+      <div className="flex-1 overflow-y-auto p-6">{children}</div>
+
+      {/* Close Button (Fixed Position) */}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>

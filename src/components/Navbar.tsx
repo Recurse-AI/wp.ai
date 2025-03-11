@@ -350,7 +350,7 @@ export default function Navbar() {
           {!isLoggedIn && !isAuthenticated ? (
             <div className="flex items-center gap-3">
               {/* Theme Button */}
-              <motion.div 
+              <motion.div
                 className="relative"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -366,9 +366,15 @@ export default function Navbar() {
                 >
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
                   <div className="relative">
-                    {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
-                    {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
-                    {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
+                    {theme === "light" && (
+                      <FaSun className="text-yellow-500 text-xl" />
+                    )}
+                    {theme === "dark" && (
+                      <FaMoon className="text-blue-500 text-xl" />
+                    )}
+                    {theme === "system" && (
+                      <FaDesktop className="text-purple-500 text-xl" />
+                    )}
                   </div>
                 </button>
 
@@ -383,9 +389,24 @@ export default function Navbar() {
                     className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
                   >
                     {[
-                      { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
-                      { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
-                      { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
+                      {
+                        mode: "light",
+                        icon: FaSun,
+                        label: "Light Mode",
+                        color: "text-yellow-500",
+                      },
+                      {
+                        mode: "dark",
+                        icon: FaMoon,
+                        label: "Dark Mode",
+                        color: "text-blue-500",
+                      },
+                      {
+                        mode: "system",
+                        icon: FaDesktop,
+                        label: "System",
+                        color: "text-purple-500",
+                      },
                     ].map((item) => (
                       <motion.button
                         key={item.mode}
@@ -403,7 +424,7 @@ export default function Navbar() {
                   </motion.div>
                 )}
               </motion.div>
-              
+
               <Link href="/signin">
                 <motion.button
                   className="relative px-4 md:px-5 py-2 text-sm md:text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition overflow-hidden shadow-md hover:shadow-lg"
@@ -426,7 +447,7 @@ export default function Navbar() {
           ) : (
             <div className="flex items-center gap-3">
               {/* Theme Button */}
-              <motion.div 
+              <motion.div
                 className="relative"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -442,9 +463,15 @@ export default function Navbar() {
                 >
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-50 blur transition duration-300" />
                   <div className="relative">
-                    {theme === "light" && <FaSun className="text-yellow-500 text-xl" />}
-                    {theme === "dark" && <FaMoon className="text-blue-500 text-xl" />}
-                    {theme === "system" && <FaDesktop className="text-purple-500 text-xl" />}
+                    {theme === "light" && (
+                      <FaSun className="text-yellow-500 text-xl" />
+                    )}
+                    {theme === "dark" && (
+                      <FaMoon className="text-blue-500 text-xl" />
+                    )}
+                    {theme === "system" && (
+                      <FaDesktop className="text-purple-500 text-xl" />
+                    )}
                   </div>
                 </button>
 
@@ -459,9 +486,24 @@ export default function Navbar() {
                     className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden backdrop-blur-sm bg-white/80 dark:bg-gray-800/80"
                   >
                     {[
-                      { mode: "light", icon: FaSun, label: "Light Mode", color: "text-yellow-500" },
-                      { mode: "dark", icon: FaMoon, label: "Dark Mode", color: "text-blue-500" },
-                      { mode: "system", icon: FaDesktop, label: "System", color: "text-purple-500" }
+                      {
+                        mode: "light",
+                        icon: FaSun,
+                        label: "Light Mode",
+                        color: "text-yellow-500",
+                      },
+                      {
+                        mode: "dark",
+                        icon: FaMoon,
+                        label: "Dark Mode",
+                        color: "text-blue-500",
+                      },
+                      {
+                        mode: "system",
+                        icon: FaDesktop,
+                        label: "System",
+                        color: "text-purple-500",
+                      },
                     ].map((item) => (
                       <motion.button
                         key={item.mode}
@@ -479,7 +521,7 @@ export default function Navbar() {
                   </motion.div>
                 )}
               </motion.div>
-              
+
               <div className="relative">
                 <button
                   ref={buttonRef}
@@ -584,7 +626,9 @@ export default function Navbar() {
                         <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-all duration-200">
                           <FaSignOutAlt className="w-4 h-4" />
                         </div>
-                        <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Sign out</span>
+                        <span className="font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">
+                          Sign out
+                        </span>
                       </button>
                     </div>
                   </motion.div>
@@ -603,7 +647,13 @@ export default function Navbar() {
         <SettingsDialog
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          content={<MySettings />}
+          content={
+            <MySettings
+              user={contextUser}
+              setUser={setUser}
+              onClose={() => setIsSettingsOpen(false)}
+            />
+          }
         />
       )}
     </>
