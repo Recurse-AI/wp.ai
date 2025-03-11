@@ -156,7 +156,7 @@ export default function LandingPage() {
             onSubmit={handleFeedbackSubmit} 
           />
         </Suspense>
-      </div>
+          </div>
 
       {/* Footer */}
       <footer className="relative py-10 text-center">

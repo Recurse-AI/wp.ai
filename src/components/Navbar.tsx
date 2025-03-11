@@ -25,6 +25,7 @@ import { useAuthContext } from "@/context/AuthProvider";
 import SettingsDialog from "@/myUi/SettingsDialog";
 import MySettings from "@/myUi/MySettings";
 import useAuth from "@/lib/useAuth";
+import { useTokenExpiry } from "@/hooks/useTokenExpiry";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -32,6 +33,8 @@ export default function Navbar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
+  const { checkTokenExpiry } = useTokenExpiry();
+  const [userData, setUserData] = useState<any>(null);
 
   // Get authentication state from useAuth hook
   const {
@@ -108,47 +111,28 @@ export default function Navbar() {
 
   // Check for token and userData directly
   useEffect(() => {
-    const checkLocalStorage = () => {
-      if (typeof window !== "undefined") {
-        const hasToken = !!localStorage.getItem("token");
-        const hasRefreshToken = !!localStorage.getItem("refreshToken");
-        const hasUserData = !!localStorage.getItem("userData");
-        const hasAuthToken = !!localStorage.getItem("token");
-
-        if (
-          (hasToken || hasRefreshToken || hasUserData || hasAuthToken) &&
-          !isLoggedIn
-        ) {
-          console.log("Navbar: Setting logged in from localStorage");
-          setIsLoggedIn(true);
-
-          // Try to set user data from localStorage
+    const loadUserData = () => {
+      // First check if token is valid
+      if (checkTokenExpiry()) {
+        const storedUserData = localStorage.getItem("userData");
+        if (storedUserData) {
           try {
-            const userDataString = localStorage.getItem("userData");
-            if (userDataString) {
-              const userData = JSON.parse(userDataString);
-              setUser({
-                name: userData.username || "",
-                image: userData.image || user.image,
-              });
-            }
+            const parsedData = JSON.parse(storedUserData);
+            setUserData(parsedData);
           } catch (error) {
-            console.error("Error parsing userData in Navbar:", error);
+            console.error("Error parsing user data:", error);
+            setUserData(null);
           }
+        } else {
+          setUserData(null);
         }
+      } else {
+        setUserData(null);
       }
     };
 
-    checkLocalStorage();
-
-    // Listen for storage events
-    const handleStorageChange = () => {
-      checkLocalStorage();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [isLoggedIn, user.image]);
+    loadUserData();
+  }, []);
 
   // ✅ Detect if page is scrolled
   useEffect(() => {
@@ -186,6 +170,7 @@ export default function Navbar() {
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("isChat");
+        localStorage.removeItem("tokenExpiry");
 
         // Dispatch storage event to notify other components
         window.dispatchEvent(new Event("storage"));
