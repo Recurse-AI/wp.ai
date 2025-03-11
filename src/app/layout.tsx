@@ -1,15 +1,7 @@
-"use client";
-
-import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
-import { ThemeProvider, useTheme } from "@/context/ThemeProvider";
-import { Toaster } from "react-hot-toast";
-import { getToastStyle } from "@/lib/toastConfig";
-import AuthProvider from "@/context/AuthProvider";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import { twMerge } from "tailwind-merge";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,50 +13,54 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Inline script to handle theme before page load
+const themeScript = `
+  (function() {
+    function applyTheme() {
+      const isDark = localStorage.theme === 'dark' || 
+        (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.setProperty('color-scheme', 'dark');
+        document.documentElement.style.setProperty('background-color', '#0A0F1C');
+        document.body.style.setProperty('background-color', '#0A0F1C');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.setProperty('color-scheme', 'light');
+        document.documentElement.style.setProperty('background-color', '#F8FAFC');
+        document.body.style.setProperty('background-color', '#F8FAFC');
+      }
+    }
+
+    // Apply theme immediately
+    applyTheme();
+
+    // Re-apply theme after DOM content loads
+    document.addEventListener('DOMContentLoaded', applyTheme);
+
+    // Watch for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  })()
+`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const { theme } = useTheme();
-  // ✅ Hide Navbar for specific pages EXCEPT if the path starts with "/chat/"
-  const hideNavbarPages = [
-    "/signin",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/otp-check",
-  ];
-  const shouldShowNavbar =
-    !hideNavbarPages.includes(pathname) &&
-    !pathname.startsWith("/chat/") &&
-    !pathname.startsWith("/verify-email");
-
   return (
-    <html lang="en" suppressHydrationWarning className={theme === "dark" ? "dark" : ""}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={twMerge(
           `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full bg-[#F8FAFC] dark:bg-[#0A0F1C] text-gray-900 dark:text-white`
         )}
         suppressHydrationWarning
       >
-        <ThemeProvider>
-          <SessionProvider>
-            <AuthProvider>
-              {/* Remove relative positioning and width from this div */}
-              <div className="z-[100]">{shouldShowNavbar && <Navbar />}</div>
-
-              {/* Remove relative positioning and width from this div */}
-              <div className="z-0">{children}</div>
-              <Toaster
-                position="top-right"
-                reverseOrder={false}
-                toastOptions={getToastStyle(theme)}
-              />
-            </AuthProvider>
-          </SessionProvider>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );
