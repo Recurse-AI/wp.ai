@@ -2,31 +2,55 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 
-const ThemeContext = createContext({ theme: "system", setTheme: (theme: string) => {} });
+type Theme = "light" | "dark";
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setTheme] = useState("system");
-  const [mounted, setMounted] = useState(false);
+interface ThemeContextType {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
 
-  useEffect(() => {
-    setMounted(true);
-    const storedTheme = localStorage.getItem("theme") || "system";
-    setTheme(storedTheme);
-    document.documentElement.classList.toggle("dark", storedTheme === "dark");
-  }, []);
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-  const updateTheme = (newTheme: string) => {
+export function ThemeProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') as Theme || 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+    return 'light';
+  });
+
+  const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.backgroundColor = '#0A0F1C';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.backgroundColor = '#F8FAFC';
+    }
+    localStorage.setItem('theme', newTheme);
   };
 
-  // Prevent theme flicker on initial load
-  if (!mounted) {
-    return null;
+  useEffect(() => {
+    handleThemeChange(theme);
+  }, [theme]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme: handleThemeChange }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
-
-  return <ThemeContext.Provider value={{ theme, setTheme: updateTheme }}>{children}</ThemeContext.Provider>;
-};
-
-export const useTheme = () => useContext(ThemeContext);
+  return context;
+}

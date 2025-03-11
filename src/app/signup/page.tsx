@@ -351,7 +351,7 @@ export default function SignUp() {
                 Create an Account
               </h1>
               <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                Join our community today
+                Join your WP.ai today
               </p>
             </div>
 
@@ -563,8 +563,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Premium Content Access</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Unlock exclusive content and resources</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>AI-Powered WordPress Assistant</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Get instant help with your WordPress tasks using our advanced AI chatbot</p>
                   </div>
                 </div>
                 
@@ -575,8 +575,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Secure Account</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Your data is encrypted and never shared</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Smart WordPress Agent</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Let our AI agent handle complex WordPress tasks and customizations for you</p>
                   </div>
                 </div>
                 
@@ -587,8 +587,8 @@ export default function SignUp() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Community Access</h3>
-                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Connect with like-minded professionals</p>
+                    <h3 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>WordPress Community Support</h3>
+                    <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Join our community of WordPress users and get AI-powered solutions to your questions</p>
                   </div>
                 </div>
               </div>
