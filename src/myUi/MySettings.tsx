@@ -13,8 +13,11 @@ import {
 import { LogOut, Trash2 } from "lucide-react";
 import { useTheme } from "@/context/ThemeProvider";
 import { FaDesktop, FaMoon, FaSun } from "react-icons/fa";
-import { getUser } from "@/utils/getUser";
+import toast from "react-hot-toast";
 import { usePathname, useRouter } from "next/navigation";
+import useAuth from "@/lib/useAuth";
+import { useAuthContext } from "@/context/AuthProvider";
+import { signOut, useSession } from "next-auth/react";
 
 // Define default settings data
 const DEFAULT_SETTINGS_DATA = [
@@ -28,36 +31,34 @@ const DEFAULT_SETTINGS_DATA = [
 
 interface UserData {
   name: string;
-  username: string;
-  email: string;
+  username?: string;
+  email?: string;
   image: string;
-  profile_picture: string;
+  profile_picture?: string;
   accountType?: string;
   joinDate?: string;
   subscriptionPlan?: string;
   subscriptionEndDate?: string;
 }
 
-export default function SettingsPage() {
+interface SettingsPageProps {
+  user: UserData;
+  setUser: (user: UserData) => void;
+  onClose: () => void;
+}
+
+export default function SettingsPage({
+  user,
+  setUser,
+  onClose,
+}: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState("general");
   const [settingsData, setSettingsData] = useState(DEFAULT_SETTINGS_DATA);
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState("english");
   const [codeDataAnalyst, setCodeDataAnalyst] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [fontSize, setFontSize] = useState("medium");
-  const [user, setUser] = useState<UserData>({
-    name: "Guest User",
-    username: "guest_user",
-    email: "guest@example.com",
-    image:
-      "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-    profile_picture:
-      "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-  });
-
+  const [, setIsLoggedIn] = useState(false);
   const handleDeleteAllChats = async () => {
     if (
       window.confirm(
@@ -80,6 +81,100 @@ export default function SettingsPage() {
       }
     }
   };
+  const router = useRouter();
+  const pathname = usePathname();
+  const session = useSession();
+
+  // Get authentication state from AuthContext
+  const { logout: contextLogout } = useAuthContext();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      // 1. Close settings dialog first
+      onClose();
+
+      // 2. Show loading toast while signing out
+      const loadingToast = toast.loading("Signing out...", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
+      });
+
+      // 2. Clear local storage data
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("userData");
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("isChat");
+        window.dispatchEvent(new Event("storage")); // Notify other components
+      }
+
+      // 3. Reset user state
+      setIsLoggedIn(false);
+      setUser({
+        name: "",
+        image:
+          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
+      });
+
+      // 4. Call logout functions from auth providers
+      if (contextLogout) await contextLogout();
+      await logout();
+
+      // 5. Clear NextAuth session if exists
+      if (session) {
+        await signOut({ redirect: false });
+      }
+
+      // 6. Show success message
+      toast.dismiss(loadingToast);
+      toast.success("Successfully signed out!", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
+      });
+
+      // 7. Handle redirect
+      const currentPath = pathname;
+      const isProtectedRoute =
+        currentPath.includes("/chat") ||
+        currentPath.includes("/dashboard") ||
+        currentPath.includes("/profile") ||
+        currentPath.includes("/settings");
+
+      // Small delay to ensure state updates are processed
+      setTimeout(() => {
+        if (isProtectedRoute) {
+          router.replace("/signin");
+        } else {
+          router.replace("/");
+        }
+      }, 100);
+
+      // After successful logout, force reload the page
+      window.location.reload();
+    } catch (error) {
+      // Handle error cases
+      console.error("Logout failed:", error);
+      toast.error("Failed to sign out. Please try again.", {
+        style: {
+          background: theme === "dark" ? "#1F2937" : "#fff",
+          color: theme === "dark" ? "#fff" : "#000",
+        },
+      });
+
+      // Even if API call fails, clear local state
+      setIsLoggedIn(false);
+      setUser({
+        name: "",
+        image:
+          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -96,10 +191,6 @@ export default function SettingsPage() {
     };
 
     fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    getUser(setIsLoggedIn, setUser, router, pathname);
   }, []);
 
   return (
@@ -308,9 +399,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
-                  {/* {item["id"] === "personalization" && (
-                      <p>Personalization settings go here.</p>
-                    )} */}
                   {item["id"] === "language" && (
                     <div className="space-y-6">
                       <h2 className="text-xl font-semibold text-foreground text-center">
@@ -545,8 +633,12 @@ export default function SettingsPage() {
           ))}
         </div>
         {/* Logout Button */}
-        <div className="p-6 pt-0 flex justify-end flex-shrink-0">
-          <Button variant="destructive" className="flex items-center gap-2">
+        <div className="fixed bottom-6 right-6">
+          <Button
+            variant="destructive"
+            className="flex items-center gap-2"
+            onClick={handleLogout}
+          >
             <LogOut size={16} /> Log Out
           </Button>
         </div>
