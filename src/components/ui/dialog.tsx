@@ -40,7 +40,7 @@ const DialogContent = React.forwardRef<
       className={cn(
         `fixed left-[50%] top-[50%] z-50 
         w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%] 
-        max-w-[800px] h-[65vh] 
+        max-w-[800px] h-[65vh] rounded-3xl
         translate-x-[-50%] translate-y-[-50%] border bg-background shadow-lg my-8
         flex flex-col`, // Ensuring the layout does not shrink
         className
