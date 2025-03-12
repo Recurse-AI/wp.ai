@@ -94,17 +94,17 @@ export default function LandingPage() {
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please sign in to submit feedback");
-        return;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/feedback/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({
           content: feedback
         })
