@@ -260,3 +260,28 @@
     font-size: 1rem;
     color: #57606a;
 }
+
+.description .unorderedList,
+.description .orderedList {
+    margin: 4px 0;
+    padding-left: 24px;
+    display: block;
+}
+
+.description .unorderedList {
+    list-style-type: disc;
+}
+
+.description .orderedList {
+    list-style-type: decimal;
+}
+
+.description .listItem {
+    display: list-item;
+    margin: 2px 0;
+    color: #57606a;
+}
+
+.description .listItem::marker {
+    color: #57606a;
+}
