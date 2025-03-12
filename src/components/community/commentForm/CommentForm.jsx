@@ -16,13 +16,6 @@ const CommentForm = ({ onSubmit, placeholder = "Leave a comment", buttonText = "
 
     return (
         <div className={styles.commentForm}>
-            <div className={styles.avatarContainer}>
-                <img 
-                    src={getRandomAvatar('currentuser')} 
-                    alt="Your avatar" 
-                    className={styles.avatar} 
-                />
-            </div>
             <div className={styles.inputContainer}>
                 <TextEditor
                     value={comment}
@@ -31,11 +24,11 @@ const CommentForm = ({ onSubmit, placeholder = "Leave a comment", buttonText = "
                 />
                 <div className={styles.footer}>
                     <button 
-                        className={styles.primaryButton} 
+                        className={styles.primaryButton}
                         onClick={handleSubmit} 
                         disabled={!comment.trim()}
                     >
-                        {buttonText}
+                        Comment
                     </button>
                 </div>
             </div>

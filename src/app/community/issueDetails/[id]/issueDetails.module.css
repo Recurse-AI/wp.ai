@@ -91,12 +91,21 @@
 }
 
 .noComments {
-    text-align: center;
-    padding: 24px;
-    background: #f6f8fa;
+    background-color: #f6f8fa;
     border: 1px solid #d0d7de;
     border-radius: 6px;
+    padding: 24px;
+    text-align: center;
     color: #57606a;
+}
+
+.noComments p {
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.noComments span {
+    font-size: 14px;
 }
 
 .commentFormSection {
@@ -181,7 +190,7 @@
 }
 
 .timeline {
-    margin-bottom: 24px;
+    margin-top: 8px;
 }
 
 .mainComment {
@@ -246,5 +255,18 @@
 
 .replyButton:hover {
     background-color: #218838;
+}
+
+.commentsHeader {
+    margin: 24px 0 16px;
+    padding-top: 24px;
+    border-top: 1px solid #d0d7de;
+}
+
+.commentsHeader h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #24292f;
+    margin: 0;
 }
 

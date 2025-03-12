@@ -2,6 +2,7 @@
     border: 1px solid #d0d7de;
     border-radius: 6px;
     margin-top: 16px;
+    margin-bottom: 16px;
 }
 
 .header {
@@ -25,28 +26,22 @@
     border: none;
     padding: 5px 12px;
     font-size: 14px;
-    color: #24292f;
-    font-weight: 600;
     cursor: pointer;
     border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    transition: background-color 0.2s ease;
 }
 
 .tab:hover {
     background-color: rgba(234, 238, 242, 0.95);
 }
 
-.activeTab {
-    font-weight: 600;
-}
-
 .count {
-    background-color: rgba(175, 184, 193, 0.3);
+    background-color: rgba(175, 184, 193, 0.2);
     border-radius: 2em;
-    padding: 2px 10px;
+    padding: 2px 6px;
     font-size: 12px;
+    font-weight: 500;
+    margin-left: 4px;
 }
 
 .filters {
@@ -76,84 +71,50 @@
     font-weight: 500;
 }
 
-.filterButton.active:hover {
-    color: #0969da;
-}
-
-/* Navigation Bar */
-.nav {
-    display: flex;
-    justify-content: space-between;
-    /* Pushes tabs to the left and filters to the right */
-    align-items: center;
-    border-bottom: 1px solid #d1d5da;
-    padding: 10px 15px;
-    flex-wrap: wrap;
-    /* Ensures responsiveness */
-}
-
-/* Tabs Section (Left Side) */
-.issues {
+.searchBox {
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-/* Search Bar for Author */
-.filterSearch {
-    border: 1px solid #d1d5da;
+    gap: 8px;
+    padding: 5px 12px;
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
     border-radius: 6px;
-    padding: 6px;
-    font-size: 14px;
-    outline: none;
-    width: 150px;
-    transition: all 0.2s ease-in-out;
+    width: 300px;
 }
 
-.filterSearch:focus {
-    border-color: #0366d6;
-    background-color: white;
+.searchIcon {
+    color: #57606a;
+    font-size: 14px;
+    margin-right: 8px;
 }
 
-/* Filter Dropdown */
-.filterItem {
-    border: 1px solid #d1d5da;
-    border-radius: 6px;
-    padding: 5px;
-    font-size: 14px;
+.searchInput {
+    border: none;
+    background: none;
     outline: none;
+    width: 100%;
+    font-size: 14px;
+}
+
+.searchInput::placeholder {
+    color: #57606a;
+}
+
+.clearButton {
+    color: #57606a;
     cursor: pointer;
-    transition: background 0.2s ease-in-out;
+    padding: 2px 6px;
+    font-size: 14px;
 }
 
-.filterItem:hover {
-    background-color: rgba(228, 231, 235, 0.95);
+.clearButton:hover {
+    color: #24292f;
 }
 
-/* Sorting Dropdown */
 .sortDropdown {
     position: relative;
 }
 
-/* Sorting Button */
-.sortButton {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    border: 1px solid #d1d5da;
-    background: rgba(246, 248, 250, 0.95);
-    font-size: 14px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-}
-
-.sortButton:hover {
-    background: rgba(225, 228, 232, 0.95);
-}
-
-/* Sorting Dropdown Menu */
 .sortMenu {
     position: absolute;
     top: 100%;
@@ -189,51 +150,6 @@
     font-weight: 500;
 }
 
-/* Add a subtle border between menu items */
 .sortMenu button:not(:last-child) {
     border-bottom: 1px solid #d0d7de;
-}
-
-/* Add these styles to your existing CSS */
-
-.searchBox {
-    display: flex;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.98);
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    padding: 5px 12px;
-    min-width: 240px;
-}
-
-.searchIcon {
-    color: #57606a;
-    font-size: 14px;
-    margin-right: 8px;
-}
-
-.searchInput {
-    border: none;
-    outline: none;
-    background: none;
-    font-size: 14px;
-    color: #24292f;
-    width: 100%;
-}
-
-.searchInput::placeholder {
-    color: #57606a;
-}
-
-.clearButton {
-    background: none;
-    border: none;
-    color: #57606a;
-    cursor: pointer;
-    padding: 2px 6px;
-    font-size: 14px;
-}
-
-.clearButton:hover {
-    color: #24292f;
 }

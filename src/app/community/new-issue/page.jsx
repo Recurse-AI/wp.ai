@@ -25,8 +25,7 @@ const NewIssue = () => {
             labels: [],
             comments: [],
             date: new Date().toISOString(),
-            status: "open",
-            avatar: "https://avatars.githubusercontent.com/u/9919?v=4"
+            status: "open"
         };
 
         addIssue(newIssue);
