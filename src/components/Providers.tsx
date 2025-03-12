@@ -7,13 +7,17 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useTokenExpiry } from "@/hooks/useTokenExpiry";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
+  const { checkTokenExpiry } = useTokenExpiry();
   
   useEffect(() => {
     setIsClient(true);
+    // Check token expiry on initial load
+    checkTokenExpiry();
   }, []);
 
   // Hide Navbar for specific pages

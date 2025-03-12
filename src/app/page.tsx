@@ -86,13 +86,42 @@ export default function LandingPage() {
   };
 
   // Handle feedback submission
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = async () => {
     if (feedback.trim() === "") {
       toast.error("Please enter your feedback!");
       return;
     }
-    toast.success("Thanks for your feedback!");
-    setFeedback(""); // Clear input after submission
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please sign in to submit feedback");
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/feedback/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: feedback
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
+
+      toast.success("Thanks for your feedback!");
+      setFeedback(""); // Clear input after submission
+    } catch (error) {
+      console.error('Feedback submission error:', error);
+      toast.error("Failed to submit feedback. Please try again.");
+    }
   };
 
   // Toggle chat open/close
@@ -156,7 +185,7 @@ export default function LandingPage() {
             onSubmit={handleFeedbackSubmit} 
           />
         </Suspense>
-      </div>
+          </div>
 
       {/* Footer */}
       <footer className="relative py-10 text-center">

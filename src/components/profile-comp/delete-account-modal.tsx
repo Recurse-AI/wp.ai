@@ -49,7 +49,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `bearer ${token}`
+          "Authorization": `Bearer ${token}`
         },
         credentials: "include",
         body: JSON.stringify({ password }),
