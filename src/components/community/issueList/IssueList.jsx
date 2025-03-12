@@ -85,9 +85,9 @@ const IssueList = ({ issues }) => {
                                             img: () => null,
                                             pre: ({node, children}) => <span>{children}</span>,
                                             blockquote: ({node, children}) => <span>"{children}"</span>,
-                                            ul: ({node, children}) => <span>{children}</span>,
-                                            ol: ({node, children}) => <span>{children}</span>,
-                                            li: ({node, children}) => <span>{children} </span>,
+                                            ul: ({node, children}) => <ul className={styles.unorderedList}>{children}</ul>,
+                                            ol: ({node, children}) => <ol className={styles.orderedList}>{children}</ol>,
+                                            li: ({node, children}) => <li className={styles.listItem}>{children}</li>,
                                             sup: ({node, children}) => null
                                         }}
                                     >
