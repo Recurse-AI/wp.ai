@@ -29,7 +29,7 @@ const Box = () => {
                 issue.description.toLowerCase().includes(search) ||
                 issue.created_by.username.toLowerCase().includes(search) ||
                 issue.id.toString().includes(search)
-            );
+            );//The .includes() method checks if a string contains a specified substring. It returns true if the substring is found and false otherwise.
         })
         // Then sort
         .sort((a, b) => {

@@ -1,12 +1,11 @@
 import React, { useContext } from "react";
 import Link from "next/link";
-import { FaCheckCircle, FaRegCommentAlt } from "react-icons/fa";
+import { FaRegCommentAlt, FaInfoCircle } from "react-icons/fa";
 import styles from "./issueList.module.css";
 import { getTotalCommentCount } from "@/utils/commentUtils";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { IssueContext } from "@/context/IssueContext";
 import { formatDate } from '@/utils/dateUtils';
+import MarkdownRenderer from '../markdownRenderer/MarkdownRenderer';
 
 const truncateText = (text, maxLength = 280) => {
     if (!text || text.length <= maxLength) return text;
@@ -65,47 +64,44 @@ const IssueList = ({ issues }) => {
                 
                 return (
                     <div key={issue.id} className={styles.issueItem}>
-                        <div className={styles.icon}>
-                            <FaCheckCircle className={styles.checkIcon} />
+                        <div className={styles.header}>
+                            <div className={styles.titleWrapper}>
+                                <FaInfoCircle className={styles.infoIcon} />
+                                <Link href={`community/issueDetails/${issue.id}`} className={styles.title}>
+                                    {issue.title}
+                                </Link>
+                            </div>
+                            <div className={styles.commentCount}>
+                                <FaRegCommentAlt />
+                                <span>{commentCount}</span>
+                            </div>
                         </div>
-                        <div className={styles.content}>
-                            <Link href={`community/issueDetails/${issue.id}`} className={styles.title}>
-                                {issue.title}
-                            </Link>
-                            <div className={styles.descriptionRow}>
-                                <div className={styles.description}>
-                                    <ReactMarkdown 
-                                        remarkPlugins={[remarkGfm]}
-                                        components={{
-                                            p: ({node, children}) => <span>{children}</span>,
-                                            strong: ({node, children}) => <strong className={styles.strong}>{children}</strong>,
-                                            em: ({node, children}) => <em className={styles.italic}>{children}</em>,
-                                            code: ({node, children}) => <code className={styles.code}>{children}</code>,
-                                            a: ({node, children}) => <span className={styles.link}>{children}</span>,
-                                            img: () => null,
-                                            pre: ({node, children}) => <span>{children}</span>,
-                                            blockquote: ({node, children}) => <span>"{children}"</span>,
-                                            ul: ({node, children}) => <ul className={styles.unorderedList}>{children}</ul>,
-                                            ol: ({node, children}) => <ol className={styles.orderedList}>{children}</ol>,
-                                            li: ({node, children}) => <li className={styles.listItem}>{children}</li>,
-                                            sup: ({node, children}) => null
-                                        }}
-                                    >
-                                        {truncatedDescription}
-                                    </ReactMarkdown>
-                                </div>
-                                <div className={styles.commentCount}>
-                                    <FaRegCommentAlt />
-                                    <span>{commentCount}</span>
-                                </div>
+                        <div className={styles.descriptionRow}>
+                            <div className={styles.description}>
+                                <MarkdownRenderer
+                                    content={truncatedDescription}
+                                    components={{
+                                        p: ({node, children}) => <span>{children}</span>,
+                                        strong: ({node, children}) => <strong>{children}</strong>,
+                                        em: ({node, children}) => <em>{children}</em>,
+                                        code: ({node, children}) => <code>{children}</code>,
+                                        a: ({node, children}) => <span className={styles.link}>{children}</span>,
+                                        img: () => null,
+                                        pre: ({node, children}) => <span>{children}</span>,
+                                        blockquote: ({node, children}) => <span>"{children}"</span>,
+                                        ul: ({node, children}) => <ul className={styles.unorderedList}>{children}</ul>,
+                                        ol: ({node, children}) => <ol className={styles.orderedList}>{children}</ol>,
+                                        li: ({node, children}) => <li className={styles.listItem}>{children}</li>
+                                    }}
+                                />
                             </div>
-                            <div className={styles.meta}>
-                                <span>#{issue.id}</span>
-                                <span>by {issue.created_by.username}</span>
-                                <span>
-                                    {issue.status === 'closed' ? 'was closed on' : 'opened'} {formatDate(issue.created_at)}
-                                </span>
-                            </div>
+                        </div>
+                        <div className={styles.meta}>
+                            <span>#{issue.id}</span>
+                            <span>by {issue.created_by.username}</span>
+                            <span>
+                                opened {formatDate(issue.created_at)}
+                            </span>
                         </div>
                     </div>
                 );

@@ -1,0 +1,220 @@
+.markdown {
+    color: #24292f;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    padding: 8px;
+    margin: 0;
+}
+
+.paragraph {
+    /* margin: 16px 0; */
+    line-height: 1.6;
+    margin: 0;
+}
+
+.markdown strong {
+    font-weight: 600;
+    color: #24292f;
+}
+
+/* Ensure em elements only show italic styling */
+.markdown em {
+    font-style: italic !important;
+    color: inherit !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+/* Remove any other styles that might affect em elements */
+.markdown p em,
+.markdown li em,
+.markdown blockquote em {
+    font-style: italic !important;
+    color: inherit !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+.inlineCode {
+    background-color: rgba(175, 184, 193, 0.2);
+    /* padding: 0.2em 0.4em; */
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+    font-size: 85%;
+    margin: 0;
+    word-break: break-word;
+}
+
+.codeBlockWrapper {
+    position: relative;
+    /* margin: 16px 0; */
+}
+
+.copyButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    color: #57606a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.codeBlockWrapper:hover .copyButton {
+    opacity: 1;
+}
+
+.copyButton:hover {
+    background: #f3f4f6;
+    color: #24292f;
+}
+
+.codeBlock {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    /* padding: 16px; */
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+}
+
+.code {
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-size: 85%;
+    color: #24292f;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.codeWithLang {
+    composes: code;
+    display: block;
+    overflow-x: auto;
+    padding: 1em;
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.markdown blockquote {
+    padding: 0 1em;
+    color: #57606a;
+    border-left: 0.25em solid #d0d7de;
+    margin: 16px 0;
+}
+
+.markdown ul,
+.markdown ol {
+    margin: 16px 0;
+    padding-left: 2em;
+}
+
+.markdown li {
+    margin: 4px 0;
+}
+
+.markdown a {
+    color: #8250df;
+    text-decoration: none;
+    background-color: rgba(130, 80, 223, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.markdown a:hover {
+    color: #6f42c1;
+    text-decoration: underline;
+    background-color: rgba(130, 80, 223, 0.15);
+}
+
+.unorderedList,
+.orderedList {
+    margin: 8px 0 8px 32px !important;
+    padding-left: 0;
+    list-style-position: outside;
+}
+
+.unorderedList {
+    list-style-type: disc !important;
+}
+
+.orderedList {
+    list-style-type: decimal !important;
+}
+
+.listItem {
+    margin: 4px 0;
+    line-height: 1.6;
+    color: #24292f;
+    display: list-item !important;
+}
+
+.listItem::marker {
+    color: #57606a;
+}
+
+/* Nested list styles */
+.unorderedList .unorderedList,
+.orderedList .orderedList,
+.unorderedList .orderedList,
+.orderedList .unorderedList {
+    margin-left: 24px !important;
+}
+
+/* Add these new styles */
+.contentWrapper {
+    position: relative;
+    width: 100%;
+    margin: 0;
+}
+
+.contentCopyButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    color: #57606a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.contentWrapper:hover .contentCopyButton {
+    opacity: 1;
+}
+
+.contentCopyButton:hover {
+    background: #f3f4f6;
+    color: #24292f;
+}
+
+.descriptionRow {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+.description {
+    margin: 0;
+    text-align: left;
+} 

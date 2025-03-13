@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams } from "next/navigation";
 import CommentForm from "@/components/community/commentForm/CommentForm";
-import { FaRegDotCircle, FaRegCheckCircle } from "react-icons/fa";
 import styles from "./issueDetails.module.css";
 import { getRandomAvatar } from "@/utils/avatarUtils";
 import { IssueContext } from "@/context/IssueContext";
 import IssueBox from "@/components/community/issueBox/IssueBox";
 import Comment from "@/components/community/comment/Comment";
+import { FaInfoCircle } from 'react-icons/fa';
 const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
 const IssueDetails = () => {
@@ -22,6 +22,7 @@ const IssueDetails = () => {
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [commentText, setCommentText] = useState("");
 
     // Function to get auth headers
     const getAuthHeaders = () => {
@@ -45,13 +46,8 @@ const IssueDetails = () => {
             
             if (response.status !== 404) {
                 const data = await response.json();
-                // Sort comments by time in descending order
-                const sortedComments = data.sort((a, b) => {
-                    const dateA = new Date(a.created_at);
-                    const dateB = new Date(b.created_at);
-                    return dateB - dateA; // Newer comments first
-                });
-                setComments(sortedComments);
+                // Remove sorting, display comments in original order
+                setComments(data);
             }
         } catch (error) {
             console.error("Error fetching comments:", error);
@@ -109,6 +105,17 @@ const IssueDetails = () => {
         }
     };
 
+    const handleQuoteReply = (quotedText) => {
+        // Scroll to comment form
+        const commentForm = document.querySelector('#commentForm');
+        if (commentForm) {
+            commentForm.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Set the quoted text in the comment form
+        setCommentText(quotedText);
+    };
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div className={styles.notFound}><h2>Error</h2><p>{error}</p></div>;
     if (!issue) return <div className={styles.notFound}><h2>Issue not found</h2></div>;
@@ -133,22 +140,15 @@ const IssueDetails = () => {
             <header className={styles.header}>
                 <div className={styles.titleSection}>
                     <h1>
+                        <FaInfoCircle className={styles.infoIcon} />
                         {issueData.title}
                         <span className={styles.issueId}>#{issueData.id}</span>
                     </h1>
-                    <div className={styles.issueStatus}>
-                        <span className={`${styles.status} ${styles[issueData.status]}`}>
-                            {issueData.status === "open" ? (
-                                <FaRegDotCircle className={styles.statusIcon} />
-                            ) : (
-                                <FaRegCheckCircle className={styles.statusIcon} />
-                            )}
-                            {issueData.status}
-                        </span>
-                        <span className={styles.issueInfo}>
-                            <strong>{issueData.author}</strong> opened this issue on{" "}
-                            {formatDate(issueData.date)}
-                        </span>
+                    <div className={styles.issueInfo}>
+                        <strong className={styles.highlightedAuthor}>
+                            {issueData.author}
+                        </strong> opened this issue on{" "}
+                        {formatDate(issueData.date)}
                     </div>
                 </div>
             </header>
@@ -159,13 +159,6 @@ const IssueDetails = () => {
                     date={issueData.created_at}
                     description={issueData.description}
                     avatar={issueData.avatar}
-                />
-            </div>
-            <div className={styles.addComment}>
-                <CommentForm
-                    onSubmit={handleCommentSubmit}
-                    placeholder="Leave a comment"
-                    buttonText="Comment"
                 />
             </div>
             <div className={styles.commentsHeader}>
@@ -179,6 +172,7 @@ const IssueDetails = () => {
                             <Comment
                                 key={comment.id}
                                 comment={comment}
+                                onQuoteReply={handleQuoteReply}
                             />
                         ))}
                     </div>
@@ -188,6 +182,16 @@ const IssueDetails = () => {
                         <span>Be the first to comment on this issue!</span>
                     </div>
                 )}
+            </div>
+
+            <div id="commentForm" className={styles.addComment}>
+                <CommentForm
+                    onSubmit={handleCommentSubmit}
+                    placeholder="Leave a comment"
+                    buttonText="Comment"
+                    value={commentText}
+                    onChange={setCommentText}
+                />
             </div>
         </div>
     );

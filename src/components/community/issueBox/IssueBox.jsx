@@ -4,10 +4,10 @@ import { FaEllipsisH } from "react-icons/fa";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getRandomAvatar } from '@/utils/avatarUtils';
+import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
 
 const IssueBox = ({ author, date, description, avatar }) => {
     const formattedDate = new Date(date).toLocaleString('en-US', {
-        year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
@@ -17,36 +17,18 @@ const IssueBox = ({ author, date, description, avatar }) => {
 
     return (
         <div className={styles.commentContainer}>
-
-            {/* Comment Box */}
             <div className={styles.commentBox}>
-                {/* Comment Header */}
                 <div className={styles.commentHeader}>
-                    <span>
-                        <strong>{author}</strong> 
+                    <div className={styles.userInfo}>
+                        <span className={styles.author}>{author}</span>
                         <span className={styles.commentDate}>
-                            opened on {formattedDate}
+                            commented on {formattedDate}
                         </span>
-                    </span>
+                    </div>
+                    <FaEllipsisH className={styles.moreOptions} />
                 </div>
-
-                {/* Comment Content */}
                 <div className={styles.commentText}>
-                    <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                            p: ({node, ...props}) => <p className={styles.paragraph} {...props} />,
-                            strong: ({node, ...props}) => <strong className={styles.strong} {...props} />,
-                            em: ({node, ...props}) => <em className={styles.italic} {...props} />,
-                            code: ({node, ...props}) => <code className={styles.code} {...props} />,
-                            blockquote: ({node, ...props}) => <blockquote className={styles.blockquote} {...props} />,
-                            ul: ({node, ...props}) => <ul className={styles.unorderedList} {...props} />,
-                            ol: ({node, ...props}) => <ol className={styles.orderedList} {...props} />,
-                            li: ({node, ...props}) => <li className={styles.listItem} {...props} />
-                        }}
-                    >
-                        {description}
-                    </ReactMarkdown>
+                    <MarkdownRenderer content={description} />
                 </div>
             </div>
         </div>

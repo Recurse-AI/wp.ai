@@ -30,21 +30,6 @@
     gap: 8px;
 }
 
-.status {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 12px;
-    border-radius: 2em;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.status.open {
-    background-color: #2da44e;
-    color: #ffffff;
-}
-
 .issueDetails, .comment {
     background: #ffffff;
     border: 1px solid #d0d7de;
@@ -175,15 +160,6 @@
     margin-top: 8px;
 }
 
-.statusIcon {
-    font-size: 16px;
-}
-
-.closed {
-    background-color: #8250df;
-    color: #ffffff;
-}
-
 .issueInfo {
     color: #57606a;
     font-size: 14px;
@@ -268,5 +244,97 @@
     font-weight: 600;
     color: #24292f;
     margin: 0;
+}
+
+/* Add styles for highlighted links */
+.container a {
+    color: #8250df;  /* GitHub's purple color */
+    text-decoration: none;
+    transition: color 0.2s ease;
+    background-color: rgba(130, 80, 223, 0.1);  /* Light purple background */
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.container a:hover {
+    color: #6f42c1;
+    text-decoration: underline;
+    background-color: rgba(130, 80, 223, 0.15);
+}
+
+/* Ensure links in comments are highlighted */
+.timeline a {
+    color: #8250df;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    background-color: rgba(130, 80, 223, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.timeline a:hover {
+    color: #6f42c1;
+    text-decoration: underline;
+    background-color: rgba(130, 80, 223, 0.15);
+}
+
+/* Remove these classes */
+.status,
+.status.open,
+.status.closed,
+.statusIcon {
+    display: none;
+}
+
+.highlightedAuthor {
+    font-size: 1.2em;
+    color: #8250df;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Add responsive styles */
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    .header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .titleSection h1 {
+        font-size: 24px;
+        gap: 6px;
+    }
+
+    .issueInfo {
+        font-size: 13px;
+    }
+
+    .commentsHeader {
+        margin: 16px 0 12px;
+        padding-top: 16px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    .titleSection h1 {
+        font-size: 20px;
+    }
+
+    .comments {
+        margin-top: 16px;
+    }
+
+    .addComment {
+        margin-top: 16px;
+        padding-top: 16px;
+    }
 }
 

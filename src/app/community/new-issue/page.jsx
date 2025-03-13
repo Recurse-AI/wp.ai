@@ -5,7 +5,7 @@ import styles from "./newIssue.module.css";
 import TextEditor from "@/components/community/textEditor/TextEditor";
 import { useRouter } from "next/navigation";
 import { IssueContext } from "@/context/IssueContext";
-import { FaExclamationCircle } from "react-icons/fa";
+import { FaExclamationCircle, FaInfoCircle } from "react-icons/fa";
 
 const NewIssue = () => {
     const { addIssue } = useContext(IssueContext);
@@ -24,8 +24,7 @@ const NewIssue = () => {
             description,
             labels: [],
             comments: [],
-            date: new Date().toISOString(),
-            status: "open"
+            date: new Date().toISOString()
         };
 
         addIssue(newIssue);
@@ -41,17 +40,26 @@ const NewIssue = () => {
 
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <input
-                        type="text"
-                        className={styles.titleInput}
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Title"
-                        required
-                    />
+                    <div className={styles.titleInputWrapper}>
+                        <FaInfoCircle className={styles.icon} />
+                        <input
+                            type="text"
+                            className={styles.titleInput}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Title"
+                            required
+                            maxLength={150}
+                        />
+                    </div>
                     {!title.trim() && (
                         <span className={styles.required}>
                             Title is required
+                        </span>
+                    )}
+                    {title.length >= 150 && (
+                        <span className={styles.limitWarning}>
+                            Maximum character limit reached
                         </span>
                     )}
                 </div>
@@ -60,7 +68,7 @@ const NewIssue = () => {
                     <TextEditor
                         value={description}
                         onChange={setDescription}
-                        placeholder="Leave a comment"
+                        placeholder="Description "
                     />
                 </div>
 
