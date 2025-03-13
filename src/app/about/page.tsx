@@ -41,20 +41,20 @@ const stats = [
 
 const faqs = [
   { 
-    question: "What is WP.ai?", 
-    answer: "WP.ai is an innovative AI-powered platform designed to revolutionize WordPress development and management. Our cutting-edge solutions help developers and businesses create, maintain, and optimize WordPress websites with unprecedented efficiency." 
+    question: "What is our platform?", 
+    answer: "Our platform is an innovative AI-powered content optimization solution designed to enhance your writing. We combine advanced analysis tools with smart optimization features to help you create more engaging and effective content." 
   },
   { 
-    question: "How does WP.ai enhance WordPress development?", 
-    answer: "WP.ai leverages advanced artificial intelligence to automate common WordPress tasks, provide intelligent code suggestions, optimize performance, and offer predictive maintenance capabilities. This allows developers to focus on creativity while AI handles the repetitive tasks." 
+    question: "How does our AI analysis work?", 
+    answer: "Our platform uses sophisticated AI algorithms to analyze your content across multiple dimensions including readability, engagement potential, and optimization opportunities. The AI provides real-time suggestions and insights to improve your content quality." 
   },
   { 
-    question: "Is WP.ai suitable for beginners?", 
-    answer: "Absolutely! WP.ai is designed to be user-friendly for all skill levels. Beginners can benefit from our intuitive interface and AI-guided assistance, while experienced developers can leverage our advanced features for complex projects." 
+    question: "Is this platform suitable for beginners?", 
+    answer: "Absolutely! Our platform is designed to be user-friendly for all skill levels. Beginners can benefit from our intuitive interface and AI-guided suggestions, while experienced writers can leverage our advanced analytics and optimization tools." 
   },
   { 
-    question: "What makes WP.ai different from other WordPress tools?", 
-    answer: "WP.ai stands out through its unique combination of AI-powered automation, real-time optimization, and predictive analytics. Our platform not only helps you build websites faster but also ensures they perform better and stay secure." 
+    question: "What makes our platform different from other content tools?", 
+    answer: "Our platform stands out through its unique combination of AI-powered analysis, real-time optimization suggestions, and comprehensive content insights. We don't just help you write better content - we help you understand why certain changes improve your content's effectiveness." 
   }
 ];
 
@@ -92,10 +92,10 @@ export default function AboutPage() {
           transition={{ duration: 0.8 }}
         >
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
-            About WP.ai
+            About Us
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Revolutionizing WordPress development with the power of artificial intelligence
+            Empowering content creators with AI-driven analysis and optimization tools
           </p>
         </motion.div>
 
@@ -129,9 +129,9 @@ export default function AboutPage() {
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Our Mission</h2>
           <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-white/10 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200/20 dark:border-gray-700/20">
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300">
-              At WP.ai, we're committed to transforming WordPress development through innovative AI solutions. 
-              Our mission is to empower developers and businesses with intelligent tools that make website 
-              creation and management more efficient, intuitive, and powerful than ever before.
+              At our core, we're dedicated to revolutionizing content creation through advanced AI technology. 
+              Our mission is to empower writers, marketers, and content creators with intelligent tools that 
+              make content optimization more efficient, data-driven, and impactful than ever before.
             </p>
           </div>
         </motion.div>
