@@ -55,7 +55,28 @@
 }
 
 .headerActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.quoteButton {
+    background: none;
+    border: none;
+    padding: 4px 8px;
     color: #57606a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.quoteButton:hover {
+    color: #24292f;
+    background-color: rgba(175, 184, 193, 0.2);
 }
 
 .moreOptions {
@@ -211,4 +232,43 @@
 
 .link:active {
     color: #0969da;
+}
+
+.highlightedAuthor {
+    font-size: 1em;
+    color: #9571d8;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.editedLabel {
+    font-size: 12px;
+    color: #57606a;
+    margin-left: 8px;
+}
+
+.editTextarea {
+    width: 100%;
+    height: 100px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 14px;
+    color: #24292f;
+    margin-top: 8px;
+}
+
+.saveButton {
+    background-color: #2da44e;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.saveButton:hover {
+    background-color: #218838;
 } 

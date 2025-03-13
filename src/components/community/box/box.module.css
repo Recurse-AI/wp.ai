@@ -153,3 +153,48 @@
 .sortMenu button:not(:last-child) {
     border-bottom: 1px solid #d0d7de;
 }
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .header {
+        padding: 8px 0;
+        margin-bottom: 12px;
+    }
+
+    .filters {
+        gap: 8px;
+    }
+
+    .searchInput {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .searchInput {
+        width: 100%;
+    }
+
+    .sortButton {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

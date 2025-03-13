@@ -16,16 +16,11 @@ const TextEditor = ({ value, onChange, placeholder }) => {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const text = textarea.value;
-
-        let prefix = '';
-        let suffix = '';
-        let defaultText = '';
-        let selectedText = text.substring(start, end);
+        const selectedText = text.substring(start, end);
         let replacement = '';
 
         switch (format) {
             case 'bold':
-                // Handle multi-paragraph bold text
                 if (selectedText) {
                     replacement = selectedText
                         .split('\n')
@@ -39,7 +34,6 @@ const TextEditor = ({ value, onChange, placeholder }) => {
                 }
                 break;
             case 'italic':
-                // Handle multi-paragraph italic text
                 if (selectedText) {
                     replacement = selectedText
                         .split('\n')
@@ -79,7 +73,6 @@ const TextEditor = ({ value, onChange, placeholder }) => {
                 }
                 break;
             case 'code':
-                // Handle multi-line code blocks
                 if (selectedText && selectedText.includes('\n')) {
                     replacement = '```\n' + selectedText + '\n```';
                 } else {
@@ -87,19 +80,31 @@ const TextEditor = ({ value, onChange, placeholder }) => {
                 }
                 break;
             case 'link':
-                replacement = selectedText ? `[${selectedText}](url)` : '[link text](url)';
+                if (selectedText) {
+                    if (selectedText.match(/^https?:\/\//)) {
+                        replacement = `[@](${selectedText})`;
+                    } else {
+                        replacement = `[${selectedText}](@url)`;
+                    }
+                } else {
+                    replacement = `[@](@url)`;
+                }
                 break;
             case 'quote':
                 if (selectedText) {
-                    replacement = selectedText
+                    const needsNewlineBefore = start > 0 && text[start - 1] !== '\n';
+                    const needsNewlineAfter = end < text.length && text[end] !== '\n';
+                    
+                    const quotedText = selectedText
                         .split('\n')
-                        .map(line => {
-                            const trimmed = line.trim();
-                            return trimmed ? `> ${trimmed}` : line;
-                        })
+                        .map(line => `> ${line}`)
                         .join('\n');
+
+                    replacement = (needsNewlineBefore ? '\n' : '') + 
+                                quotedText + 
+                                (needsNewlineAfter ? '\n\n' : '\n');
                 } else {
-                    replacement = '> quoted text';
+                    replacement = '\n> quoted text\n\n';
                 }
                 break;
             default:

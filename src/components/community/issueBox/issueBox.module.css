@@ -102,3 +102,74 @@
 .listItem::marker {
     color: #57606a;
 }
+
+/* Add responsive styles */
+@media screen and (max-width: 768px) {
+    .commentContainer {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .commentText {
+        font-size: 13px;
+    }
+
+    .commentHeader {
+        font-size: 12px;
+    }
+
+    .userInfo {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .commentDate {
+        font-size: 12px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .commentContainer {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .blockquote {
+        padding-left: 12px;
+        margin: 12px 0;
+    }
+
+    .unorderedList,
+    .orderedList {
+        padding-left: 24px;
+    }
+
+    .commentDate {
+        display: none;
+    }
+
+    .commentHeader {
+        margin-bottom: 4px;
+    }
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author {
+    font-weight: 600;
+    color: #24292f;
+}
+
+.commentDate {
+    color: #57606a;
+}
