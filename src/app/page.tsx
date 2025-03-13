@@ -116,7 +116,7 @@ export default function LandingPage() {
         throw new Error(data.error || 'Failed to submit feedback');
       }
 
-      toast.success("Thanks for your feedback!");
+      // toast.success("Thanks for your feedback!");
       setFeedback(""); // Clear input after submission
     } catch (error) {
       console.error('Feedback submission error:', error);
