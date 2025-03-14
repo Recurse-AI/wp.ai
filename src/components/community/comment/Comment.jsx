@@ -6,12 +6,23 @@ import { getRandomAvatar } from '@/utils/avatarUtils';
 import { FaEllipsisH, FaQuoteRight, FaEdit, FaTimes } from 'react-icons/fa';
 import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
 import TextEditor from '@/components/community/textEditor/TextEditor';
+const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
-const Comment = ({ comment, onQuoteReply }) => {
+const Comment = ({ comment, onQuoteReply, onCommentUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(comment.content);
     const [isEdited, setIsEdited] = useState(false);
 
+    const getAuthHeaders = () => {
+        if (typeof window !== "undefined") {
+            const token = localStorage.getItem("token");
+            return {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            };
+        }
+        return { "Content-Type": "application/json" };
+    };
     // Format date helper function
     const formatDate = (dateString) => {
         if (!dateString) return "Date not available";
@@ -31,7 +42,22 @@ const Comment = ({ comment, onQuoteReply }) => {
             return "Date not available";
         }
     };
-
+    // const getAuthHeaders = () => {
+    //     if (typeof window !== "undefined") {
+    //         const token = localStorage.getItem("token");
+    //         return {
+    //             "Content-Type": "application/json",
+    //             Authorization: `Bearer ${token}`,
+    //         };
+    //     }
+    //     return { "Content-Type": "application/json" };
+    // };
+    // useEffect(() => {
+    //     if (params.id) {
+    //         fetchComments();
+    //     }
+    // }, [params.id]);
+    
     const handleQuoteReply = () => {
         // Format the comment content as a quote
         const quotedText = comment.content
@@ -47,10 +73,27 @@ const Comment = ({ comment, onQuoteReply }) => {
         setIsEditing(!isEditing);
     };
 
-    const handleSave = () => {
-        // Here you would typically send the edited content to the server
-        setIsEditing(false);
-        setIsEdited(true);
+    const handleSave = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/comments/${comment.id}/`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    content: editedContent
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update comment');
+            }
+
+            const updatedComment = await response.json();
+            onCommentUpdate(updatedComment);
+            setIsEditing(false);
+            setIsEdited(true);
+        } catch (error) {
+            console.error('Error updating comment:', error);
+        }
     };
 
     return (

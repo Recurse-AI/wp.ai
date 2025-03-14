@@ -41,7 +41,6 @@ const NewIssue = () => {
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
                     <div className={styles.titleInputWrapper}>
-                        <FaInfoCircle className={styles.icon} />
                         <input
                             type="text"
                             className={styles.titleInput}

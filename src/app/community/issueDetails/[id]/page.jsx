@@ -116,6 +116,14 @@ const IssueDetails = () => {
         setCommentText(quotedText);
     };
 
+    const handleCommentUpdate = async (updatedComment) => {
+        setComments(prevComments => 
+            prevComments.map(comment => 
+                comment.id === updatedComment.id ? updatedComment : comment
+            )
+        );
+    };
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div className={styles.notFound}><h2>Error</h2><p>{error}</p></div>;
     if (!issue) return <div className={styles.notFound}><h2>Issue not found</h2></div>;
@@ -173,6 +181,7 @@ const IssueDetails = () => {
                                 key={comment.id}
                                 comment={comment}
                                 onQuoteReply={handleQuoteReply}
+                                onCommentUpdate={handleCommentUpdate}
                             />
                         ))}
                     </div>
