@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from './comment.module.css';
@@ -6,58 +6,15 @@ import { getRandomAvatar } from '@/utils/avatarUtils';
 import { FaEllipsisH, FaQuoteRight, FaEdit, FaTimes } from 'react-icons/fa';
 import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
 import TextEditor from '@/components/community/textEditor/TextEditor';
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+import { formatDate } from '@/utils/dateUtils';
+import { IssueContext } from '@/context/IssueContext';
 
 const Comment = ({ comment, onQuoteReply, onCommentUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(comment.content);
     const [isEdited, setIsEdited] = useState(false);
+    const { API_BASE_URL, getAuthHeaders } = useContext(IssueContext);
 
-    const getAuthHeaders = () => {
-        if (typeof window !== "undefined") {
-            const token = localStorage.getItem("token");
-            return {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            };
-        }
-        return { "Content-Type": "application/json" };
-    };
-    // Format date helper function
-    const formatDate = (dateString) => {
-        if (!dateString) return "Date not available";
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "Invalid date";
-            
-            return date.toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch (error) {
-            return "Date not available";
-        }
-    };
-    // const getAuthHeaders = () => {
-    //     if (typeof window !== "undefined") {
-    //         const token = localStorage.getItem("token");
-    //         return {
-    //             "Content-Type": "application/json",
-    //             Authorization: `Bearer ${token}`,
-    //         };
-    //     }
-    //     return { "Content-Type": "application/json" };
-    // };
-    // useEffect(() => {
-    //     if (params.id) {
-    //         fetchComments();
-    //     }
-    // }, [params.id]);
-    
     const handleQuoteReply = () => {
         // Format the comment content as a quote
         const quotedText = comment.content

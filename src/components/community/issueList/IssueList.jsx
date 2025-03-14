@@ -100,7 +100,7 @@ const IssueList = ({ issues }) => {
                             <span>#{issue.id}</span>
                             <span>by {issue.created_by.username}</span>
                             <span>
-                                opened {formatDate(issue.created_at)}
+                                {formatDate(issue.created_at)}
                             </span>
                         </div>
                     </div>
