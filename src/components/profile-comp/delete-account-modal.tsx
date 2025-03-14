@@ -49,7 +49,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `bearer ${token}`
+          "Authorization": `Bearer ${token}`
         },
         credentials: "include",
         body: JSON.stringify({ password }),
@@ -90,8 +90,8 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
       }, 2000);
     } catch (error) {
       const err = error as Error;
-      setErrorMessage(err.message || "Failed to delete account. Try again.");
-      toast.error(err.message || "Failed to delete account.");
+      setErrorMessage(err.detail || "Failed to delete account. Try again.");
+      toast.error(err.detail || "Failed to delete account.");
     } finally {
       setLoading(false);
     }

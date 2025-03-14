@@ -244,6 +244,10 @@ export default function useAuth() {
     try {
       const response = await AuthService.login(credentials);
       TokenManager.storeTokens(response.access, response.refresh);
+      localStorage.setItem("token", response.access);
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 3);
+      localStorage.setItem("tokenExpiry", expiryDate.toISOString());
       const user = response.user;
       console.log('user', user);
       setAuthState({

@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadCloud, Lock, Sun, Moon, Laptop, AlertTriangle, Edit, Camera } from "lucide-react"
 import ChangePasswordModal from "./change-password-modal"
 import DeleteAccountModal from "./delete-account-modal"
+import SocialDeleteVerificationModal from "./social-delete-verification-modal"
+import { toast } from "react-hot-toast"
 
 interface UserData {
   name: string;
@@ -38,154 +40,257 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
   const [userData, setUserData] = useState<UserData>(initialUserData);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [isSocialDeleteVerificationModalOpen, setIsSocialDeleteVerificationModalOpen] = useState(false);
+  const [socialDeleteData, setSocialDeleteData] = useState<{ provider: string; expiryMinutes: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   
   useEffect(() => {
-    const storedUserData = localStorage.getItem("userData");
-    console.log('ProfileContent - Raw userData:', storedUserData);
-    
-    if (storedUserData) {
+    const loadUserData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
-        const parsedData = JSON.parse(storedUserData);
-        console.log('ProfileContent - Parsed userData:', parsedData);
+        // Add a small delay to ensure loading state is visible
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        if (parsedData) {
-          setUserData({
-            name: parsedData.name || parsedData.username || fallbackUserData.name,
-            username: parsedData.username || fallbackUserData.username,
-            email: parsedData.email || fallbackUserData.email,
-            image: parsedData.image || parsedData.profile_picture || fallbackUserData.image,
-            profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture,
-            auth_provider: parsedData.auth_provider
-          });
+        const storedUserData = localStorage.getItem("userData");
+        console.log('ProfileContent - Raw userData:', storedUserData);
+        
+        if (storedUserData) {
+          // First try to parse as JSON
+          let parsedData;
+          try {
+            parsedData = JSON.parse(storedUserData);
+          } catch (parseError) {
+            // If not JSON, create a JSON object from the string
+            parsedData = {
+              name: storedUserData,
+              username: storedUserData,
+              email: `${storedUserData}@example.com`,
+              image: fallbackUserData.image,
+              profile_picture: fallbackUserData.profile_picture,
+              auth_provider: 'manual'
+            };
+          }
+          
+          console.log('ProfileContent - Parsed userData:', parsedData);
+          
+          if (parsedData) {
+            setUserData({
+              name: parsedData.name || parsedData.username || fallbackUserData.name,
+              username: parsedData.username || fallbackUserData.username,
+              email: parsedData.email || fallbackUserData.email,
+              image: parsedData.image || parsedData.profile_picture || fallbackUserData.image,
+              profile_picture: parsedData.profile_picture || parsedData.image || fallbackUserData.profile_picture,
+              auth_provider: parsedData.auth_provider
+            });
+          }
+        } else {
+          console.log('ProfileContent - No user data found');
+          setError("Login required to view this page");
         }
       } catch (error) {
-        console.error("Error parsing user data:", error);
+        console.error("Error loading user data:", error);
+        setError("Failed to load user data");
         setUserData(fallbackUserData);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    loadUserData();
   }, [initialUserData]);
 
+  const handleDeleteAccountClick = async () => {
+    if (!userData.auth_provider || userData.auth_provider === 'manual') {
+      setIsDeleteAccountModalOpen(true);
+    } else {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/request-social-deletion-verification/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.status === "verification_email_sent") {
+          toast.success(`${data.message} Code expires in ${data.expiry_minutes} minutes.`);
+          setSocialDeleteData({
+            provider: data.provider,
+            expiryMinutes: data.expiry_minutes,
+          });
+          setIsSocialDeleteVerificationModalOpen(true);
+        } else {
+          toast.error(data.message || "Failed to initiate account deletion");
+        }
+      } catch (error) {
+        toast.error("Failed to initiate account deletion");
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600 dark:text-gray-400 animate-pulse">Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="text-xl font-semibold text-red-500">{error}</div>
+        <Button 
+          onClick={() => window.location.href = '/signin'} 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+        >
+          Go to Sign In
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-8">
-        <TabsTrigger value="profile" className="text-lg">Profile</TabsTrigger>
-        <TabsTrigger value="account" className="text-lg">Account</TabsTrigger>
-        <TabsTrigger value="preferences" className="text-lg">Preferences</TabsTrigger>
-      </TabsList>
+    <>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8 gap-2">
+          <TabsTrigger value="profile" className="text-sm md:text-lg px-2 md:px-4">Profile</TabsTrigger>
+          <TabsTrigger value="account" className="text-sm md:text-lg px-2 md:px-4">Account</TabsTrigger>
+          <TabsTrigger value="preferences" className="text-sm md:text-lg px-2 md:px-4">Preferences</TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="profile">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Profile Information</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Your public profile details.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-1000"></div>
-                <div className="relative">
-                  <Image
-                    src={userData.profile_picture}
-                    alt="Profile picture"
-                    width={150}
-                    height={150}
-                    className="rounded-full border-4 border-white dark:border-gray-800"
-                  />
-                  <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
-                    <Camera className="w-5 h-5" />
-                  </button>
+        <TabsContent value="profile">
+          <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Profile Information</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">Your public profile details.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-1000"></div>
+                  <div className="relative">
+                    <Image
+                      src={userData.profile_picture}
+                      alt="Profile picture"
+                      width={150}
+                      height={150}
+                      className="rounded-full border-4 border-white dark:border-gray-800 aspect-square object-cover"
+                    />
+                    {/* <button className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                      <Camera className="w-5 h-5" />
+                    </button> */}
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 space-y-4 text-center md:text-left">
-                <div>
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
-                    {userData.name}
-                  </h2>
-                  <p className="text-xl text-gray-600 dark:text-gray-400">@{userData.username}</p>
-                  <p className="text-gray-500 dark:text-gray-500">{userData.email}</p>
-                </div>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                  <Edit className="w-4 h-4 mr-2" /> Edit Profile
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="account">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Account Settings</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Manage your account here.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              {(!userData.auth_provider || userData.auth_provider === 'manual') && (
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
-                  <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)} className="w-full md:w-auto">
-                    <Lock className="mr-2 h-4 w-4" /> Change Password
+                <div className="flex-1 space-y-4 text-center md:text-left">
+                  <div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+                      {userData.name}
+                    </h2>
+                    <p className="text-xl text-gray-600 dark:text-gray-400">@{userData.username}</p>
+                    <p className="text-gray-500 dark:text-gray-500">{userData.email}</p>
+                  </div>
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                    <Edit className="w-4 h-4 mr-2" /> Edit Username
                   </Button>
                 </div>
-              )}
-              {userData.auth_provider && userData.auth_provider !== 'manual' && (
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Password change is not available for {userData.auth_provider} login.</p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-red-500">Danger Zone</h3>
-                <Button variant="destructive" onClick={() => setIsDeleteAccountModalOpen(true)} className="w-full md:w-auto">
-                  <AlertTriangle className="mr-2 h-4 w-4" /> Delete Account
-                </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <TabsContent value="preferences">
-        <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Preferences</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Customize your app experience.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Theme</h3>
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  variant={theme === "light" ? "default" : "outline"} 
-                  onClick={() => setTheme("light")}
-                  className="flex-1 md:flex-none"
-                >
-                  <Sun className="mr-2 h-4 w-4" /> Light
-                </Button>
-                <Button 
-                  variant={theme === "dark" ? "default" : "outline"} 
-                  onClick={() => setTheme("dark")}
-                  className="flex-1 md:flex-none"
-                >
-                  <Moon className="mr-2 h-4 w-4" /> Dark
-                </Button>
-                <Button 
-                  variant={theme === "system" ? "default" : "outline"} 
-                  onClick={() => setTheme("system")}
-                  className="flex-1 md:flex-none"
-                >
-                  <Laptop className="mr-2 h-4 w-4" /> System
-                </Button>
+        <TabsContent value="account">
+          <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Account Settings</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">Manage your account here.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                {(!userData.auth_provider || userData.auth_provider === 'manual') && (
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
+                    <Button variant="outline" onClick={() => setIsPasswordModalOpen(true)} className="w-full md:w-auto">
+                      <Lock className="mr-2 h-4 w-4" /> Change Password
+                    </Button>
+                  </div>
+                )}
+                {userData.auth_provider && userData.auth_provider !== 'manual' && (
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Password</h3>
+                    <p className="text-gray-500 dark:text-gray-400">Password change is not available for {userData.auth_provider} login.</p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-red-500">Danger Zone</h3>
+                  <Button variant="destructive" onClick={handleDeleteAccountClick} className="w-full md:w-auto">
+                    <AlertTriangle className="mr-2 h-4 w-4" /> Delete Account
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preferences">
+          <Card className="border-0 shadow-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Preferences</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">Customize your app experience.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Theme</h3>
+                <div className="flex flex-wrap gap-4">
+                  <Button 
+                    variant={theme === "light" ? "default" : "outline"} 
+                    onClick={() => setTheme("light")}
+                    className="flex-1 md:flex-none"
+                  >
+                    <Sun className="mr-2 h-4 w-4" /> Light
+                  </Button>
+                  <Button 
+                    variant={theme === "dark" ? "default" : "outline"} 
+                    onClick={() => setTheme("dark")}
+                    className="flex-1 md:flex-none"
+                  >
+                    <Moon className="mr-2 h-4 w-4" /> Dark
+                  </Button>
+                  <Button 
+                    variant={theme === "system" ? "default" : "outline"} 
+                    onClick={() => setTheme("system")}
+                    className="flex-1 md:flex-none"
+                  >
+                    <Laptop className="mr-2 h-4 w-4" /> System
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
       <DeleteAccountModal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)} />
-    </Tabs>
+      {socialDeleteData && (
+        <SocialDeleteVerificationModal
+          isOpen={isSocialDeleteVerificationModalOpen}
+          onClose={() => {
+            setIsSocialDeleteVerificationModalOpen(false);
+            setSocialDeleteData(null);
+          }}
+          provider={socialDeleteData.provider}
+          expiryMinutes={socialDeleteData.expiryMinutes}
+        />
+      )}
+    </>
   );
 }

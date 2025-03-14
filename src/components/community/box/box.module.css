@@ -1,0 +1,200 @@
+.container {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+.header {
+    background-color: rgba(246, 248, 250, 0.95);
+    border-bottom: 1px solid #d0d7de;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.tab {
+    background: none;
+    border: none;
+    padding: 5px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.tab:hover {
+    background-color: rgba(234, 238, 242, 0.95);
+}
+
+.count {
+    background-color: rgba(175, 184, 193, 0.2);
+    border-radius: 2em;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.filters {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filterButton {
+    background: none;
+    border: none;
+    padding: 5px 12px;
+    font-size: 14px;
+    color: #24292f;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.filterButton:hover {
+    color: #0969da;
+}
+
+.filterButton.active {
+    color: #0969da;
+    font-weight: 500;
+}
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    width: 300px;
+}
+
+.searchIcon {
+    color: #57606a;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.searchInput {
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+}
+
+.searchInput::placeholder {
+    color: #57606a;
+}
+
+.clearButton {
+    color: #57606a;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 14px;
+}
+
+.clearButton:hover {
+    color: #24292f;
+}
+
+.sortDropdown {
+    position: relative;
+}
+
+.sortMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+    z-index: 100;
+    min-width: 180px;
+}
+
+.sortMenu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #24292f;
+    cursor: pointer;
+}
+
+.sortMenu button:hover {
+    background-color: rgba(246, 248, 250, 0.95);
+}
+
+.sortMenu button.active {
+    background-color: rgba(246, 248, 250, 0.95);
+    color: #0969da;
+    font-weight: 500;
+}
+
+.sortMenu button:not(:last-child) {
+    border-bottom: 1px solid #d0d7de;
+}
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .header {
+        padding: 8px 0;
+        margin-bottom: 12px;
+    }
+
+    .filters {
+        gap: 8px;
+    }
+
+    .searchInput {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .searchInput {
+        width: 100%;
+    }
+
+    .sortButton {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

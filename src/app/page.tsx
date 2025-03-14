@@ -86,13 +86,42 @@ export default function LandingPage() {
   };
 
   // Handle feedback submission
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = async () => {
     if (feedback.trim() === "") {
       toast.error("Please enter your feedback!");
       return;
     }
-    toast.success("Thanks for your feedback!");
-    setFeedback(""); // Clear input after submission
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/feedback/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          content: feedback
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
+
+      // toast.success("Thanks for your feedback!");
+      setFeedback(""); // Clear input after submission
+    } catch (error) {
+      console.error('Feedback submission error:', error);
+      toast.error("Failed to submit feedback. Please try again.");
+    }
   };
 
   // Toggle chat open/close
@@ -120,7 +149,7 @@ export default function LandingPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-14 md:pt-16">
         {/* Hero section is loaded immediately */}
         <HeroSection onChatOpen={handleChatOpen} />
         
@@ -156,7 +185,7 @@ export default function LandingPage() {
             onSubmit={handleFeedbackSubmit} 
           />
         </Suspense>
-      </div>
+          </div>
 
       {/* Footer */}
       <footer className="relative py-10 text-center">

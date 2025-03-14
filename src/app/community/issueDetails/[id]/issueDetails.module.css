@@ -1,0 +1,364 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.header {
+    margin-bottom: 24px;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 16px;
+}
+
+.title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.issueNumber {
+    color: #6e7781;
+    font-weight: 400;
+}
+
+.issueMetadata {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.issueDetails, .comment {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.authorInfo, .commentHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+    border-radius: 6px 6px 0 0;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.authorMeta, .commentMeta {
+    display: flex;
+    flex-direction: column;
+}
+
+.authorName, .commenterName {
+    font-weight: 600;
+    color: #24292f;
+}
+
+.timestamp, .commentTime {
+    font-size: 12px;
+    color: #57606a;
+}
+
+.issueContent, .commentContent {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #24292f;
+}
+
+.noComments {
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    color: #57606a;
+}
+
+.noComments p {
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.noComments span {
+    font-size: 14px;
+}
+
+.commentFormSection {
+    margin-top: 24px;
+    background: none;
+}
+
+.commentContainer {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+}
+
+.commentBox {
+    flex: 1;
+    min-width: 0;
+}
+
+.commentText {
+    color: #24292f;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.moreOptions {
+    cursor: pointer;
+    font-size: 16px;
+    color: #6a737d;
+}
+
+.titleSection h1 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #24292f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.issueId {
+    color: #6a737d;
+    font-weight: 400;
+}
+
+.issueStatus {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.issueInfo {
+    color: #57606a;
+    font-size: 14px;
+}
+
+.timeline {
+    margin-top: 8px;
+}
+
+.mainComment {
+    margin-bottom: 24px;
+}
+
+.comments {
+    margin-top: 24px;
+}
+
+.addComment {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #d1d5da;
+}
+.notFound {
+    text-align: center;
+    padding: 48px 24px;
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    margin: 48px auto;
+    max-width: 600px;
+}
+
+.notFound h2 {
+    font-size: 24px;
+    color: #24292f;
+    margin-bottom: 12px;
+}
+
+.notFound p {
+    color: #57606a;
+    font-size: 16px;
+}
+
+.replyBox {
+    margin-top: 24px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+    padding: 16px;
+}
+
+.replyForm {
+    margin-top: 16px;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.replyButton {
+    background-color: #2da44e;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.replyButton:hover {
+    background-color: #218838;
+}
+
+.commentsHeader {
+    margin: 24px 0 16px;
+    padding-top: 24px;
+    border-top: 1px solid #d0d7de;
+}
+
+.commentsHeader h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #24292f;
+    margin: 0;
+}
+
+/* Add styles for highlighted links */
+.container a {
+    color: #8250df;  /* GitHub's purple color */
+    text-decoration: none;
+    transition: color 0.2s ease;
+    background-color: rgba(130, 80, 223, 0.1);  /* Light purple background */
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.container a:hover {
+    color: #6f42c1;
+    text-decoration: underline;
+    background-color: rgba(130, 80, 223, 0.15);
+}
+
+/* Ensure links in comments are highlighted */
+.timeline a {
+    color: #8250df;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    background-color: rgba(130, 80, 223, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.timeline a:hover {
+    color: #6f42c1;
+    text-decoration: underline;
+    background-color: rgba(130, 80, 223, 0.15);
+}
+
+/* Remove these classes */
+.status,
+.status.open,
+.status.closed,
+.statusIcon {
+    display: none;
+}
+
+.highlightedAuthor {
+    font-size: 1.2em;
+    color: #8250df;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Add responsive styles */
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    .header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .titleSection h1 {
+        font-size: 24px;
+        gap: 6px;
+    }
+
+    .issueInfo {
+        font-size: 13px;
+    }
+
+    .commentsHeader {
+        margin: 16px 0 12px;
+        padding-top: 16px;
+    }
+
+    .commentContainer {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .commentText {
+        font-size: 13px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    .titleSection h1 {
+        font-size: 20px;
+    }
+
+    .comments {
+        margin-top: 16px;
+    }
+
+    .addComment {
+        margin-top: 16px;
+        padding-top: 16px;
+    }
+
+    .commentContainer {
+        padding: 8px;
+        gap: 8px;
+    }
+}
+
+.mainContent {
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.markdownWrapper {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.markdownWrapper pre {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.markdownWrapper code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+

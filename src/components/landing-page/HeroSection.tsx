@@ -105,7 +105,7 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             variants={itemVariants}
             className="mt-6 text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
           >
-            WP.ai supercharges your WordPress site with <span className="font-semibold text-blue-600 dark:text-blue-400">AI automation</span> and <span className="font-semibold text-purple-600 dark:text-purple-400">SEO enhancements</span>, making your website smarter and faster.
+            Enhance your content with <span className="font-semibold text-blue-600 dark:text-blue-400">AI-powered analysis</span> and <span className="font-semibold text-purple-600 dark:text-purple-400">smart optimization</span>, making your writing more impactful and engaging.
           </motion.p>
 
           <motion.div 

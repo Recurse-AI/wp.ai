@@ -7,7 +7,12 @@ export const PLANS: Plan[] = [
     title: "Quarterly Plan",
     price: 40,
     duration: "per 3 months",
-    features: ["Advanced AI suggestions", "Priority support", "Exclusive WP plugins", "Weekly performance reports"],
+    features: [
+      "Advanced AI content analysis",
+      "Priority content support",
+      "Unlimited content optimization",
+      "Weekly performance insights"
+    ],
     best: true,
     color: "from-blue-600 to-purple-600",
     bgColor: "from-blue-500/10 to-purple-500/10",
@@ -17,7 +22,12 @@ export const PLANS: Plan[] = [
     title: "Monthly Plan",
     price: 15,
     duration: "per month",
-    features: ["Core AI features", "Basic support", "10 WP optimizations", "Monthly insights"],
+    features: [
+      "Basic AI writing tools",
+      "Standard support",
+      "10 content optimizations",
+      "Monthly content analytics"
+    ],
     color: "from-blue-500 to-blue-600",
     bgColor: "from-blue-500/5 to-blue-600/5",
   },
@@ -26,7 +36,12 @@ export const PLANS: Plan[] = [
     title: "Yearly Plan",
     price: 120,
     duration: "per year",
-    features: ["Unlimited AI optimizations", "Dedicated WP consultant", "Exclusive plugins", "Custom integrations"],
+    features: [
+      "Unlimited AI enhancements",
+      "Dedicated content expert",
+      "Premium writing features",
+      "Custom content strategies"
+    ],
     color: "from-purple-500 to-pink-600",
     bgColor: "from-purple-500/5 to-pink-600/5",
   },
@@ -34,36 +49,36 @@ export const PLANS: Plan[] = [
 
 export const FEATURES: Feature[] = [
   {
-    title: "AI-Powered SEO",
-    description: "Automatically optimizes your content and metadata for better Google rankings.",
+    title: "AI Content Enhancement",
+    description: "Transform your content quality with advanced AI algorithms for better readability and engagement.",
     icon: Rocket,
   },
   {
-    title: "Faster Load Times",
-    description: "Reduce WordPress page load times with intelligent caching and asset optimization.",
+    title: "Smart Content Analysis",
+    description: "Get detailed insights and optimization suggestions for your content in real-time.",
     icon: Gauge,
   },
   {
-    title: "Auto Optimization",
-    description: "Detects issues and fixes them instantly to keep your site running at peak performance.",
+    title: "AI Writing Assistant",
+    description: "Generate creative content ideas and outlines with our intelligent writing assistant.",
     icon: Wrench,
   },
 ];
 
 export const ADDITIONAL_FEATURES: Feature[] = [
   {
-    title: "Advanced Security",
-    description: "AI-powered threat detection and prevention to keep your WordPress site secure.",
+    title: "Real-time Analysis",
+    description: "Instant feedback on content quality, readability scores, and SEO performance metrics.",
     icon: Shield,
   },
   {
-    title: "Performance Boost",
-    description: "Smart optimization techniques that make your site lightning fast.",
+    title: "Smart Formatting",
+    description: "Automatic content structuring and formatting for maximum impact and readability.",
     icon: Zap,
   },
   {
-    title: "User Analytics",
-    description: "Deep insights into visitor behavior to help you optimize user experience.",
+    title: "Performance Tracking",
+    description: "Comprehensive analytics and AI-powered suggestions to improve content performance.",
     icon: Users,
   },
 ];

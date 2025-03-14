@@ -1,0 +1,165 @@
+:root {
+    --bg: white;
+    /* Default background color */
+    --textColor: black;
+    /* Default text color */
+    --softBg: #f0dbdb;
+    /* Soft background color */
+    --softTextColor: #626262;
+    /* Soft text color */
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    background-color: var(--bg);
+    color: var(--textColor);
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* 🌙 Dark Mode */
+.dark {
+    --bg: #292a2e;
+    /* Dark background */
+    --textColor: #e4d9d9;
+    /* Light text */
+    --softBg: #1f273a;
+    /* Darker soft background */
+    --softTextColor: #cfcfcf;
+    /* Softer but readable text */
+}
+
+.light {
+    --bg: white;
+    /* Default background color */
+    --textColor: black;
+    /* Default text color */
+    --softBg: #f0dbdb;
+    /* Soft background color */
+    --softTextColor: #626262;
+}
+
+.container {
+    padding-top: 80px;
+    min-height: 100vh;
+    background-color: var(--bg);
+    color: var(--textColor);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.wrapper {
+    max-width: 1536px;
+    margin: 0 auto;
+    background-color: var(--bg);
+    /* Use theme color instead of fixed white */
+}
+
+/* 📱 Responsive Adjustments */
+@media screen and (max-width: 1536px) {
+    .wrapper {
+        max-width: 1366px;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    .wrapper {
+        max-width: 768px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .wrapper {
+        max-width: 640px;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .wrapper {
+        max-width: 475px;
+    }
+}
+
+/* 🔠 Fix for Text Overflow */
+.preformatted-text {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.loading-auth {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: var(--textColor);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--softBg);
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dark .loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--softBg);
+}
+
+/* Responsive breakpoints */
+@media screen and (max-width: 1024px) {
+    .container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 60px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Mobile-friendly text */
+@media screen and (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+}
