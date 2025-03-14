@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import axios from 'axios';
 
 /**
  * POST /api/agent/message - Send a message to the agent
@@ -9,17 +8,13 @@ import axios from 'axios';
  * Body:
  * - message: string - The message to send
  * - project_id: string - The project ID
- * - model_id: string - The model ID to use
- * - provider: string - The provider ID
- * - temperature?: number - Temperature parameter for generation
- * - max_tokens?: number - Maximum tokens to generate
- * - session_id?: string - Existing session ID (if continuing a conversation)
+ * - id?: string - Existing conversation ID (if continuing a conversation)
+ * - file_context?: { name: string, content: string } - Optional file context
  * 
  * Returns:
- * - session_id: string - Session ID
- * - message_id: string - Message ID
- * - response: string - Agent response
- * - code_changes?: any[] - Code changes made by the agent
+ * - message: string - The agent's response
+ * - id: string - Conversation ID
+ * - code_changes?: Array - Optional code changes suggested by the agent
  */
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +32,8 @@ export async function POST(request: NextRequest) {
     const { 
       message, 
       project_id, 
-      model_id, 
-      provider, 
-      temperature, 
-      max_tokens, 
-      session_id 
+      id,
+      file_context 
     } = body;
 
     // Validate required fields
@@ -51,65 +43,51 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (!project_id) {
       return NextResponse.json(
         { message: 'Project ID is required' },
         { status: 400 }
       );
     }
-    
-    if (!model_id || !provider) {
-      return NextResponse.json(
-        { message: 'Model ID and provider are required' },
-        { status: 400 }
-      );
-    }
 
-    // Call external API or AI provider directly
-    const apiUrl = process.env.EXTERNAL_AGENT_API_URL || 'https://api.example.com/agent/message';
+    // In a real implementation, you would call your AI agent service
+    // For now, we'll simulate a response
     
-    const requestBody = {
-      message,
-      project_id,
-      model_id,
-      provider,
-      temperature: temperature || 0.7,
-      max_tokens: max_tokens || 4096,
-      user_id: session.user.id || session.user.email,
-      ...(session_id && { session_id }),
-    };
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // In a real implementation, this would call an external API or LLM directly
-    const response = await axios.post(apiUrl, requestBody);
-    
-    // Here's a mock response for testing
-    /* 
-    const mockResponse = {
-      session_id: session_id || `session-${Date.now()}`,
-      message_id: `msg-${Date.now()}`,
-      response: `I've analyzed your request and made the following changes...`,
-      code_changes: [
+    // Create a simulated response
+    const simulatedResponse = {
+      message: `I've analyzed your request: "${message}". ${file_context ? 'I see you\'ve shared a file with me. ' : ''}Here's what I can help with...`,
+      id: id || `conversation-${Date.now()}`,
+      user_id: session.user.email,
+      ...(id && { id }),
+      code_changes: file_context ? [
         {
-          operation: 'update',
-          fileId: 'file-123',
-          content: '// Updated code content'
+          file_name: file_context.name,
+          changes: [
+            {
+              type: 'insert',
+              line: 10,
+              content: '// This is a suggested change by the agent'
+            }
+          ]
         }
-      ]
+      ] : undefined
     };
-    */
     
-    // Return the response from the API
-    return NextResponse.json(response.data);
+    // Return the response
+    return NextResponse.json(simulatedResponse);
   } catch (error: any) {
-    console.error('Agent API error:', error);
+    console.error('Agent message API error:', error);
     
     // Proper error handling with status codes
     if (error.response) {
       // External API returned error
       return NextResponse.json(
         { 
-          message: error.response.data?.message || 'Error processing agent request',
+          message: error.response.data?.message || 'Error processing agent message',
           error: error.response.data 
         },
         { status: error.response.status || 500 }

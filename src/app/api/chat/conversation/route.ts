@@ -9,7 +9,8 @@ import { ConversationRequest } from '@/lib/types/chat';
  * 
  * Body:
  * - query: string - The message to send
- * - session_id?: string - Existing session ID (if continuing a conversation)
+ * - id?: string - Existing ID (if continuing a conversation)
+ * - is_new_chat?: boolean - Whether this is a new chat
  * - provider?: string - The provider ID
  * - model?: string - The model ID to use
  * - temperature?: number - Temperature parameter for generation
@@ -17,12 +18,11 @@ import { ConversationRequest } from '@/lib/types/chat';
  * 
  * Returns:
  * - response: string - The AI response
- * - session_id: string - The session ID
- * - conversation_id: string - The conversation ID
+ * - id: string - The conversation ID
  * - title: string - The conversation title
  * - created_at: string - Creation timestamp
  * - updated_at: string - Update timestamp
- * - is_new_session: boolean - Whether this is a new session
+ * - is_new_chat: boolean - Whether this is a new chat
  * - provider_used: string - The provider used
  * - model_used: string - The model used
  */
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { query, session_id, provider, model, temperature, max_tokens } = body as ConversationRequest;
+    const { query, id, is_new_chat, provider, model, temperature, max_tokens } = body as ConversationRequest;
 
     // Validate required fields
     if (!query) {
@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Generate a new session ID if not provided
-    const currentSessionId = session_id || uuidv4();
-    const isNewSession = !session_id;
+    // Generate a new ID if not provided
+    const currentId = id || uuidv4();
+    const isNewChat = is_new_chat || !id;
     
     // In a real implementation, you would call your AI service
     // For now, we'll simulate a response
@@ -62,12 +62,11 @@ export async function POST(request: NextRequest) {
     // Create a simulated response
     const simulatedResponse = {
       response: `This is a simulated response to: "${query}"`,
-      session_id: currentSessionId,
-      conversation_id: uuidv4(),
-      title: isNewSession ? generateTitle(query) : "Existing Conversation",
+      id: currentId,
+      title: isNewChat ? generateTitle(query) : "Existing Conversation",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      is_new_session: isNewSession,
+      is_new_chat: isNewChat,
       provider_used: provider || 'openai',
       model_used: model || 'gpt-4',
     };

@@ -239,7 +239,10 @@ export default function SignIn() {
         router.push("/");
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : VALIDATION_MESSAGES.INVALID_CREDENTIALS;
+      let errorMessage = VALIDATION_MESSAGES.INVALID_CREDENTIALS;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast.error(errorMessage, getToastStyle(theme));
       setErrors({ general: errorMessage });
     } finally {

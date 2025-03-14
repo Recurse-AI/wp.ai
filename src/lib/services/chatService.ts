@@ -1,6 +1,6 @@
 import { AIModel } from './aiModels';
 import apiClient from './apiClient';
-import { AxiosResponse } from 'axios';
+import { AxiosResponse, AxiosError } from 'axios';
 import { 
   ChatMessage, 
   ChatResponse, 
@@ -19,7 +19,6 @@ import { CHAT_CONFIG, ChatSettings } from './chatConfig';
 
 export interface ChatSession {
   id: string;
-  session_id: string;
   title: string;
   created_at: string;
   updated_at: string;
@@ -32,13 +31,23 @@ const DEFAULT_CONFIG: ChatConfig = {
   provider: 'openai',
   model: 'gpt-4o',
   temperature: 0.7,
-  max_tokens: 1000,
+  max_tokens: 2000,
+  use_vector_search: false,
+  is_new_chat: false,
+  mode: 'default',
 };
+
+// Static cache to track non-existent sessions across instances
+// Using id as key
+const nonExistentSessionsCache = new Set<string>();
+
+// Track API calls in progress to prevent duplicate calls
+const pendingApiCalls = new Map<string, Promise<Message[]>>();
 
 export class ChatService {
   private config: ChatConfig;
   private settings: ChatSettings;
-  private sessionId: string | null;
+  private id: string | null;
   private apiUrl: string;
   private storageListener: ((this: Window, ev: StorageEvent) => any) | null = null;
 
@@ -48,8 +57,11 @@ export class ChatService {
       ...CHAT_CONFIG.DEFAULT_SETTINGS,
       ...initialSettings,
     };
-    this.sessionId = initialSettings?.session_id || null;
+    this.id = initialSettings?.id || null;
     this.apiUrl = process.env.NEXT_PUBLIC_CHAT_API_URL || '';
+    
+    // Set extended_thinking parameter based on the model
+    this.updateExtendedThinkingFromModel();
     
     // Initialize with localStorage value if available
     this.initFromLocalStorage();
@@ -57,6 +69,20 @@ export class ChatService {
     // Set up localStorage listener
     if (typeof window !== 'undefined') {
       this.setupLocalStorageListener();
+    }
+  }
+  
+  /**
+   * Update extended_thinking parameter based on the selected model
+   */
+  private updateExtendedThinkingFromModel(): void {
+    if (this.settings.model === 'claude-3-7-sonnet-thinking') {
+      // Enable extended thinking for the thinking model variant
+      this.settings.extended_thinking = true;
+      this.settings.extended_thinking_budget = 1024;
+      // Note: When sending to API, we'll use 'claude-3-7-sonnet' instead
+    } else {
+      this.settings.extended_thinking = false;
     }
   }
   
@@ -142,14 +168,33 @@ export class ChatService {
    * Create or continue a conversation
    */
   async sendMessage(query: string, options: Partial<ChatSettings> = {}): Promise<ChatResponse> {
+    // If model is claude-3-7-sonnet-thinking, ensure extended_thinking is true
+    // but send claude-3-7-sonnet as the actual model name to the API
+    let modelToSend = options.model || this.settings.model;
+    
+    if (modelToSend === 'claude-3-7-sonnet-thinking') {
+      options.extended_thinking = true;
+      options.extended_thinking_budget = options.extended_thinking_budget || this.settings.extended_thinking_budget;
+      // Use the standard model name for the API call
+      modelToSend = 'claude-3-7-sonnet';
+    } else if (modelToSend === 'claude-3-7-sonnet') {
+      options.extended_thinking = false;
+      options.extended_thinking_budget = 0;
+      this.updateExtendedThinkingFromModel();
+    }
+    
     const requestBody: ConversationRequest = {
       query,
-      session_id: this.sessionId || undefined,
+      id: this.id || undefined,
+      is_new_chat: options.is_new_chat || this.settings.is_new_chat,
       provider: options.provider || this.settings.provider,
-      model: options.model || this.settings.model,
+      model: modelToSend,
       temperature: options.temperature || this.settings.temperature,
       max_tokens: options.max_tokens || this.settings.max_tokens,
       use_vector_search: options.use_vector_search || this.settings.use_vector_search,
+      mode: options.mode || this.settings.mode,
+      extended_thinking: options.extended_thinking || this.settings.extended_thinking || false,
+      extended_thinking_budget: options.extended_thinking_budget || this.settings.extended_thinking_budget || 0,
     };
 
     try {
@@ -166,9 +211,9 @@ export class ChatService {
 
       const data = response.data;
 
-      // Update session ID if this is a new chat
-      if (!this.sessionId) {
-        this.sessionId = data.session_id;
+      // Update id if this is a new chat
+      if (!this.id) {
+        this.id = data.id;
       }
 
       return data;
@@ -182,12 +227,12 @@ export class ChatService {
    * Regenerate a response
    */
   async regenerateResponse(messageId?: string): Promise<ChatResponse> {
-    if (!this.sessionId) {
+    if (!this.id) {
       throw new Error('No active session to regenerate response');
     }
 
     const requestBody: RegenerateRequest = {
-      session_id: this.sessionId,
+      id: this.id,
       message_id: messageId
     };
 
@@ -214,25 +259,71 @@ export class ChatService {
    * Get conversation history for a specific session
    */
   async getSessionHistory(): Promise<Message[]> {
-    if (!this.sessionId) {
+    if (!this.id) {
       return [];
     }
 
-    try {
-      const response = await apiClient.get<ChatSessionResponse>(
-        `${this.apiUrl}/get_history/?session_id=${this.sessionId}`,
-        { withCredentials: true }
-      );
-
-      return response.data.messages;
-    } catch (error) {
-      console.error('Error fetching conversation history:', error);
-      throw error;
+    // Check if this session is known to not exist
+    if (nonExistentSessionsCache.has(this.id)) {
+      console.log(`Session ${this.id} is known to not exist, skipping API call`);
+      return [];
     }
+
+    // Check if there's already a pending API call for this session
+    if (pendingApiCalls.has(this.id)) {
+      console.log(`API call for session ${this.id} already in progress, reusing promise`);
+      return pendingApiCalls.get(this.id)!;
+    }
+
+    // Create a new promise for this API call
+    const apiCallPromise = (async () => {
+      try {
+        const response = await apiClient.get<ChatSessionResponse>(
+          `${this.apiUrl}/get_history/?id=${this.id}`,
+          { withCredentials: true }
+        );
+
+        // Remove from pending calls map once completed
+        if (this.id) {
+          pendingApiCalls.delete(this.id);
+        }
+
+        return response.data.messages || [];
+      } catch (error) {
+        console.error('Error fetching conversation history:', error);
+        
+        // Handle 404 errors gracefully
+        const axiosError = error as AxiosError;
+        if (axiosError.response && (axiosError.response.status === 404 || axiosError.response.status === 400)) {
+          console.log(`Session ${this.id} not found or invalid, returning empty array`);
+          
+          // Add to cache of non-existent sessions
+          if (this.id) {
+            nonExistentSessionsCache.add(this.id);
+          }
+          
+          return [];
+        }
+        
+        throw error;
+      } finally {
+        // Always remove from pending calls map
+        if (this.id) {
+          pendingApiCalls.delete(this.id);
+        }
+      }
+    })();
+
+    // Store the promise in the map
+    if (this.id) {
+      pendingApiCalls.set(this.id, apiCallPromise);
+    }
+
+    return apiCallPromise;
   }
 
   /**
-   * Get all conversations
+   * Get all conversations for the current user
    */
   async getAllConversations(page = 1, pageSize = 10): Promise<ChatHistoryResponse> {
     try {
@@ -240,16 +331,15 @@ export class ChatService {
         `${this.apiUrl}/history/?page=${page}&page_size=${pageSize}`,
         { withCredentials: true }
       );
-
       return response.data;
     } catch (error) {
-      console.error('Error fetching all conversations:', error);
+      console.error('Error getting all conversations:', error);
       throw error;
     }
   }
 
   /**
-   * Get recent conversations
+   * Get recent conversations for the current user
    */
   async getRecentConversations(limit = 5): Promise<ChatConversation[]> {
     try {
@@ -257,12 +347,19 @@ export class ChatService {
         `${this.apiUrl}/history/recent/?limit=${limit}`,
         { withCredentials: true }
       );
-
+      console.log(response.data, "response.data");
       return response.data;
     } catch (error) {
-      console.error('Error fetching recent conversations:', error);
-      throw error;
+      console.error('Error getting recent conversations:', error);
+      return [];
     }
+  }
+
+  /**
+   * Get conversation history
+   */
+  async getConversationHistory(): Promise<ChatMessage[]> {
+    return this.getSessionHistory();
   }
 
   /**
@@ -334,8 +431,8 @@ export class ChatService {
         `${this.apiUrl}/history/${chatId}/`,
         { withCredentials: true }
       );
-      if (chatId === this.sessionId) {
-        this.sessionId = null;
+      if (chatId === this.id) {
+        this.id = null;
       }
       return true;
     } catch (error) {
@@ -344,22 +441,71 @@ export class ChatService {
     }
   }
 
-  setSessionId(sessionId: string | null): void {
-    this.sessionId = sessionId;
+  /**
+   * Update the title of a conversation
+   */
+  async updateChatTitle(chatId: string, title: string): Promise<ChatConversation> {
+    try {
+      const response = await apiClient.post<ChatConversation>(
+        `${this.apiUrl}/history/${chatId}/rename/`,
+        { title },
+        { withCredentials: true }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error updating chat title:', error);
+      throw error;
+    }
   }
 
+  /**
+   * Set the conversation ID
+   */
+  setId(id: string | null): void {
+    this.id = id;
+  }
+
+  /**
+   * Update settings
+   */
   updateSettings(newSettings: Partial<ChatSettings>): void {
-    this.settings = {
-      ...this.settings,
-      ...newSettings,
-    };
+    this.settings = { ...this.settings, ...newSettings };
+    
+    // Update extended_thinking settings when model changes
+    if (newSettings.model) {
+      this.updateExtendedThinkingFromModel();
+    }
   }
 
+  /**
+   * Get current settings
+   */
   getSettings(): ChatSettings {
-    return { ...this.settings };
+    return this.settings;
   }
 
-  getCurrentSessionId(): string | null {
-    return this.sessionId;
+  /**
+   * Get current conversation ID
+   */
+  getCurrentId(): string | null {
+    return this.id;
   }
-} 
+
+  /**
+   * Clear a conversation from the non-existent sessions cache
+   */
+  clearNonExistentConversation(id: string): void {
+    nonExistentSessionsCache.delete(id);
+  }
+
+  /**
+   * Get all non-existent conversations
+   */
+  static getNonExistentConversations(): string[] {
+    return Array.from(nonExistentSessionsCache);
+  }
+}
+
+// Create and export a default instance of the ChatService
+export const chatService = new ChatService(); 

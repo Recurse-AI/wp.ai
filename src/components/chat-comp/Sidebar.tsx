@@ -16,19 +16,26 @@ import { ChatService } from "@/lib/services/chatService";
 import { ChatConversation } from "@/lib/types/chat";
 import { getToastStyle } from "@/lib/toastConfig";
 import toast from "react-hot-toast";
+import { useChatStore } from "@/lib/store/chatStore";
+import { useChatNavigation } from "@/lib/hooks/useChatNavigation";
 
 const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ name: "", image: "" });
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [chatService] = useState(() => new ChatService());
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [clickedChatId, setClickedChatId] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  
+  // Get conversations from store
+  const { recentSessions, setRecentSessions } = useChatStore();
+  const { navigateToChat } = useChatNavigation();
 
   useEffect(() => {
     getUser(setIsLoggedIn, setUser, router, pathname);
@@ -40,7 +47,13 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     try {
       // Fetch recent conversations using our ChatService
       const recentConversations = await chatService.getRecentConversations(10);
-      setConversations(recentConversations);
+      
+      // Update both local state and store
+      setRecentSessions(recentConversations.map(conv => ({
+        ...conv,
+        message_count: conv.message_count || 0 // Ensure message_count is always a number
+      })));
+      console.log(recentConversations, "recentConversations");
     } catch (err) {
       console.error("Error fetching conversations:", err);
       
@@ -48,61 +61,53 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 401) {
           console.log("User not authenticated, clearing conversations");
-          setConversations([]);
-          return;
+          setRecentSessions([]);
+        } else if (err.response.status === 404) {
+          console.log("No conversations found");
+          setRecentSessions([]);
         }
-        console.error(`Error fetching conversations: ${err.response.status} ${err.response.statusText}`);
       }
       
       setError(true);
-      setConversations([]);
+      toast.error("Failed to load chat history", getToastStyle(theme));
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch conversations on component mount
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchConversations();
-    }
-  }, [isLoggedIn]);
+    fetchConversations();
+  }, []);
 
-  const handleChatSelect = (sessionId: string, mode: 'agent' | 'default') => {
-    if (onClose) {
-      onClose();
-    }
+  const handleChatSelect = (conversationId: string, mode: 'agent' | 'default') => {
+    // Prevent multiple rapid clicks or clicking on the same chat again
+    if (isNavigating || clickedChatId === conversationId || pathname === `/chat/${conversationId}`) return;
     
-    // Mark this as an existing chat session in localStorage
     try {
-      // const sessionData = localStorage.getItem(`chat-session-${sessionId}`);
-      //remove all items from localStorage that start with chat-session-
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('chat-session-')) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      const embeddingEnabled = localStorage.getItem('embeddingEnabled') === 'true';
-
-      const sessionData = {
-        mode: mode,
-        embedding_enabled: embeddingEnabled,
-        prompt: '',
-        isNewChat: false
+      setIsNavigating(true);
+      setClickedChatId(conversationId);
+      
+      // Use our navigation hook to navigate to the chat
+      navigateToChat(conversationId);
+      
+      // Close the sidebar on mobile if onClose is provided
+      if (onClose) {
+        onClose();
       }
-
-      localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(sessionData));
-
-      router.push(`/chat/${sessionId}`);
-
     } catch (error) {
-      console.error('Error updating session data:', error);
+      console.error("Error navigating to chat:", error);
+      toast.error("Failed to navigate to chat", getToastStyle(theme));
+    } finally {
+      // Reset navigation state after a short delay
+      setTimeout(() => {
+        setIsNavigating(false);
+        // Keep track of the clicked chat ID for a bit longer to prevent double-clicks
+        setTimeout(() => {
+          setClickedChatId(null);
+        }, 2000);
+      }, 1000);
     }
-  };
-
-  // Wrapper function that only takes sessionId and uses default mode
-  const handleChatSelectWrapper = (sessionId: string) => {
-    handleChatSelect(sessionId, 'default');
   };
 
   const handleDeleteChat = async (chatId: string) => {
@@ -155,15 +160,15 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
         </div>
       </motion.div>
 
-      {/* New Chat Button */}
-      <div className="px-4 py-3">
-        <NewChat onClose={onClose} />
-      </div>
-
       {/* Sidebar Content */}
       <div className="mt-2 px-4 flex-1 overflow-hidden flex flex-col">
         {isLoggedIn ? (
           <>
+            {/* New Chat Button */}
+            <div className="mb-4">
+              <NewChat onClose={onClose} />
+            </div>
+            
             <div className="flex items-center justify-between mb-2">
               <p
                 className={`text-base font-semibold flex items-center ${
@@ -174,9 +179,9 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                 Chat History
               </p>
               
-              {conversations.length > 0 && (
+              {recentSessions.length > 0 && (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-300 text-gray-700"}`}>
-                  {conversations.length}
+                  {recentSessions.length}
                 </span>
               )}
             </div>
@@ -199,30 +204,31 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                   Failed to load chats.
                 </p>
               </div>
-            ) : conversations.length > 0 ? (
+            ) : recentSessions.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, staggerChildren: 0.1 }}
                 className="mt-2 overflow-y-auto flex-1 custom-scrollbar gap-2 w-full pr-2"
               >
-                {conversations.map((conversation, index) => (
+                {recentSessions.map((chat, index) => (
                   <motion.div
-                    key={conversation.id}
+                    key={chat.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.3 }}
                   >
                     <ChatRow
-                      id={conversation.session_id}
-                      name={conversation.title}
+                      id={chat.id}
+                      name={chat.title || "New Chat"}
                       openDropdown={openDropdown}
                       setOpenDropdown={setOpenDropdown}
                       refreshChats={fetchConversations}
-                      onSelect={handleChatSelectWrapper}
-                      onDelete={() => handleDeleteChat(conversation.id)}
-                      lastMessage={conversation.last_message?.content}
-                      timestamp={conversation.updated_at}
+                      onSelect={() => handleChatSelect(chat.id, chat.mode || 'default')}
+                      onDelete={() => handleDeleteChat(chat.id)}
+                      lastMessage={chat.last_message?.content}
+                      timestamp={chat.updated_at}
+                      isActive={pathname === `/chat/${chat.id}`}
                     />
                   </motion.div>
                 ))}

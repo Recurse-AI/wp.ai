@@ -4,10 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * GET /api/chat/get_history - Get chat history for a specific session
+ * GET /api/chat/get_history - Get chat history for a specific conversation
  * 
  * Query Parameters:
- * - session_id: string - The session ID to get history for
+ * - id: string - The conversation ID to get history for
  * 
  * Returns:
  * - count: number - Total number of messages
@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get session ID from query parameters
+    // Get conversation ID from query parameters
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('session_id');
+    const id = searchParams.get('id');
     
-    if (!sessionId) {
+    if (!id) {
       return NextResponse.json(
-        { message: 'Session ID is required' },
+        { message: 'Conversation ID is required' },
         { status: 400 }
       );
     }

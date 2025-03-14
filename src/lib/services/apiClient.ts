@@ -1,11 +1,9 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import toast from 'react-hot-toast';
-import { getToastStyle } from '../toastConfig';
 
 // Create a custom axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,29 +38,26 @@ apiClient.interceptors.response.use(
       switch (response.status) {
         case 401:
           // Handle unauthorized access
-          toast.error('Session expired. Please sign in again.', getToastStyle());
+          console.log("Session expired. Please sign in again.");
           // Redirect to login page if needed
           // window.location.href = '/signin';
           break;
         case 403:
-          toast.error('Access denied. You do not have permission for this action.');
+          console.log("Access denied. You do not have permission for this action.");
           break;
         case 404:
-          toast.error('Resource not found.');
+          console.log("Resource not found.");
           break;
         case 500:
-          toast.error('Server error. Please try again later.');
+          console.log("Server error. Please try again later.");
           break;
         default:
           // Get error message from response if available
           const errorData = response.data as Record<string, any>;
           const errorMessage = errorData?.message || 'Something went wrong';
-          toast.error(errorMessage);
+          console.log(errorMessage, "errorMessage");
       }
-    } else {
-      // Network errors or other issues
-      toast.error('Network error. Please check your connection.');
-    }
+    } 
     
     return Promise.reject(error);
   }

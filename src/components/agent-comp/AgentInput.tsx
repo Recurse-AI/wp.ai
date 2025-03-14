@@ -1,22 +1,20 @@
 "use client";
 import React, { useState, useRef } from "react";
 import { useTheme } from "@/context/ThemeProvider";
-import { SendHorizontal } from "lucide-react";
+import { SendHorizontal, RefreshCw } from "lucide-react";
 
 interface AgentInputProps {
-  sessionId: string | null;
-  projectId: string;
-  onMessageSent: (message: string) => Promise<void>;
-  isProcessing: boolean;
-  setIsProcessing: (processing: boolean) => void;
+  onSendMessage: (message: string) => Promise<any>;
+  disabled?: boolean;
+  onRegenerateMessage?: () => Promise<any>;
+  showRegenerateButton?: boolean;
 }
 
 const AgentInput: React.FC<AgentInputProps> = ({
-  sessionId,
-  projectId,
-  onMessageSent,
-  isProcessing,
-  setIsProcessing
+  onSendMessage,
+  disabled = false,
+  onRegenerateMessage,
+  showRegenerateButton = false
 }) => {
   const { theme } = useTheme();
   const [message, setMessage] = useState("");
@@ -44,11 +42,10 @@ const AgentInput: React.FC<AgentInputProps> = ({
 
   // Handle message submission
   const handleSubmit = async () => {
-    if (!message.trim() || isProcessing) return;
+    if (!message.trim() || disabled) return;
     
     try {
-      setIsProcessing(true);
-      await onMessageSent(message);
+      await onSendMessage(message);
       
       // Clear the input
       setMessage("");
@@ -57,14 +54,31 @@ const AgentInput: React.FC<AgentInputProps> = ({
       }
     } catch (error) {
       console.error("Error sending message:", error);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   return (
     <div className="w-full">
-      <div className={`flex items-end rounded-lg border ${
+      <div className="flex items-center gap-2">
+        {/* Regenerate button */}
+        {showRegenerateButton && onRegenerateMessage && (
+          <button
+            onClick={() => onRegenerateMessage()}
+            disabled={disabled}
+            className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+              disabled
+                ? "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+            }`}
+            title="Regenerate response"
+          >
+            <RefreshCw size={16} />
+            <span>Regenerate</span>
+          </button>
+        )}
+      </div>
+      
+      <div className={`flex items-end rounded-lg border mt-2 ${
         theme === "dark" 
           ? "bg-gray-800 border-gray-700" 
           : "bg-white border-gray-200"
@@ -78,14 +92,14 @@ const AgentInput: React.FC<AgentInputProps> = ({
           className={`flex-1 resize-none outline-none py-3 px-4 min-h-[40px] max-h-[120px] ${
             theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-gray-800"
           }`}
-          disabled={isProcessing}
+          disabled={disabled}
         />
         
         <button
           onClick={handleSubmit}
-          disabled={!message.trim() || isProcessing}
+          disabled={!message.trim() || disabled}
           className={`p-3 ${
-            message.trim() && !isProcessing
+            message.trim() && !disabled
               ? "text-blue-500 hover:text-blue-600"
               : "text-gray-400"
           }`}
@@ -95,7 +109,7 @@ const AgentInput: React.FC<AgentInputProps> = ({
       </div>
       
       <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
-        {isProcessing ? "Processing your request..." : "The agent will help you understand and modify your code."}
+        {disabled ? "Processing your request..." : "The agent will help you understand and modify your code."}
       </div>
     </div>
   );

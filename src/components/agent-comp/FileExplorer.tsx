@@ -2,10 +2,14 @@
 import React, { useState } from 'react';
 import { useTheme } from '@/context/ThemeProvider';
 import { FiFolder, FiFile, FiFolderPlus, FiFilePlus, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { CodeFile } from '@/lib/services/agentService';
 
 interface FileExplorerProps {
-  onFileSelect: (file: {name: string, content: string, language: string}) => void;
-  files?: any[]; // Add this prop to make it compatible with existing code
+  onFileSelect: (file: CodeFile) => void;
+  files?: CodeFile[];
+  onFileCreate?: (path: string, name: string, isFolder: boolean) => void;
+  onFileDelete?: (fileId: string) => void;
+  selectedFileId?: string;
 }
 
 // Sample project structure for demo
@@ -241,9 +245,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
           key={fullPath}
           className="flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           onClick={() => onFileSelect({
-            name: fullPath,
+            id: `demo-${fullPath}`,
+            name,
+            path: fullPath,
             content: item.content,
-            language: item.language
+            language: item.language,
+            lastModified: new Date()
           })}
         >
           <FiFile className="mr-2 text-gray-500" />

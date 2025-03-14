@@ -1,3 +1,5 @@
+import { SearchResult } from "../services/searchApi";
+
 export interface ChatMessage {
   id?: string;
   role: 'user' | 'assistant' | 'system';
@@ -7,6 +9,10 @@ export interface ChatMessage {
   status?: 'delivered' | 'pending' | 'error';
   metadata?: Record<string, any>;
   versions?: ChatMessageVersion[];
+  assistant_message_id?: string;
+  user_message_id?: string; 
+  search_results?: SearchResult[];
+  thinking?: string | null;
 }
 
 export interface ChatMessageVersion {
@@ -17,9 +23,9 @@ export interface ChatMessageVersion {
 
 export interface ChatConversation {
   id: string;
-  session_id: string;
   title: string;
   conversation_type?: string;
+  mode?: 'agent' | 'default';
   created_at: string;
   updated_at: string;
   last_message?: {
@@ -32,8 +38,8 @@ export interface ChatConversation {
 
 export interface ChatResponse {
   response: string;
-  session_id: string;
-  is_new_session?: boolean;
+  id: string;
+  is_new_chat?: boolean;
   provider?: string;
   model?: string;
   temperature?: number;
@@ -41,7 +47,10 @@ export interface ChatResponse {
   use_vector_search?: boolean;
   response_time?: number;
   used_vector_search?: boolean;
-  message_id?: string;
+  extended_thinking?: boolean;
+  extended_thinking_budget?: number;
+  user_message_id?: string;
+  assistant_message_id?: string;
   conversation?: {
     id: string;
     title: string;
@@ -59,10 +68,14 @@ export interface ChatConfig {
   temperature: number;
   max_tokens: number;
   use_vector_search?: boolean;
+  is_new_chat?: boolean;
+  mode?: string;
+  extended_thinking?: boolean;
+  extended_thinking_budget?: number;
 }
 
 export interface ChatOptions extends Partial<ChatConfig> {
-  session_id?: string;
+  id?: string;
 }
 
 export interface ChatFeedback {
@@ -86,19 +99,23 @@ export interface ChatMessagesResponse {
 }
 
 export interface RegenerateRequest {
-  session_id: string;
+  id: string;
   message_id?: string;
 }
 
 export interface ConversationRequest {
   query: string;
-  session_id?: string;
+  id?: string;
+  is_new_chat?: boolean;
   provider?: string;
   model?: string;
   temperature?: number;
   max_tokens?: number;
   use_vector_search?: boolean;
-} 
+  mode?: string;
+  extended_thinking?: boolean;
+  extended_thinking_budget?: number;
+}
 
 export interface Message {
   id: string;
@@ -108,7 +125,7 @@ export interface Message {
 }
 
 export interface ChatSessionResponse {
-  session_id: string;
+  id: string;
   messages: Message[];
   created_at: string;
   updated_at: string;

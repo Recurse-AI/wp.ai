@@ -2,16 +2,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/context/ThemeProvider";
 import Message from "@/components/chat-comp/Message";
-import { SendHorizontal, Database } from "lucide-react";
+import { SendHorizontal, Database, Globe, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Tooltip } from 'react-tooltip';
 import toast from "react-hot-toast";
 import { getToastStyle } from "@/lib/toastConfig";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiRefreshCw } from "react-icons/fi";
 import { SiOpenai, SiClaude, SiGooglegemini } from "react-icons/si";
 import { FaWordpress } from "react-icons/fa";
 import { ChatMessage, ChatResponse } from "@/lib/types/chat";
 import { setLocalStorageItem, getLocalStorageItem } from '@/lib/utils/localStorage';
+import { useStreaming } from "@/context/MessageStateContext";
 
 // AI Provider configuration - same as layout.tsx for consistency
 const AI_PROVIDERS = [
@@ -21,27 +22,48 @@ const AI_PROVIDERS = [
     icon: SiOpenai,
     models: [
       { id: 'gpt-4o', name: 'GPT-4o', wpOptimized: true },
-      { id: 'gpt-4', name: 'GPT-4 Turbo', wpOptimized: true },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', wpOptimized: false }
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', wpOptimized: false },
+      { id: 'gpt-4', name: 'GPT-4', wpOptimized: true },
+      { id: 'gpt-o1', name: 'GPT-o1', wpOptimized: true }
     ]
   },
   { 
-    id: 'claude', 
+    id: 'anthropic', 
     name: 'Claude',
     icon: SiClaude,
     models: [
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', wpOptimized: true },
-      { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', wpOptimized: false },
-      { id: 'claude-3-haiku', name: 'Claude 3 Haiku', wpOptimized: false }
+      { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', wpOptimized: true },
+      { id: 'claude-3-7-sonnet-thinking', name: 'Claude 3.7 Sonnet (Thinking)', wpOptimized: true },
+      { id: 'claude-3-5-sonnet-v2', name: 'Claude 3.5 Sonnet v2', wpOptimized: true },
+      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', wpOptimized: false },
+      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', wpOptimized: true },
+      { id: 'claude-3-opus', name: 'Claude 3 Opus', wpOptimized: true }
     ]
   },
   { 
-    id: 'gemini', 
+    id: 'google', 
     name: 'Google Gemini',
     icon: SiGooglegemini,
     models: [
-      { id: 'gemini-pro', name: 'Gemini Pro', wpOptimized: true },
-      { id: 'gemini-ultra', name: 'Gemini Ultra', wpOptimized: false }
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', wpOptimized: true },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', wpOptimized: false },
+      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', wpOptimized: false }
+    ]
+  },
+  {
+    id: 'qwen',
+    name: 'Qwen',
+    icon: SiClaude, // Replace with appropriate icon if available
+    models: [
+      { id: 'qwen-max', name: 'Qwen Max', wpOptimized: false }
+    ]
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    icon: SiClaude, // Replace with appropriate icon if available
+    models: [
+      { id: 'deepseek-chat', name: 'DeepSeek Chat', wpOptimized: false }
     ]
   }
 ];
@@ -51,23 +73,19 @@ interface DefaultChatInterfaceProps {
   onSendMessage: (message: string) => Promise<ChatResponse>;
   onRegenerateMessage?: () => Promise<ChatResponse>;
   onUpdateSettings?: (settings: { provider: string; model: string }) => void;
+  webSearchEnabled?: boolean;
+  onWebSearchToggle?: (enabled: boolean) => void;
   isLoading?: boolean;
 }
 
-// CSS for hiding scrollbars
-const scrollbarHideStyle = {
-  scrollbarWidth: 'none' as 'none',  /* Firefox */
-  msOverflowStyle: 'none' as 'none',  /* IE and Edge */
-  WebkitScrollbar: {
-    display: 'none'  /* Chrome, Safari, Opera */
-  }
-};
 
 const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   messages,
   onSendMessage,
   onRegenerateMessage,
   onUpdateSettings,
+  webSearchEnabled,
+  onWebSearchToggle,
   isLoading = false,
 }) => {
   const { theme } = useTheme();
@@ -78,33 +96,55 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   const [currentProvider, setCurrentProvider] = useState(AI_PROVIDERS[0]);
   const [currentModel, setCurrentModel] = useState(AI_PROVIDERS[0].models[0]);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [newMessageAdded, setNewMessageAdded] = useState(false);
+  const [prevMessagesLength, setPrevMessagesLength] = useState(0);
+  const { id: messageId } = useStreaming();
+  const [startFresh, setStartFresh] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const outerContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
-  // Auto scroll to bottom when new messages arrive
+  // Tooltip refs
+  const [tooltipsReady, setTooltipsReady] = useState(false);
+  
+  // Initialize tooltips after component is mounted
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    // Only set tooltip ready state once after mount
+    setTooltipsReady(true);
+    
+    // Cleanup function - don't set state during unmount
+    return () => {
+      // Don't set state on unmount as this can cause issues
+      // setTooltipsReady(false); // Removing this line
+    };
+  }, []);
 
-  // Auto-resize effect for textarea (similar to TextAreaInput)
+  // Simplified message detection - removing complex animation logic
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "40px"; // Reset height
-      const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, 120)}px`; // Max 120px
+    if (messages && messages.length > prevMessagesLength) {
+      // Auto-scroll to bottom when new message is added
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 100);
     }
-  }, [message]);
+    
+    // Update previous messages length
+    setPrevMessagesLength(messages?.length || 0);
+  }, [messages, prevMessagesLength]);
 
-  // Check if we need to show the scroll button
+  // Simplified scroll button detection
   useEffect(() => {
     const handleScroll = () => {
       const messagesContainer = messagesContainerRef.current;
       if (messagesContainer) {
         const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-        // Show button when scrolled up more than 100px from bottom
         setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
       }
     };
@@ -130,17 +170,25 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     };
   }, []);
 
-  // Scroll to bottom function
+  // Simplified scroll to bottom function
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
-  // Load saved AI model preferences
+  // Load saved preferences
   useEffect(() => {
     // Load KB state
     const savedEmbeddingEnabled = localStorage.getItem('embeddingEnabled') === 'true';
     if (savedEmbeddingEnabled) {
       setEmbeddingEnabled(true);
+    }
+    
+    // Load web search preference
+    const savedWebSearchEnabled = localStorage.getItem('webSearchEnabled') === 'true';
+    if (savedWebSearchEnabled && onWebSearchToggle) {
+      onWebSearchToggle(savedWebSearchEnabled);
     }
     
     // Load saved AI model preferences
@@ -160,9 +208,52 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     }
   }, []);
 
-  // Handle input changes
+  // Update the textarea resizing logic for the spacer-based layout
+  useEffect(() => {
+    // Function to resize textarea based on content
+    const resizeTextarea = () => {
+      if (textareaRef.current) {
+        // Reset height to auto to get the correct scrollHeight
+        textareaRef.current.style.height = 'auto';
+        
+        // Check if content would exceed maxHeight
+        const scrollHeight = textareaRef.current.scrollHeight;
+        const maxHeight = 150; // same as the maxHeight in style
+        
+        if (scrollHeight > maxHeight) {
+          // Content exceeds maxHeight, add scrolling class
+          textareaRef.current.classList.add('overflowing');
+          textareaRef.current.style.height = `${maxHeight}px`;
+          textareaRef.current.style.overflowY = 'auto';
+          textareaRef.current.style.overflowX = 'hidden';
+          textareaRef.current.style.marginBottom = '-10px';
+          if (outerContainerRef.current) {
+            outerContainerRef.current.style.height = `200px`;
+          }
+        } else {
+          // Content fits, remove scrolling class
+          textareaRef.current.classList.remove('overflowing');
+          textareaRef.current.style.height = `${scrollHeight}px`;
+          textareaRef.current.style.overflowY = 'hidden';
+          textareaRef.current.style.overflowX = 'hidden';
+          textareaRef.current.style.marginBottom = '0px';
+          if (outerContainerRef.current) {
+            //delete the height
+            outerContainerRef.current.style.height = 'auto';
+          }
+        }
+      }
+    };
+    
+    // Resize initially and when message changes
+    resizeTextarea();
+  }, [message]);
+
+  // Handle input changes - update for new layout
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
+    
+    // Auto-resize will be handled by the useEffect
   };
 
   // Handle key presses
@@ -220,18 +311,56 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
     );
   };
 
-  // Handle message submission
+  // Toggle web search
+  const toggleWebSearch = () => {
+    const newState = !webSearchEnabled;
+    
+    // If there's an external handler, use it
+    if (onWebSearchToggle) {
+      onWebSearchToggle(newState);
+    }
+    
+    toast.success(
+      newState 
+        ? "Web search activated" 
+        : "Web search deactivated",
+      {
+        icon: newState ? '🔍' : '📝',
+        style: getToastStyle(theme) as React.CSSProperties,
+      }
+    );
+  };
+
+  // Function to start fresh with simpler implementation
+  const startFreshConversation = () => {
+    if (messagesContainerRef.current) {
+      // Set flag to start fresh
+      setStartFresh(true);
+      
+      // Immediately scroll to top
+      messagesContainerRef.current.scrollTop = 0;
+      
+      // Reset after a delay
+      setTimeout(() => {
+        setStartFresh(false);
+      }, 1000);
+    }
+  };
+  
+  // Simplified handle message submission with less scroll behavior
   const handleSubmit = async () => {
     if (!message.trim() || isProcessing) return;
     
     try {
       setIsProcessing(true);
-      // Send the message
-      let text = message;
+      const text = message;
       setMessage("");
-       // Clear the input
+      
+      // Simple scroll to bottom
+      scrollToBottom();
+      
+      // Send the message
       await onSendMessage(text);
-     
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -240,11 +369,12 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full overflow-x-hidden">
-      {/* Messages Container - Adjusted with more bottom padding */}
+    <div className="flex flex-col h-full w-full items-center">
+      {/* Messages Container - The only scrollable part */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full px-4 pb-8 pt-2 custom-scrollbar" 
+        className={`flex-1 overflow-y-auto overflow-x-hidden w-full px-4 pb-8 pt-2 custom-scrollbar flex flex-col ${startFresh ? 'items-start justify-start' : 'items-center'}`}
+        style={{ maxWidth: '100%' }}
       >
         <style jsx global>{`
           /* Custom scrollbar styling */
@@ -263,68 +393,82 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
             background-clip: content-box;
           }
           
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(156, 163, 175, 0.7);
+          /* Message animations - simplified */
+          .message-wrapper {
+            transition: opacity 0.3s ease-out;
+            opacity: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            max-width: 100%;
+            position: relative;
           }
           
-          /* For Firefox */
-          .custom-scrollbar {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+          /* Basic message container styling */
+          .messages-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 50rem;
+            margin: 0 auto;
+            position: relative;
           }
           
-          /* Dark mode adjustments */
-          .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: rgba(75, 85, 99, 0.5);
-          }
-          
-          .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(75, 85, 99, 0.7);
-          }
-          
-          .dark .custom-scrollbar {
-            scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+          /* Add blank space at the bottom */
+          .messages-container::after {
+            content: '';
+            display: block;
+            min-height: 60px;
+            width: 100%;
           }
         `}</style>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-            <p className="mt-4 text-gray-500">Loading your conversation...</p>
-          </div>
-        ) : messages && messages.length > 0 ? (
-          messages.map((msg, index) => (
-            <Message 
-              key={msg.id || index}
-              message={msg}
-              onRegenerateMessage={index === messages.length - 1 && msg.role === 'assistant' ? onRegenerateMessage : undefined}
-              isLatestMessage={index === messages.length - 1 && msg.role === 'assistant'}
-            />
-          ))
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <p>No messages yet. Start a conversation!</p>
+        {messages && messages.length > 0 && (
+          <div className="w-full flex flex-col items-center messages-container">
+            {messages.map((msg, index) => (
+              <div 
+                key={msg.id || `msg-${index}`}
+                data-message-id={msg.id || `msg-${index}`}
+                className={`message-wrapper ${index === messages.length - 1 ? 'last-message' : ''} ${
+                  msg.id === messageId ? 'streaming-message' : ''
+                  } animate-fadeIn`}
+              >
+                <Message 
+                  message={msg}
+                  onRegenerateMessage={index === messages.length - 1 && msg.role === 'assistant' ? onRegenerateMessage : undefined}
+                  isLatestMessage={index === messages.length - 1}
+                />
+              </div>
+            ))}
+            
+            {/* Add a smaller, more minimal blank space container */}
+            <div className="blank-space-container"></div>
           </div>
         )}
+      
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input Area - Positioned lower with more spacing */}
-      <div className="sticky bottom-0 w-full bg-opacity-90 backdrop-blur-sm pt-2 pb-4">
-        <div className={`flex flex-col rounded-xl px-5 py-4 w-full max-w-3xl mx-auto justify-between border ${
+      {/* Input Area - Fixed at the bottom */}
+      <div className="w-full bg-opacity-90 backdrop-blur-sm pt-2 pb-4 mt-auto" >
+        <div
+          ref={outerContainerRef}
+          className={`flex flex-col rounded-xl px-5 py-4 w-full max-w-3xl mx-auto justify-between border ${
           theme === "dark" 
           ? "bg-gray-900/80 border-gray-700 shadow-sm" 
           : "bg-white border-gray-200 shadow-sm"
-        } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`}>
-          {/* Scroll to bottom button - repositioned above textarea */}
+        } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`} >
+          
+          {/* Simplified scroll to bottom button */}
           {showScrollButton && (
             <div className="absolute -top-12 right-2 z-10">
               <button
                 onClick={scrollToBottom}
                 className={`p-2 rounded-full shadow-md transition-all duration-200 ${
                   theme === "dark" 
-                    ? "bg-gray-700 text-white hover:bg-gray-600" 
-                    : "bg-white text-gray-800 hover:bg-gray-100"
+                    ? "bg-gray-800 hover:bg-gray-700 text-gray-300" 
+                    : "bg-white hover:bg-gray-100 text-gray-600"
                 }`}
                 aria-label="Scroll to bottom"
               >
@@ -333,8 +477,8 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
             </div>
           )}
           
-          {/* Model selection and KB button row */}
-          <div className="flex justify-between items-center mb-3">
+          {/* Action buttons row - positioned at the top always */}
+          <div className="flex justify-between items-center mb-3 relative z-20">
             {/* Model selection dropdown */}
             <div className="relative flex-1" ref={modelDropdownRef}>
               <button
@@ -348,8 +492,10 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
               >
                 <div className="flex items-center gap-1.5">
                   {currentProvider.id === 'openai' && <SiOpenai className="text-xs" />}
-                  {currentProvider.id === 'claude' && <SiClaude className="text-xs" />}
-                  {currentProvider.id === 'gemini' && <SiGooglegemini className="text-xs" />}
+                  {currentProvider.id === 'anthropic' && <SiClaude className="text-xs" />}
+                  {currentProvider.id === 'google' && <SiGooglegemini className="text-xs" />}
+                  {currentProvider.id === 'qwen' && <SiClaude className="text-xs" />}
+                  {currentProvider.id === 'deepseek' && <SiClaude className="text-xs" />}
                   <span>{currentModel.name}</span>
                   <FiChevronDown className="text-xs" />
                 </div>
@@ -374,8 +520,10 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                       <div key={provider.id} className="border-b border-gray-200 dark:border-gray-600 last:border-0">
                         <div className="flex items-center gap-1.5 px-3 py-1.5 font-medium bg-gray-50/80 dark:bg-gray-700/80 text-xs sticky top-0">
                           {provider.id === 'openai' && <SiOpenai className="text-xs" />}
-                          {provider.id === 'claude' && <SiClaude className="text-xs" />}
-                          {provider.id === 'gemini' && <SiGooglegemini className="text-xs" />}
+                          {provider.id === 'anthropic' && <SiClaude className="text-xs" />}
+                          {provider.id === 'google' && <SiGooglegemini className="text-xs" />}
+                          {provider.id === 'qwen' && <SiClaude className="text-xs" />}
+                          {provider.id === 'deepseek' && <SiClaude className="text-xs" />}
                           <span>{provider.name}</span>
                         </div>
                         <div className="pl-3">
@@ -405,15 +553,86 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
               )}
             </div>
             
-            {/* KB Button */}
-            <div className="relative ml-2">
+            {/* Action Buttons - Reordered to have Search Web and Thinking first */}
+            <div className="flex items-center gap-2" >
+              {/* Search Web Button - Now first */}
+              <motion.button
+                type="button"
+                onClick={toggleWebSearch}
+                whileTap={{ scale: 0.95 }}
+                data-tooltip-id="tooltip-search"
+                data-tooltip-content={webSearchEnabled ? "Web Search Active" : "Enable Web Search"}
+                className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all relative ${
+                  webSearchEnabled 
+                    ? "text-purple-500 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800" 
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                }`}
+              >
+                <Globe className={`w-4 h-4 ${webSearchEnabled ? "text-purple-500" : ""}`} strokeWidth={2} />
+                <span className={`text-[11px] font-medium ${webSearchEnabled ? "text-purple-600 dark:text-purple-400" : ""}`}>
+                  {webSearchEnabled ? "Search On" : "Search Off"}
+                </span>
+                {webSearchEnabled && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                )}
+              </motion.button>
+              {tooltipsReady && <Tooltip id="tooltip-search" place="top" />}
+              
+              {/* Thinking Mode Button - Added as second */}
+              <motion.button
+                type="button"
+                onClick={() => {
+                  // Toggle between thinking models
+                  if (currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet') {
+                    // Switch from normal to thinking mode
+                    handleModelSelect(
+                      currentProvider,
+                      currentProvider.models.find(m => m.id === 'claude-3-7-sonnet-thinking') || currentModel
+                    );
+                  } else if (currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking') {
+                    // Switch from thinking mode back to normal
+                    const model = currentProvider.models.find(m => m.id === 'claude-3-7-sonnet');
+                    if (model) handleModelSelect(currentProvider, model);
+                  }
+                  // Do nothing if not on a Claude 3.7 model (don't force switch to Sonnet)
+                }}
+                whileTap={{ scale: 0.95 }}
+                data-tooltip-id="tooltip-thinking"
+                data-tooltip-content="Toggle Thinking Mode"
+                className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all relative ${
+                  currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking'
+                    ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800" 
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                }`}
+              >
+                <FiRefreshCw className={`w-4 h-4 ${
+                  currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking' 
+                    ? "text-yellow-500" 
+                    : ""
+                }`} />
+                <span className={`text-[11px] font-medium ${
+                  currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking'
+                    ? "text-yellow-600 dark:text-yellow-400" 
+                    : ""
+                }`}>
+                  {currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking' 
+                    ? "Thinking On" 
+                    : "Thinking Off"}
+                </span>
+                {currentProvider.id === 'anthropic' && currentModel.id === 'claude-3-7-sonnet-thinking' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                )}
+              </motion.button>
+              {tooltipsReady && <Tooltip id="tooltip-thinking" place="top" />}
+              
+              {/* KB Button - Now last */}
               <motion.button
                 type="button"
                 onClick={toggleEmbedding}
                 whileTap={{ scale: 0.95 }}
                 data-tooltip-id="tooltip-embedding"
                 data-tooltip-content={embeddingEnabled ? "Knowledge Base Active" : "Enable Knowledge Base"}
-                className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all relative ${
                   embeddingEnabled 
                     ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
@@ -427,56 +646,62 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                 )}
               </motion.button>
-              <Tooltip id="tooltip-embedding" place="top" />
+              {tooltipsReady && <Tooltip id="tooltip-embedding" place="top" />}
             </div>
           </div>
           
-          {/* Textarea and Send button - Added more bottom margin */}
-          <div className="flex items-end w-full mt-2 relative">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder={isLoading ? "Loading your conversation..." : "Type your message here..."}
-              className={`bg-transparent w-full outline-none 
-                font-medium tracking-wide text-base resize-none overflow-hidden px-3
-                ${theme === "dark" 
-                  ? "text-gray-200 placeholder:text-gray-400" 
-                  : "text-gray-800 placeholder:text-gray-500"
-                }
-                font-sans placeholder:font-medium placeholder:tracking-wide`}
-              style={{
-                minHeight: "40px", // Starts at 1 line height
-                maxHeight: "120px", // Stops expanding after 5 lines
-                height: "40px", // Initial height
-                paddingBottom: "16px", // Increased padding at bottom
-                paddingTop: "12px", // Added padding at top
-                lineHeight: "24px", // Maintain proper line spacing
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                overflow: 'hidden' // Hide scrollbar
-              }}
-              disabled={isProcessing || isLoading}
-            />
-            
-            <button
-              onClick={handleSubmit}
-              disabled={!message.trim() || isProcessing || isLoading}
-              className={`ml-2 p-2 rounded-md transition-colors ${
-                message.trim() && !isProcessing && !isLoading
-                  ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                  : "text-gray-400"
-              }`}
-              aria-label="Send message"
-            >
-              {isProcessing || isLoading ? (
-                <div className="w-5 h-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
-              ) : (
-                <SendHorizontal className="w-5 h-5" />
-              )}
-            </button>
+          {/* Fixed height container for input area */}
+          <div className="relative" style={{ minHeight: '40px', maxHeight: '200px' }}>
+            <div className="w-full mt-1 input-container flex flex-col">
+              <div className="relative w-full">
+                <textarea
+                  ref={textareaRef}
+                  value={message}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me about WordPress plugins, themes, or anything else related to WordPress..."
+                  className={`bg-transparent w-full outline-none resize-none rounded-lg px-3 py-3 pr-12
+                    font-medium tracking-wide text-base
+                    ${theme === "dark" 
+                      ? "text-gray-200 placeholder:text-gray-400 border-gray-700" 
+                      : "text-gray-800 placeholder:text-gray-500 border-gray-200"
+                    }
+                    font-sans placeholder:font-medium placeholder:tracking-wide transition-all duration-200 
+                    focus:ring-0 focus:border-transparent`}
+                  style={{
+                    minHeight: "40px",
+                    maxHeight: "120px", // Set a reasonable max height for very long messages
+                    lineHeight: "24px",
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                    overflow: 'auto',
+                    scrollbarWidth: 'none', /* Firefox */
+                    msOverflowStyle: 'none', /* IE and Edge */
+                  }}
+                  disabled={isProcessing || isLoading}
+                  rows={1}
+                />
+                
+                <button
+                  onClick={handleSubmit}
+                  disabled={!message.trim() || isProcessing || isLoading}
+                  className={`absolute bottom-3 right-3 p-2 rounded-md transition-colors z-10 ${
+                    message.trim() && !isProcessing && !isLoading
+                      ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      : "text-gray-400"
+                  }`}
+                  aria-label="Send message"
+                >
+                  {isProcessing && isLoading ? (
+                    <div className="w-5 h-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+                  ) : (
+                    <SendHorizontal className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+        <div className="flex-grow" style={{ minHeight: '8px' }}></div>
       </div>
     </div>
   );

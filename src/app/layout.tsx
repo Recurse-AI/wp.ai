@@ -1,70 +1,65 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
-import { ThemeProvider, useTheme } from "@/context/ThemeProvider";
-import { Toaster } from "react-hot-toast";
-import { getToastStyle } from "@/lib/toastConfig";
-import AuthProvider from "@/context/AuthProvider";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-import { twMerge } from "tailwind-merge";
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/context/ThemeProvider';
+import { ActiveSessionProvider } from '@/context/ActiveSessionContext';
+import { SessionProvider } from 'next-auth/react';
+import Header from '@/components/layout/Header';
+import ToasterProvider from '@/components/ToasterProvider'; 
+import { StreamingProvider } from '@/context/MessageStateContext';
+import { useSyntaxHighlighting } from '@/lib/init';
+import AuthProvider from '@/context/AuthProvider';
+const inter = Inter({ subsets: ['latin'] });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const excludedPaths = [
+  '/signin', 
+  '/login', 
+  '/signup', 
+  '/register', 
+  '/reset-password', 
+  '/forgot-password', 
+  '/chat',
+  '/verify-email',
+  '/verify-email/:uidb64',
+  '/verify-email/:uidb64/:token',
+];
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Client component wrapper to use React hooks
+function RootLayoutClient({ children }: { children: React.ReactNode }) {
+  // Initialize syntax highlighting on client only
+  useSyntaxHighlighting();
+  
+  return (
+  <SessionProvider>
+    <ThemeProvider>
+      <StreamingProvider>
+        <ActiveSessionProvider>
+            <AuthProvider>
+              <ToasterProvider />
+            <div className="flex flex-col min-h-screen">
+              <Header 
+                excludedPaths={excludedPaths}
+              />
+              <main className="flex-1 relative">{children}</main>
+            </div>
+          </AuthProvider>
+        </ActiveSessionProvider>
+      </StreamingProvider>
+    </ThemeProvider>
+  </SessionProvider>
+  );
+}
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const { theme } = useTheme();
-  // ✅ Hide Navbar for specific pages EXCEPT if the path starts with "/chat/"
-  const hideNavbarPages = [
-    "/signin",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/otp-check",
-  ];
-  const shouldShowNavbar =
-    !hideNavbarPages.includes(pathname) &&
-    !pathname.startsWith("/chat/") &&
-    !pathname.startsWith("/verify-email");
-
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={twMerge(
-          `${geistSans.variable} ${geistMono.variable} theme-transition overflow-x-hidden relative w-full`
-        )}
-        suppressHydrationWarning
-      >
-        <ThemeProvider>
-          <SessionProvider>
-            <AuthProvider>
-              {/* Remove relative positioning and width from this div */}
-              <div className="z-[100]">{shouldShowNavbar && <Navbar />}</div>
-
-              {/* Remove relative positioning and width from this div */}
-              <div className="z-0">{children}</div>
-              <Toaster
-                position="top-right"
-                reverseOrder={false}
-                toastOptions={getToastStyle(theme)}
-              />
-            </AuthProvider>
-          </SessionProvider>
-        </ThemeProvider>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+        <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>
   );

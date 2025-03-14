@@ -24,7 +24,6 @@ import { useTheme } from "@/context/ThemeProvider";
 import { useAuthContext } from "@/context/AuthProvider";
 import SettingsDialog from "@/myUi/SettingsDialog";
 import MySettings from "@/myUi/MySettings";
-import useAuth from "@/lib/useAuth";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -33,29 +32,19 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Get authentication state from useAuth hook
-  const {
-    isAuthenticated,
-    user: authUser,
-    logout,
-    loading: authLoading,
-  } = useAuth();
-
-  const [user, setUser] = useState({
-    name: "",
-    image:
-      "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-  });
-
   // Get authentication state from AuthContext
   const {
-    isLoggedIn: contextIsLoggedIn,
-    user: contextUser,
-    logout: contextLogout,
+    user,
+    isAuthenticated,
+    logout,
+    loading
   } = useAuthContext();
 
-  // Determine user state combining both auth sources
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const defaultAvatar = "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=";
+  const userAvatar = user?.profile_picture || defaultAvatar;
+  const userName = user?.username || 
+                  `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 
+                  (user?.email ? user.email.split('@')[0] : '');
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
@@ -66,237 +55,40 @@ export default function Navbar() {
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Update local state from authUser when it changes
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!authLoading) {
-        if (authUser && isAuthenticated) {
-          console.log("Navbar: Setting logged in from useAuth:", authUser);
-          setIsLoggedIn(true);
-          setUser({
-            name: authUser.username || "",
-            image: authUser.profile_picture || user.image,
-          });
-        } else if (!isAuthenticated && !contextIsLoggedIn) {
-          console.log(
-            "Navbar: Setting logged out (both auth sources negative)"
-          );
-          setIsLoggedIn(false);
-          setUser({
-            name: "",
-            image:
-              "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-          });
-        }
-      }
-    };
-
-    loadUserData();
-  }, [authUser, isAuthenticated, authLoading, contextIsLoggedIn]);
-
-  // Update local state from context when it changes
-  useEffect(() => {
-    if (contextIsLoggedIn && contextUser) {
-      console.log("Navbar: Setting logged in from context:", contextUser);
-      setIsLoggedIn(true);
-      setUser({
-        name: contextUser.username || "",
-        image: contextUser.image || user.image,
-      });
-    }
-  }, [contextIsLoggedIn, contextUser]);
-
-  // Check for token and userData directly
-  useEffect(() => {
-    const checkLocalStorage = () => {
-      if (typeof window !== "undefined") {
-        const hasToken = !!localStorage.getItem("token");
-        const hasRefreshToken = !!localStorage.getItem("refreshToken");
-        const hasUserData = !!localStorage.getItem("userData");
-        const hasAuthToken = !!localStorage.getItem("token");
-
-        if (
-          (hasToken || hasRefreshToken || hasUserData || hasAuthToken) &&
-          !isLoggedIn
-        ) {
-          console.log("Navbar: Setting logged in from localStorage");
-          setIsLoggedIn(true);
-
-          // Try to set user data from localStorage
-          try {
-            const userDataString = localStorage.getItem("userData");
-            if (userDataString) {
-              const userData = JSON.parse(userDataString);
-              setUser({
-                name: userData.username || "",
-                image: userData.image || user.image,
-              });
-            }
-          } catch (error) {
-            console.error("Error parsing userData in Navbar:", error);
-          }
-        }
-      }
-    };
-
-    checkLocalStorage();
-
-    // Listen for storage events
-    const handleStorageChange = () => {
-      checkLocalStorage();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [isLoggedIn, user.image]);
-
-  // ✅ Detect if page is scrolled
+  // Handle scroll event
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 0);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ✅ Modified handleLogout to use useAuth's logout
-  const handleLogout = async () => {
-    try {
-      // Show loading toast
-      const loadingToast = toast.loading("Signing out...", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
-
-      // Close dropdowns
-      setShowDropdown(false);
-      setShowThemeDropdown(false);
-      setIsSettingsOpen(false);
-
-      // Clear all local storage first
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("userData");
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("isChat");
-
-        // Dispatch storage event to notify other components
-        window.dispatchEvent(new Event("storage"));
-      }
-
-      // Update local state
-      setIsLoggedIn(false);
-      setUser({
-        name: "",
-        image:
-          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      });
-
-      // Call both logout functions to ensure complete logout
-      if (contextLogout) {
-        await contextLogout();
-      }
-      await logout();
-
-      // Clear NextAuth session if it exists
-      if (session) {
-        await signOut({ redirect: false });
-      }
-
-      // Dismiss loading toast and show success
-      toast.dismiss(loadingToast);
-      toast.success("Successfully signed out!", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
-
-      // Redirect based on current route without adding reason parameter
-      const currentPath = pathname;
-      const isProtectedRoute =
-        currentPath.includes("/chat") ||
-        currentPath.includes("/dashboard") ||
-        currentPath.includes("/profile") ||
-        currentPath.includes("/settings");
-
-      // Small delay to ensure state updates are processed
-      setTimeout(() => {
-        if (isProtectedRoute) {
-          router.replace("/signin");
-        } else {
-          router.replace("/");
-        }
-      }, 100);
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Failed to sign out. Please try again.", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
-
-      // Even if API call fails, clear local state
-      setIsLoggedIn(false);
-      setUser({
-        name: "",
-        image:
-          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      });
-    }
-  };
-
-  // Force check auth state on mount and route change
-  useEffect(() => {
-    const checkAuthState = () => {
-      const hasToken = !!localStorage.getItem("token");
-      const hasUserData = !!localStorage.getItem("userData");
-
-      if (!hasToken && !hasUserData) {
-        setIsLoggedIn(false);
-        setUser({
-          name: "",
-          image:
-            "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-        });
-      }
-    };
-
-    checkAuthState();
-  }, [pathname]);
-
+  // Handle clicking outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as HTMLElement;
+      if (showDropdown && !target.closest('#user-dropdown-button') && !target.closest('#user-dropdown')) {
         setShowDropdown(false);
-      }
-
-      if (
-        themeDropdownRef.current &&
-        !themeDropdownRef.current.contains(event.target as Node) &&
-        themeButtonRef.current &&
-        !themeButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowThemeDropdown(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Error logging out");
+    }
+  };
 
   if (
     pathname === "/signin" ||
@@ -349,7 +141,7 @@ export default function Navbar() {
         {/* Right: Theme & Authentication */}
         <div className="flex gap-3 md:gap-5 items-center relative">
           {/* Authentication */}
-          {!isLoggedIn && !isAuthenticated ? (
+          {!isAuthenticated ? (
             <div className="flex items-center gap-3">
               {/* Theme Button */}
               <motion.div 
@@ -489,13 +281,13 @@ export default function Navbar() {
                   className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
                 >
                   <Image
-                    src={user.image}
+                    src={userAvatar}
                     alt="Profile"
                     width={32}
                     height={32}
                     className="rounded-full"
                   />
-                  <span className="hidden md:inline">{user.name}</span>
+                  <span className="hidden md:inline">{userName}</span>
                 </button>
 
                 {showDropdown && (
@@ -512,15 +304,15 @@ export default function Navbar() {
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full overflow-hidden shadow-inner">
                           <Image
-                            src={user.image || "/placeholder.svg"}
-                            alt={user.name || "User"}
+                            src={userAvatar || "/placeholder.svg"}
+                            alt={userName || "User"}
                             width={40}
                             height={40}
                             className="rounded-full"
                           />
                         </div>
                         <div>
-                          <div className="font-semibold">{user.name}</div>
+                          <div className="font-semibold">{userName}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             WordPress Developer
                           </div>

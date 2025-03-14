@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 
 export default function ToasterProvider() {
   const { theme } = useTheme();
-  
+
   return (
     <Toaster
       position="top-right"
@@ -14,4 +14,4 @@ export default function ToasterProvider() {
       toastOptions={getToastStyle(theme)}
     />
   );
-} 
+}

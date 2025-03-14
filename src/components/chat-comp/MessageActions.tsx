@@ -24,22 +24,22 @@ export const UserMessageActions: React.FC<UserMessageActionsProps> = ({
   };
   
   return (
-    <div className="flex items-center justify-end gap-2 mt-2 user-message-actions opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center justify-end gap-2 mt-2 user-message-actions opacity-0 group-hover:opacity-100 transition-opacity duration-300">
       <button 
         onClick={handleCopy}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
         title="Copy message"
       >
-        <Copy size={16} />
+        <Copy size={16} className="action-icon" />
       </button>
       
       {onEdit && (
         <button 
           onClick={onEdit}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
           title="Edit message"
         >
-          <Pencil size={16} />
+          <Pencil size={16} className="action-icon" />
         </button>
       )}
     </div>
@@ -95,47 +95,47 @@ export const AIResponseActions: React.FC<AIResponseActionsProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2 mt-2 ai-response-actions opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center gap-2 mt-2 ai-response-actions opacity-0 group-hover:opacity-100 transition-opacity duration-300 display-block">
       {onRegenerate && (
         <button 
           onClick={onRegenerate}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
           title="Regenerate response"
         >
-          <RotateCcw size={16} />
+          <RotateCcw size={16} className="action-icon" />
         </button>
       )}
       
       <button 
         onClick={handleCopy}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
         title="Copy response"
       >
-        <Copy size={16} />
+        <Copy size={16} className="action-icon" />
       </button>
       
       <button 
         onClick={handleCopyShareLink}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
         title="Copy share link"
       >
-        <Share2 size={16} />
+        <Share2 size={16} className="action-icon" />
       </button>
       
       <button 
         onClick={handleLove}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-green-500"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-green-500 transition-colors duration-200"
         title="Helpful response"
       >
-        <ThumbsUp size={16} />
+        <ThumbsUp size={16} className="action-icon" />
       </button>
       
       <button 
         onClick={handleNotForMe}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
         title="Not helpful"
       >
-        <ThumbsDown size={16} />
+        <ThumbsDown size={16} className="action-icon" />
       </button>
     </div>
   );

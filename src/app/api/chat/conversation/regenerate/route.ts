@@ -8,12 +8,12 @@ import { RegenerateRequest } from '@/lib/types/chat';
  * POST /api/chat/conversation/regenerate - Regenerate a response
  * 
  * Body:
- * - session_id: string - The session ID
+ * - id: string - The conversation ID
  * - message_id?: string - The message ID to regenerate (if omitted, regenerates the last response)
  * 
  * Returns:
  * - response: string - The regenerated AI response
- * - session_id: string - The session ID
+ * - id: string - The conversation ID
  * - message_id: string - The ID of the regenerated message
  * - provider_used: string - The provider used
  * - model_used: string - The model used
@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { session_id, message_id } = body as RegenerateRequest;
+    const { id, message_id } = body as RegenerateRequest;
 
     // Validate required fields
-    if (!session_id) {
+    if (!id) {
       return NextResponse.json(
-        { message: 'Session ID is required' },
+        { message: 'Conversation ID is required' },
         { status: 400 }
       );
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Create a simulated response
     const simulatedResponse = {
       response: "This is a regenerated response with different content.",
-      session_id: session_id,
+      id: id,
       message_id: message_id || uuidv4(),
       provider_used: 'openai',
       model_used: 'gpt-4',

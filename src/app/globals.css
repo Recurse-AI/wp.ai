@@ -135,3 +135,6 @@ body {
 .dark .custom-scrollbar {
   scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
 }
+
+/* Import AI Response styles */
+@import '../styles/ai-response.css';

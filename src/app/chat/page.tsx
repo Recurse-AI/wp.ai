@@ -14,11 +14,13 @@ import TextAreaInput from "@/components/chat-comp/TextAreaInput";
 import AIProviderSelect from "@/components/chat-comp/input-components/AIProviderSelect";
 import { WordPressIcon, BrainIcon } from "@/components/chat-comp/input-components/EnhancedIcons";
 import { Zap } from "lucide-react";
-import { v4 as uuidv4 } from 'uuid';
 import { getToastStyle } from "@/lib/toastConfig";
 import { useChatService } from '@/lib/hooks/useChatService';
 import { ChatProvider, ChatModel } from '@/lib/services/chatConfig';
+import { useChatNavigation } from '@/lib/hooks/useChatNavigation';
+import { useSidebar } from "./layout"; // Import the sidebar hook
 
+// Remove the handleSidebarToggle prop since we'll use the context
 const Page = () => {
   const { theme } = useTheme();
   const router = useRouter();
@@ -29,8 +31,12 @@ const Page = () => {
   const [prompt, setPrompt] = useState("");
   const [embeddingEnabled, setEmbeddingEnabled] = useState(false);
   
-  // Initialize chat service
+  // Get sidebar functionality from context
+  const { toggleSidebar } = useSidebar();
+  
+  // Initialize chat service and navigation
   const { updateSettings } = useChatService();
+  const { startNewChat } = useChatNavigation();
   
   useEffect(() => {
     const checkAuth = async () => {
@@ -107,23 +113,7 @@ const Page = () => {
     );
   };
 
-  // Function to clean up old chat sessions in localStorage
-  const cleanupChatSessions = (currentSessionId: string) => {
-    if (typeof window === 'undefined') return;
-    
-    // Get all keys from localStorage
-    const keys = Object.keys(localStorage);
-    
-    // Filter out chat session keys
-    const chatSessionKeys = keys.filter(key => key.startsWith('chat-session-'));
-    
-    // Delete all chat sessions except the current one
-    chatSessionKeys.forEach(key => {
-      if (key !== `chat-session-${currentSessionId}`) {
-        localStorage.removeItem(key);
-      }
-    });
-  };
+
 
   // Handle model change
   const handleModelChange = useCallback((settings: { provider: string; model: string }) => {
@@ -135,28 +125,31 @@ const Page = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     if (!prompt.trim()) return;
     
-    const startSessionData = {
-      mode: agentMode ? 'agent' : 'default',
-      embedding_enabled: embeddingEnabled,
-      prompt: prompt,
-      isNewChat: true,
-      isExistingChat: false,
-    };
+    try {
+      // Start a new chat using our store
+      const id = startNewChat(
+        agentMode ? 'agent' : 'default',
+        embeddingEnabled,
+        prompt
+      );
 
-    // Generate a UUID for the new chat session
-    const sessionId = uuidv4();
-    
-    // Store the initial prompt and settings in localStorage
-    localStorage.setItem(`chat-session-${sessionId}`, JSON.stringify(startSessionData));
-    
-    // Clean up old chat sessions
-    cleanupChatSessions(sessionId);
-    
-    // Navigate to the new chat using Next.js router
-    router.push(`/chat/${sessionId}`);
+      // toggle sidebar if agent mode is enabled
+      if (agentMode) {
+        toggleSidebar(); // Now using the context function
+      }
+      
+      // Clear the prompt
+      setPrompt("");
+    } catch (error) {
+      console.error("Error starting new chat:", error);
+      toast.error("Failed to start new chat", getToastStyle(theme));
+    }
   };
+
+ 
 
   if (authChecking) {
     return (
@@ -168,74 +161,73 @@ const Page = () => {
 
   return (
     <div className={`h-full flex flex-col items-center justify-center px-2 overflow-hidden`}>
-      
-        <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto px-4">
-            <WelcomeHeader 
-              username={user?.username || ''}
-              setPrompt={setPrompt}
-            />
-          
-            <form
-              onSubmit={handleSubmit}
-              className={`flex rounded-xl items-end px-5 py-4 w-full justify-between border ${
-                theme === "dark" 
-                ? "bg-gray-900/80 border-gray-700 shadow-sm" 
-                : "bg-white border-gray-200 shadow-sm"
-              } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`}
-            >
-              {/* Mode Indicators */}
-              {embeddingEnabled && !agentMode && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
-                  <div className="flex items-center gap-1">
-                    <WordPressIcon />
-                    <BrainIcon />
-                  </div>
-                  <span>WordPress Knowledge Active</span>
-                </div>
-              )}
-              
-              {agentMode && (
-                <div className="absolute -top-3 right-5 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
-                  <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
-                  <span>Agent Mode Active</span>
-                </div>
-              )}
-              
-              {/* Input and Attachments Wrapper */}
-              <div className="relative flex flex-col w-full">
-                <TextAreaInput
-                  prompt={prompt}
-                  handleInput={handleInput}
-                  handleKeyDown={handleKeyDown}
-                />
-
-                {/* Mode Toggle Buttons and AI Provider */}
-                <div className="left-0 mt-2 px-3 flex justify-between items-center">
-                  <ModeToggleButtons
-                    agentMode={agentMode}
-                    embeddingEnabled={embeddingEnabled}
-                    toggleAgentMode={toggleAgentMode}
-                    toggleEmbedding={toggleEmbedding}
-                  />
-                  
-                  {/* AI Provider Selection */}
-                  <AIProviderSelect 
-                    className="mt-0.5" 
-                    onModelChange={handleModelChange}
-                  />
-                </div>
-              </div>
-
-              {/* Send Button */}
-              <SendButton isDisabled={!prompt.trim()} />
-            </form>
-
-          {/* Info Footer */}
-          <InfoFooter
-            embeddingEnabled={embeddingEnabled}
-            agentMode={agentMode}
+      <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto px-4">
+          <WelcomeHeader 
+            username={user?.username || ''}
+            setPrompt={setPrompt}
           />
-        </div>
+          
+          <form
+            onSubmit={handleSubmit}
+            className={`flex rounded-xl items-end px-5 py-4 w-full justify-between border ${
+              theme === "dark" 
+              ? "bg-gray-900/80 border-gray-700 shadow-sm" 
+              : "bg-white border-gray-200 shadow-sm"
+            } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`}
+          >
+            {/* Mode Indicators */}
+            {embeddingEnabled && !agentMode && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                <div className="flex items-center gap-1">
+                  <WordPressIcon />
+                  <BrainIcon />
+                </div>
+                <span>WordPress Knowledge Active</span>
+              </div>
+            )}
+            
+            {agentMode && (
+              <div className="absolute -top-3 right-5 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <span>Agent Mode Active</span>
+              </div>
+            )}
+            
+            {/* Input and Attachments Wrapper */}
+            <div className="relative flex flex-col w-full">
+              <TextAreaInput
+                prompt={prompt}
+                handleInput={handleInput}
+                handleKeyDown={handleKeyDown}
+              />
+
+              {/* Mode Toggle Buttons and AI Provider */}
+              <div className="left-0 mt-2 px-3 flex justify-between items-center">
+                <ModeToggleButtons
+                  agentMode={agentMode}
+                  embeddingEnabled={embeddingEnabled}
+                  toggleAgentMode={toggleAgentMode}
+                  toggleEmbedding={toggleEmbedding}
+                />
+                
+                {/* AI Provider Selection */}
+                <AIProviderSelect 
+                  className="mt-0.5" 
+                  onModelChange={handleModelChange}
+                />
+              </div>
+            </div>
+
+            {/* Send Button */}
+            <SendButton isDisabled={!prompt.trim()} />
+          </form>
+
+        {/* Info Footer */}
+        <InfoFooter
+          embeddingEnabled={embeddingEnabled}
+          agentMode={agentMode}
+        />
+      </div>
       
     </div>
   );

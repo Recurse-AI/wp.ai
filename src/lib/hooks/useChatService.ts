@@ -22,13 +22,13 @@ export function useChatService({ initialSettings, onError }: UseChatServiceOptio
     messages: [],
   });
 
-  // Load conversation history when session ID changes
+  // Load conversation history when id changes
   useEffect(() => {
-    const sessionId = chatService.getCurrentSessionId();
-    if (sessionId) {
+    const id = chatService.getCurrentId();
+    if (id) {
       loadConversationHistory();
     }
-  }, [chatService.getCurrentSessionId()]);
+  }, [chatService.getCurrentId()]);
 
   // Clean up the chatService when the component unmounts
   useEffect(() => {
@@ -46,7 +46,7 @@ export function useChatService({ initialSettings, onError }: UseChatServiceOptio
       const messagesAsResponses = history.map(msg => ({
         ...msg,
         response: msg.content,
-        session_id: chatService.getCurrentSessionId() || ''
+        id: chatService.getCurrentId() || ''
       }));
       
       setState(prev => ({
@@ -83,16 +83,16 @@ export function useChatService({ initialSettings, onError }: UseChatServiceOptio
     chatService.updateSettings(newSettings);
   }, [chatService]);
 
-  const setSessionId = useCallback((sessionId: string | null) => {
-    chatService.setSessionId(sessionId);
+  const setId = useCallback((id: string | null) => {
+    chatService.setId(id);
   }, [chatService]);
 
   return {
     ...state,
     sendMessage,
     updateSettings,
-    setSessionId,
+    setId,
     getSettings: chatService.getSettings.bind(chatService),
-    getCurrentSessionId: chatService.getCurrentSessionId.bind(chatService),
+    getCurrentId: chatService.getCurrentId.bind(chatService),
   };
 } 

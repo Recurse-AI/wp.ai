@@ -1,0 +1,154 @@
+/* AI Response Visibility Styles */
+
+/* When the AI response is ready, ensure it's visible */
+.ai-response-ready .ai-response,
+.thinking-search-complete + .ai-response,
+[data-processing-complete="true"] + .ai-response,
+[data-main-content-ready="true"] + .ai-response,
+.ai-response {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force visibility for all message containers for backward compatibility */
+.message-container,
+.user-message-container,
+.ai-message-container {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure action buttons are visible */
+.ai-response-actions {
+  opacity: 0.9 !important;
+  visibility: visible !important;
+  display: flex !important;
+}
+
+/* Still allow hover for better visibility */
+.group:hover .ai-response-actions {
+  opacity: 1 !important;
+}
+
+/* Ensure the response indicator is always visible */
+.response-indicator {
+  position: relative;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Ensure the main content container has proper spacing */
+.thinking-search-complete {
+  margin-bottom: 2rem;
+}
+
+/* Sequential streaming phases styling */
+.search-results-container,
+.thinking-container {
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-results-container[data-complete="true"],
+.thinking-container[data-complete="true"] {
+  opacity: 0.85;
+}
+
+/* Phase transition animations */
+@keyframes phaseTransition {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.phase-transition {
+  animation: phaseTransition 0.5s ease-out forwards;
+}
+
+/* Message animation styles */
+@keyframes messageSlideUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+@keyframes messageSlideIn {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.message-slide-up {
+  animation: messageSlideUp 0.5s ease forwards;
+}
+
+.message-slide-in {
+  animation: messageSlideIn 0.5s ease forwards;
+}
+
+/* Adding scroll container class */
+.auto-scroll-container {
+  transition: all 0.5s ease;
+}
+
+/* Extra space for message animations */
+.message-enter-active {
+  animation: messageSlideIn 0.4s ease-out forwards;
+}
+
+.message-exit-active {
+  animation: messageSlideUp 0.4s ease-in forwards;
+}
+
+/* Styling for sequential streaming components */
+.ai-response-section {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.ai-response-section.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ai-response-section.completed {
+  opacity: 0.85;
+}
+
+/* Cursor animation for streaming text */
+.streaming-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  background-color: currentColor;
+  animation: cursorBlink 1s infinite;
+  vertical-align: middle;
+  margin-left: 0.2em;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+} 

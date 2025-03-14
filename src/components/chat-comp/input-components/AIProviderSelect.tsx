@@ -15,27 +15,48 @@ const AI_PROVIDERS = [
     icon: SiOpenai,
     models: [
       { id: 'gpt-4o', name: 'GPT-4o', wpOptimized: true },
-      { id: 'gpt-4', name: 'GPT-4 Turbo', wpOptimized: true },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', wpOptimized: false }
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', wpOptimized: false },
+      { id: 'gpt-4', name: 'GPT-4', wpOptimized: true },
+      { id: 'gpt-o1', name: 'GPT-o1', wpOptimized: true }
     ]
   },
   { 
-    id: 'claude', 
+    id: 'anthropic', 
     name: 'Claude',
     icon: SiClaude,
     models: [
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', wpOptimized: true },
-      { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', wpOptimized: false },
-      { id: 'claude-3-haiku', name: 'Claude 3 Haiku', wpOptimized: false }
+      { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', wpOptimized: true },
+      { id: 'claude-3-7-sonnet-thinking', name: 'Claude 3.7 Sonnet (Thinking)', wpOptimized: true },
+      { id: 'claude-3-5-sonnet-v2', name: 'Claude 3.5 Sonnet v2', wpOptimized: true },
+      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', wpOptimized: false },
+      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', wpOptimized: true },
+      { id: 'claude-3-opus', name: 'Claude 3 Opus', wpOptimized: true }
     ]
   },
   { 
-    id: 'gemini', 
+    id: 'google', 
     name: 'Google Gemini',
     icon: SiGooglegemini,
     models: [
-      { id: 'gemini-pro', name: 'Gemini Pro', wpOptimized: true },
-      { id: 'gemini-ultra', name: 'Gemini Ultra', wpOptimized: false }
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', wpOptimized: true },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', wpOptimized: false },
+      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', wpOptimized: false }
+    ]
+  },
+  {
+    id: 'qwen',
+    name: 'Qwen',
+    icon: SiClaude, // Replace with appropriate icon if available
+    models: [
+      { id: 'qwen-max', name: 'Qwen Max', wpOptimized: false }
+    ]
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    icon: SiClaude, // Replace with appropriate icon if available
+    models: [
+      { id: 'deepseek-chat', name: 'DeepSeek Chat', wpOptimized: false }
     ]
   }
 ];
@@ -120,8 +141,10 @@ const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelC
       >
         <div className="flex items-center gap-1.5">
           {currentProvider.id === 'openai' && <SiOpenai className="text-sm" />}
-          {currentProvider.id === 'claude' && <SiClaude className="text-sm" />}
-          {currentProvider.id === 'gemini' && <SiGooglegemini className="text-sm" />}
+          {currentProvider.id === 'anthropic' && <SiClaude className="text-sm" />}
+          {currentProvider.id === 'google' && <SiGooglegemini className="text-sm" />}
+          {currentProvider.id === 'qwen' && <SiClaude className="text-sm" />}
+          {currentProvider.id === 'deepseek' && <SiClaude className="text-sm" />}
           <span>{currentModel.name}</span>
           <FiChevronDown className="text-xs" />
         </div>
@@ -153,8 +176,10 @@ const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelC
             <div key={provider.id} className="border-b border-gray-200 dark:border-gray-600 last:border-0">
               <div className="flex items-center gap-2 px-3 py-1.5 font-medium bg-gray-50/80 dark:bg-gray-700/80 text-xs sticky top-9 z-10">
                 {provider.id === 'openai' && <SiOpenai className="text-sm" />}
-                {provider.id === 'claude' && <SiClaude className="text-sm" />}
-                {provider.id === 'gemini' && <SiGooglegemini className="text-sm" />}
+                {provider.id === 'anthropic' && <SiClaude className="text-sm" />}
+                {provider.id === 'google' && <SiGooglegemini className="text-sm" />}
+                {provider.id === 'qwen' && <SiClaude className="text-sm" />}
+                {provider.id === 'deepseek' && <SiClaude className="text-sm" />}
                 <span>{provider.name}</span>
               </div>
               <div className="pl-3">

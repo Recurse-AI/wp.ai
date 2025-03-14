@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { query, session_id, provider, model, temperature, max_tokens } = body as ConversationRequest;
+    const { query, id, provider, model, temperature, max_tokens } = body as ConversationRequest;
 
     // Validate required fields
     if (!query) {
@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate a new session ID if not provided
-    const currentSessionId = session_id || uuidv4();
-    const isNewSession = !session_id;
+    const currentSessionId = id || uuidv4();
+    const isNewSession = !id;
     
     // Call external API or AI provider directly
     const apiUrl = process.env.EXTERNAL_AI_API_URL || 'https://api.example.com/chat';

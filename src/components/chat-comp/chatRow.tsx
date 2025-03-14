@@ -10,7 +10,9 @@ import { useTheme } from "@/context/ThemeProvider";
 import { toast } from "react-hot-toast";
 import { getToastStyle } from "@/lib/toastConfig";
 import { formatDistanceToNow } from "date-fns";
-// import { useRouter } from "next/router";
+import { useChatStore } from "@/lib/store/chatStore";
+import { useChatNavigation } from "@/lib/hooks/useChatNavigation";
+import { chatService } from "@/lib/services/chatService";
 
 const ChatRow = ({
   id,
@@ -22,6 +24,7 @@ const ChatRow = ({
   onDelete,
   lastMessage,
   timestamp,
+  isActive,
 }: {
   id: string;
   name: string;
@@ -32,12 +35,11 @@ const ChatRow = ({
   onDelete?: () => void;
   lastMessage?: string;
   timestamp?: string;
+  isActive?: boolean;
 }) => {
   const { theme } = useTheme();
-  const pathName = usePathname();
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -45,16 +47,14 @@ const ChatRow = ({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Get store functions
+  const { updateSession } = useChatStore();
 
   // Format the timestamp for display
   const formattedTime = timestamp 
     ? formatDistanceToNow(new Date(timestamp), { addSuffix: true })
     : '';
-
-  useEffect(() => {
-    if (!pathName) return;
-    setActive(pathName.includes(id));
-  }, [pathName, id]);
 
   useEffect(() => {
     if (openDropdown === id && buttonRef.current) {
@@ -121,7 +121,8 @@ const ChatRow = ({
     };
   }, [isEditing]);
 
-  const handleDropdownToggle = () => {
+  const handleDropdownToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setOpenDropdown(openDropdown === id ? null : id);
   };
 
@@ -131,13 +132,14 @@ const ChatRow = ({
     setLoading(true);
 
     try {
-      // In a real implementation, you would call your API to update the title
-      // For now, we'll just simulate a successful update
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update title in the store
+      updateSession({  title: newTitle });
+      
+      // Also update on the server if needed
+      await chatService.updateChatTitle(id, newTitle);
       
       toast.success("Chat title updated!", getToastStyle(theme));
       setIsEditing(false);
-      onSelect?.(id);
     } catch (error) {
       toast.error("Failed to update title", getToastStyle(theme));
       console.error("Error updating title:", error);
@@ -168,17 +170,18 @@ const ChatRow = ({
     }
   };
 
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect(id);
+    }
+  };
+
   return (
     <div className="relative w-full mb-2">
-      <Link
-        href={`/chat/${id}`}
-        onClick={() => {
-          if (onSelect) {
-            onSelect(id);
-          }
-        }}
-        className={`flex flex-col w-full px-3 py-2 rounded-lg transition-all duration-200 mb-1 ${
-          active
+      <div
+        onClick={handleClick}
+        className={`flex flex-col w-full px-3 py-2 rounded-lg transition-all duration-200 mb-1 cursor-pointer ${
+          isActive
             ? theme === "dark"
               ? "bg-gray-700/80 text-white"
               : "bg-gray-200 text-black"
@@ -192,7 +195,7 @@ const ChatRow = ({
           {/* Editable Title with Loading Indicator */}
           <div className="flex items-center flex-1 whitespace-nowrap overflow-hidden">
             {isEditing ? (
-              <div className="flex items-center w-full">
+              <div className="flex items-center w-full" onClick={(e) => e.stopPropagation()}>
                 <input
                   ref={inputRef}
                   type="text"
@@ -212,17 +215,16 @@ const ChatRow = ({
                 )}
               </div>
             ) : (
-              <Link
-                href={`/chat/${id}`}
-                className="flex-1 truncate text-lg font-medium tracking-wide"
-                onClick={() => {
-                  if (onSelect) {
-                    onSelect(id);
-                  }
-                }}
-              >
-                {newTitle.length > 20 ? newTitle.slice(0, 20) + "..." : newTitle}
-              </Link>
+              <div className="flex flex-col w-full">
+                <span className="truncate text-lg font-medium tracking-wide">
+                  {newTitle?.length > 20 ? newTitle.slice(0, 20) + "..." : newTitle}
+                </span>
+                {timestamp && (
+                  <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                    {formattedTime}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -235,10 +237,10 @@ const ChatRow = ({
             <BsThreeDotsVertical
               className={`text-base ease-in-out ${
                 theme === "dark"
-                  ? active
+                  ? isActive
                     ? "text-white"
                     : "text-white/50 hover:text-gray-300"
-                  : active
+                  : isActive
                   ? "text-black"
                   : "text-black/50 hover:text-gray-600"
               }`}
@@ -246,69 +248,64 @@ const ChatRow = ({
           </div>
         </div>
         
-        {/* Last Message Preview and Timestamp */}
+        {/* Last Message Preview */}
         {lastMessage && (
-          <div className="mt-1 flex flex-col">
-            <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              {lastMessage.length > 60 ? lastMessage.slice(0, 60) + "..." : lastMessage}
+          <div className="mt-1">
+            <p className={`text-sm truncate ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              {lastMessage.length > 30 ? lastMessage.slice(0, 30) + "..." : lastMessage}
             </p>
-            {timestamp && (
-              <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                {formattedTime}
-              </p>
-            )}
           </div>
         )}
-      </Link>
+      </div>
 
       {/* Dropdown Menu */}
       {openDropdown === id &&
         createPortal(
           <div
-            className={`fixed shadow-lg rounded-md w-40 z-50 dropdown-menu ${
+            className={`dropdown-menu fixed z-50 w-40 rounded-lg shadow-lg py-2 ${
               theme === "dark"
-                ? "bg-gray-800 text-white"
-                : "bg-white text-black"
+                ? "bg-gray-800 text-white border border-gray-700"
+                : "bg-white text-gray-800 border border-gray-200"
             }`}
             style={{
-              top: dropdownPosition.top,
-              left: dropdownPosition.left,
-              maxWidth: "calc(100vw - 16px)", // Ensure dropdown doesn't exceed screen width
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            {/* Edit Option */}
-            <div
-              className={`flex items-center px-4 py-2 cursor-pointer ${
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+                setOpenDropdown(null);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm flex items-center ${
                 theme === "dark"
                   ? "hover:bg-gray-700"
                   : "hover:bg-gray-100"
               }`}
-              onClick={() => {
-                setIsEditing(true);
-                setOpenDropdown(null);
-              }}
             >
               <FaEdit className="mr-2 text-blue-500" />
-              <span>Edit Title</span>
-            </div>
-
-            {/* Delete Option */}
-            <div
-              className={`flex items-center px-4 py-2 cursor-pointer ${
+              Edit Title
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteChat();
+              }}
+              disabled={deleting}
+              className={`w-full text-left px-4 py-2 text-sm flex items-center ${
                 theme === "dark"
                   ? "hover:bg-gray-700 text-red-400"
                   : "hover:bg-gray-100 text-red-500"
               }`}
-              onClick={deleteChat}
             >
               {deleting ? (
-                <div className="mr-2 animate-spin border-t-2 border-red-500 border-solid rounded-full h-4 w-4" />
+                <div className="mr-2 animate-spin border-t-2 border-red-500 border-solid rounded-full h-3 w-3" />
               ) : (
                 <BiSolidTrashAlt className="mr-2" />
               )}
-              <span>{deleting ? "Deleting..." : "Delete"}</span>
-            </div>
+              {deleting ? "Deleting..." : "Delete Chat"}
+            </button>
           </div>,
           document.body
         )}

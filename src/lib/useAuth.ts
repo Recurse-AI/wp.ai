@@ -3,6 +3,9 @@ import { useRouter } from 'next/navigation';
 import AuthService, { LoginCredentials, UserProfile, UserRegistration } from './authService';
 import TokenManager from './tokenManager';
 
+// Re-export UserProfile type for easy import by other components
+export type { UserProfile } from './authService';
+
 interface AuthState {
   user: UserProfile | null;
   loading: boolean;
