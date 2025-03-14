@@ -18,15 +18,6 @@ const IssueBox = ({ author, date, description, avatar }) => {
     return (
         <div className={styles.commentContainer}>
             <div className={styles.commentBox}>
-                <div className={styles.commentHeader}>
-                    <div className={styles.userInfo}>
-                        <span className={styles.author}>{author}</span>
-                        <span className={styles.commentDate}>
-                            commented on {formattedDate}
-                        </span>
-                    </div>
-                    <FaEllipsisH className={styles.moreOptions} />
-                </div>
                 <div className={styles.commentText}>
                     <MarkdownRenderer content={description} />
                 </div>
