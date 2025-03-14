@@ -12,8 +12,11 @@ import { IssueContext } from '@/context/IssueContext';
 const Comment = ({ comment, onQuoteReply, onCommentUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(comment.content);
-    const [isEdited, setIsEdited] = useState(false);
     const { API_BASE_URL, getAuthHeaders } = useContext(IssueContext);
+
+    // Only show edited if updated_at exists and is different from created_at
+    const isCommentEdited = comment.updated_at && 
+        new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime();
 
     const handleQuoteReply = () => {
         // Format the comment content as a quote
@@ -47,7 +50,6 @@ const Comment = ({ comment, onQuoteReply, onCommentUpdate }) => {
             const updatedComment = await response.json();
             onCommentUpdate(updatedComment);
             setIsEditing(false);
-            setIsEdited(true);
         } catch (error) {
             console.error('Error updating comment:', error);
         }
@@ -65,7 +67,7 @@ const Comment = ({ comment, onQuoteReply, onCommentUpdate }) => {
                             <span className={styles.date}>
                                 commented on {formatDate(comment.created_at)}
                             </span>
-                            {isEdited && <span className={styles.editedLabel}> (edited)</span>}
+                            {isCommentEdited && <span className={styles.editedLabel}> (edited)</span>}
                         </div>
                         <div className={styles.headerActions}>
                             <button 
