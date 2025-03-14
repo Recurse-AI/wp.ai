@@ -7,9 +7,10 @@ import styles from "./issueDetails.module.css";
 import { getRandomAvatar } from "@/utils/avatarUtils";
 import { IssueContext } from "@/context/IssueContext";
 import Comment from "@/components/community/comment/Comment";
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaTimes, FaEdit } from 'react-icons/fa';
 import { formatDate } from '@/utils/dateUtils';
 import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
+import TextEditor from '@/components/community/textEditor/TextEditor';
 
 const IssueDetails = () => {
     const params = useParams();
@@ -23,6 +24,9 @@ const IssueDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [commentText, setCommentText] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedTitle, setEditedTitle] = useState('');
+    const [editedDescription, setEditedDescription] = useState('');
 
     // Fetch comments function
     const fetchComments = async () => {
@@ -94,10 +98,49 @@ const IssueDetails = () => {
         );
     };
 
+    // Add handler for saving edited issue
+    const handleSaveIssue = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/community/issues/${params.id}/`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    title: editedTitle,
+                    description: editedDescription
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update issue');
+            }
+
+            const updatedIssue = await response.json();
+            // Update the local issue state
+            const updatedIssues = issues.map(i => 
+                i.id.toString() === params.id ? updatedIssue : i
+            );
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating issue:', error);
+        }
+    };
+
+    // Initialize edit state when issue loads
+    useEffect(() => {
+        if (issue) {
+            setEditedTitle(issue.title);
+            setEditedDescription(issue.description);
+        }
+    }, [issue]);
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div className={styles.notFound}><h2>Error</h2><p>{error}</p></div>;
     if (!issue) return <div className={styles.notFound}><h2>Issue not found</h2></div>;
-    // console.log(issue)
+
+    // Only show edited if updated_at exists and is different from created_at
+    const isIssueEdited = issue.updated_at && 
+        new Date(issue.updated_at).getTime() > new Date(issue.created_at).getTime();
+
     const issueData = {
         ...issue,
         date: issue.created_at,
@@ -117,15 +160,34 @@ const IssueDetails = () => {
         <div className={styles.container}>
             <header className={styles.header}>
                 <div className={styles.titleSection}>
-                    <h1>
-                        <FaInfoCircle className={styles.infoIcon} />
-                        {issueData.title}
-                        <span className={styles.issueId}>#{issueData.id}</span>
-                    </h1>
+                    {isEditing ? (
+                        <div className={styles.editTitleSection}>
+                            <input
+                                type="text"
+                                value={editedTitle}
+                                onChange={(e) => setEditedTitle(e.target.value)}
+                                className={styles.titleInput}
+                            />
+                        </div>
+                    ) : (
+                        <h1>
+                            <FaInfoCircle className={styles.infoIcon} />
+                            {issueData.title}
+                            <span className={styles.issueId}>#{issueData.id}</span>
+                        </h1>
+                    )}
                     <div className={styles.issueInfo}>
                         <strong className={styles.highlightedAuthor}>
                             {issueData.author}
                         </strong> opened on {formatDate(issueData.date)}
+                        {isIssueEdited && <span className={styles.editedLabel}> (edited)</span>}
+                        <button 
+                            onClick={() => setIsEditing(!isEditing)}
+                            className={styles.editButton}
+                            title={isEditing ? "Cancel" : "Edit"}
+                        >
+                            {isEditing ? <FaTimes /> : <FaEdit />}
+                        </button>
                     </div>
                 </div>
             </header>
@@ -134,9 +196,25 @@ const IssueDetails = () => {
                 <div className={styles.commentContainer}>
                     <div className={styles.commentBox}>
                         <div className={styles.commentText}>
-                            <div className={styles.markdownWrapper}>
-                                <MarkdownRenderer content={issueData.description} />
-                            </div>
+                            {isEditing ? (
+                                <div className={styles.editDescriptionSection}>
+                                    <TextEditor
+                                        value={editedDescription}
+                                        onChange={setEditedDescription}
+                                        placeholder="Edit issue description"
+                                    />
+                                    <button 
+                                        onClick={handleSaveIssue} 
+                                        className={styles.saveButton}
+                                    >
+                                        Save changes
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className={styles.markdownWrapper}>
+                                    <MarkdownRenderer content={issueData.description} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
