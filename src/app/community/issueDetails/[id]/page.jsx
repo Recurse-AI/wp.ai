@@ -6,14 +6,14 @@ import CommentForm from "@/components/community/commentForm/CommentForm";
 import styles from "./issueDetails.module.css";
 import { getRandomAvatar } from "@/utils/avatarUtils";
 import { IssueContext } from "@/context/IssueContext";
-import IssueBox from "@/components/community/issueBox/IssueBox";
 import Comment from "@/components/community/comment/Comment";
 import { FaInfoCircle } from 'react-icons/fa';
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+import { formatDate } from '@/utils/dateUtils';
+import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
 
 const IssueDetails = () => {
     const params = useParams();
-    const { issues } = useContext(IssueContext);
+    const { issues, API_BASE_URL, getAuthHeaders } = useContext(IssueContext);
     
     // Ensure `params.id` is a string before using it
     const issueId = params?.id ? params.id.toString() : null;
@@ -23,18 +23,6 @@ const IssueDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [commentText, setCommentText] = useState("");
-
-    // Function to get auth headers
-    const getAuthHeaders = () => {
-        if (typeof window !== "undefined") {
-            const token = localStorage.getItem("token");
-            return {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            };
-        }
-        return { "Content-Type": "application/json" };
-    };
 
     // Fetch comments function
     const fetchComments = async () => {
@@ -63,24 +51,6 @@ const IssueDetails = () => {
             fetchComments();
         }
     }, [params.id]);
-
-    const formatDate = (dateString) => {
-        if (!dateString) return "Invalid Date";
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "Invalid Date";
-
-            return date.toLocaleString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-        } catch (error) {
-            return "Invalid Date";
-        }
-    };
 
     const handleCommentSubmit = async (commentText) => {
         try {
@@ -155,19 +125,21 @@ const IssueDetails = () => {
                     <div className={styles.issueInfo}>
                         <strong className={styles.highlightedAuthor}>
                             {issueData.author}
-                        </strong> opened this issue on{" "}
-                        {formatDate(issueData.date)}
+                        </strong> opened on {formatDate(issueData.date)}
                     </div>
                 </div>
             </header>
 
-            <div className={styles.mainComment}>
-                <IssueBox
-                    author={issueData.author}
-                    date={issueData.created_at}
-                    description={issueData.description}
-                    avatar={issueData.avatar}
-                />
+            <div className={styles.mainContent}>
+                <div className={styles.commentContainer}>
+                    <div className={styles.commentBox}>
+                        <div className={styles.commentText}>
+                            <div className={styles.markdownWrapper}>
+                                <MarkdownRenderer content={issueData.description} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div className={styles.commentsHeader}>
                 <h3>Comments:</h3>

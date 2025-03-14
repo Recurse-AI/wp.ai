@@ -4,27 +4,27 @@ import { formatText } from "@/utils/textUtils";
 
 export const IssueContext = createContext();
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+export const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+
+// Helper function to get auth headers
+export const getAuthHeaders = () => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    }
+    return {
+        'Content-Type': 'application/json'
+    };
+};
 
 export const IssueProvider = ({ children }) => {
     const [issues, setIssues] = useState([]);
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Helper function to get auth headers
-    const getAuthHeaders = () => {
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
-            return {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            };
-        }
-        return {
-            'Content-Type': 'application/json'
-        };
-    };
 
     // Fetch all issues
     const fetchIssues = async () => {
@@ -39,11 +39,11 @@ export const IssueProvider = ({ children }) => {
             }
             
             const data = await response.json();
-            setIssues(Array.isArray(data) ? data : []);  // Ensure issues is always an array
+            setIssues(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching issues:', err);
             setError(err.message);
-            setIssues([]); // Set empty array on error
+            setIssues([]);
         } finally {
             setIsLoading(false);
         }
@@ -71,6 +71,7 @@ export const IssueProvider = ({ children }) => {
             throw err;
         }
     };
+
     // Initial setup
     useEffect(() => {
         setIsClient(true);
@@ -86,7 +87,9 @@ export const IssueProvider = ({ children }) => {
             isLoading,
             error,
             isLoaded: isClient && !isLoading,
-            refetchIssues: fetchIssues
+            refetchIssues: fetchIssues,
+            getAuthHeaders,
+            API_BASE_URL
         }}>
             {children}
         </IssueContext.Provider>

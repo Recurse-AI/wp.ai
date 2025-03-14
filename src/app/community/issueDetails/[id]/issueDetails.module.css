@@ -100,36 +100,25 @@
 
 .commentContainer {
     display: flex;
-    align-items: flex-start;
-    margin-top: 20px;
+    gap: 16px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
 }
 
 .commentBox {
     flex: 1;
-    background-color: #f6f8fa;
-    border: 1px solid #d1d5da;
-    border-radius: 6px;
-    padding: 12px;
-    position: relative;
-}
-
-.commentHeader {
-    background-color: #e1e4e8;
-    padding: 6px 12px;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    font-size: 14px;
-    font-weight: bold;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    min-width: 0;
 }
 
 .commentText {
-    padding: 10px;
+    color: #24292f;
     font-size: 14px;
     line-height: 1.5;
-    color: #24292e;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 
 .moreOptions {
@@ -317,6 +306,15 @@
         margin: 16px 0 12px;
         padding-top: 16px;
     }
+
+    .commentContainer {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .commentText {
+        font-size: 13px;
+    }
 }
 
 @media screen and (max-width: 480px) {
@@ -336,5 +334,31 @@
         margin-top: 16px;
         padding-top: 16px;
     }
+
+    .commentContainer {
+        padding: 8px;
+        gap: 8px;
+    }
+}
+
+.mainContent {
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.markdownWrapper {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.markdownWrapper pre {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.markdownWrapper code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
