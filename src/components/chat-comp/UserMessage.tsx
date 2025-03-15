@@ -60,9 +60,9 @@ const UserMessage: React.FC<UserMessageProps> = ({
           </div>
         ) : (
           <>
-            <pre className="whitespace-pre-wrap break-words text-left">
+            <div className="whitespace-pre-wrap break-words text-left cursor-default">
               {displayContent}
-            </pre>
+            </div>
             <UserMessageActions 
               content={content} 
               onEdit={onEdit}

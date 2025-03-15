@@ -54,7 +54,6 @@ export default function SignIn() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
-  const [socialAuthProcessing, setSocialAuthProcessing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   // Check URL parameters for session messages
@@ -115,7 +114,7 @@ export default function SignIn() {
       console.log('Social Auth Callback Triggered');
       console.log('Session User:', session.user);
       
-      setSocialAuthProcessing(true);
+      setLoading(true);
       
       try {
         // Call your API with social profile data
@@ -166,7 +165,7 @@ export default function SignIn() {
         localStorage.removeItem('socialAuthInitiated');
         localStorage.removeItem('authProvider');
       } finally {
-        setSocialAuthProcessing(false);
+        setLoading(false);
       }
     };
 
@@ -275,32 +274,6 @@ export default function SignIn() {
   return (
     <ClientOnly>
       <>
-        {(socialAuthProcessing || loading) && (
-          <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm z-50">
-            <div className={`p-8 rounded-xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 relative">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
-                  <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-800"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <h3 className={`text-xl font-semibold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                    {socialAuthProcessing ? "Processing Your Login" : "Signing In"}
-                  </h3>
-                  <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                    Please wait while we verify your credentials...
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         <div className="fixed inset-0 overflow-hidden">
           {/* Base Gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
@@ -373,19 +346,6 @@ export default function SignIn() {
             
             {/* Right side - Form */}
             <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none relative ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-              {/* Home Button */}
-              <Link
-                href="/"
-                className={`absolute top-4 right-4 p-3 rounded-lg border ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-                } z-50 flex items-center gap-2 transition-all`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-              </Link>
               {/* Logo and heading section */}
               <div className="text-center mb-6">
                 <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">

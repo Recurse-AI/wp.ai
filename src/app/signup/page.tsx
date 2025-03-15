@@ -9,8 +9,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
-import { getUser } from "@/utils/getUser";
-import useAuth from "@/lib/useAuth";
+import { useAuthContext } from "@/context/AuthProvider";
 import ClientOnly from "@/lib/client-only";
 import Link from 'next/link';
 import { getToastStyle } from "@/lib/toastConfig";
@@ -61,7 +60,7 @@ export default function SignUp() {
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const { register } = useAuth();
+  const { register, setUserData, isAuthenticated, user } = useAuthContext();
   
   // Form state
   const [formData, setFormData] = useState<SignupFormData>({
@@ -73,31 +72,12 @@ export default function SignUp() {
   
   // UI state
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: "", image: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [socialAuthProcessing, setSocialAuthProcessing] = useState(false);
-  const [signupProcessing, setSignupProcessing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const isAuthenticated = await getUser(setIsLoggedIn, setUser, router, pathname);
-        if (isAuthenticated) {
-          router.push('/'); // Redirect to home if already logged in
-        }
-      } catch (error) {
-        // Silently handle errors - we expect users not to be logged in here
-        console.log("Not logged in, which is expected on signup page");
-      }
-    };
-    
-    checkAuthStatus();
-  }, [router, pathname]);
+
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +154,6 @@ export default function SignUp() {
 
     try {
       setLoading(true);
-      setSignupProcessing(true);
       
       // Register user
       await register({
@@ -226,7 +205,6 @@ export default function SignUp() {
       });
     } finally {
       setLoading(false);
-      setSignupProcessing(false);
     }
   };
 
@@ -251,7 +229,7 @@ export default function SignUp() {
       const extendedSession = session as unknown as ExtendedSession;
 
       if (extendedSession?.user && socialAuthInitiated === 'true' && authProvider) {
-        setSocialAuthProcessing(true);
+        setLoading(true);
         
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
@@ -295,7 +273,7 @@ export default function SignUp() {
           localStorage.removeItem('socialAuthInitiated');
           localStorage.removeItem('authProvider');
         } finally {
-          setSocialAuthProcessing(false);
+          setLoading(false);
         }
       }
     };
@@ -321,20 +299,7 @@ export default function SignUp() {
           <div className="w-full max-w-4xl mx-auto flex flex-col lg:flex-row rounded-xl shadow-2xl overflow-hidden my-4">
             {/* Left side - Form */}
             <div className={`w-full lg:w-3/5 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto max-h-[80vh] lg:max-h-none relative ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-              {/* Home Button */}
-              <Link
-                href="/"
-                className={`absolute top-4 right-4 p-3 rounded-lg border ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-                } z-50 flex items-center gap-2 transition-all`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-              </Link>
-              
+            
               {/* Logo and heading section */}
               <div className="text-center mb-6">
                 <div className="mx-auto mb-4 relative w-16 h-16 flex items-center justify-center">
@@ -655,33 +620,6 @@ export default function SignUp() {
             </div>
           </div>
         </div>
-
-        {socialAuthProcessing && (
-          <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm z-50">
-            <div className={`p-8 rounded-xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 relative">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
-                  <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-800"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <h3 className={`text-xl font-semibold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                    Processing Your Registration
-                  </h3>
-                  <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                    Please wait while we set up your account...
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </>
     </ClientOnly>
   );

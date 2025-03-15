@@ -22,6 +22,15 @@ export default function useAuth() {
     error: null,
   });
 
+  // Add setUserData function
+  const setUserData = useCallback((userData: UserProfile) => {
+    setAuthState(prevState => ({
+      ...prevState,
+      user: userData,
+      isAuthenticated: true
+    }));
+  }, []);
+
   const safeLocalStorage = {
     getItem: (key: string): string | null => {
       if (typeof window !== 'undefined') return localStorage.getItem(key);
@@ -640,6 +649,7 @@ export default function useAuth() {
     loading: authState.loading,
     isAuthenticated: authState.isAuthenticated,
     error: authState.error,
+    setUserData,
     login,
     register,
     logout,

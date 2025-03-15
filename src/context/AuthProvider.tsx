@@ -9,6 +9,7 @@ interface AuthContextProps {
   loading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  setUserData: (userData: UserProfile) => void;
   login: (credentials: any) => Promise<UserProfile | null>;  
   register: (userData: any) => Promise<any>;
   logout: () => Promise<void>;

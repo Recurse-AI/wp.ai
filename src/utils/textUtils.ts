@@ -1,4 +1,4 @@
-export const formatText = (text) => {
+export const formatText = (text: string) => {
     if (!text) return '';
 
     // Remove markdown syntax while preserving content

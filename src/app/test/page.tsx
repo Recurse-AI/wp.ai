@@ -1,256 +1,385 @@
-'use client'
-import React, { useState, useRef, useEffect } from 'react';
+"use client";
 
-const SmoothScrollChat = () => {
-  // Sample initial messages (newest first)
-  const [messages, setMessages] = useState([
-    { id: 4, text: "What seems to be the problem?", sender: "user" },
-    { id: 3, text: "I'm having trouble with my account", sender: "ai" },
-    { id: 2, text: "Hi! How can I help you today?", sender: "user" },
-    { id: 1, text: "Hello there!", sender: "ai" }
-  ]);
+import { useState, useEffect, useRef } from 'react';
+
+interface Message {
+  id: number;
+  sender: 'user' | 'ai';
+  text: string;
+  isComplete: boolean;
+}
+
+interface ConversationPair {
+  user: Message | null;
+  ai: Message | null;
+}
+
+export default function ChatBot() {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [newMessageInProgress, setNewMessageInProgress] = useState(false);
-  const [aiTyping, setAiTyping] = useState(false);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const nextMessageId = useRef(5);
-  const [showOldMessages, setShowOldMessages] = useState(false);
+  const [currentAIResponse, setCurrentAIResponse] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [userScroll, setUserScroll] = useState(false);
+  const [justScrolled, setJustScrolled] = useState(false); // Track if we just scrolled
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
+  
+  // Sample AI responses to simulate streaming
+  const aiResponses = [
+    "Hello! How can I help you today?",
+    "That's an interesting question. Let me think about it for a moment... Based on my understanding, the best approach would be to consider multiple factors before making a decision.",
+    "I understand your concern. It's important to remember that technology is constantly evolving, and what works today might need adjustment tomorrow. Let's explore some options that could address your needs both in the short and long term.",
+    "Great question! The concept you're asking about has several dimensions to it. First, we need to consider the technical aspects. Second, there are usability concerns to address. And finally, we should think about scalability for future growth."
+  ];
 
-  // Handle scrolling to show old messages
-  const handleScroll = () => {
-    if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      
-      // When scrolling down sufficiently (higher scrollTop value), show old messages
-      if (scrollTop > 150 && !showOldMessages) {
-        setShowOldMessages(true);
-      }
-      
-      // When scrolling back to top, hide old messages again
-      if (scrollTop < 50 && showOldMessages) {
-        setShowOldMessages(false);
-      }
+  const handleScrollDown = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  // Handle sending a new message
-  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (inputValue.trim() === '' || newMessageInProgress || aiTyping) return;
+  // Function to simulate AI typing with streaming effect
+  const simulateAIResponse = async () => {
+    // Set typing state BEFORE starting the stream
+    setIsTyping(true);
     
-    // Mark that we're in the middle of a new message transition
-    setNewMessageInProgress(true);
-    setShowOldMessages(false);
+    // Choose a random response based on input length to simulate different responses
+    const responseIndex = Math.floor(Math.random() * aiResponses.length);
+    const fullResponse = aiResponses[responseIndex];
     
-    // Create the new user message
-    const newMessage = {
-      id: nextMessageId.current++,
-      text: inputValue,
-      sender: "user",
-      isNew: true
+    // Stream the response character by character
+    setCurrentAIResponse('');
+    for (let i = 0; i < fullResponse.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 30)); // Adjust speed as needed
+      setCurrentAIResponse(prev => prev + fullResponse[i]);
+      
+      // No auto-scrolling during streaming to allow free scrolling
+    }
+    
+    // When complete, add to messages
+    const newMessage: Message = {
+      id: Date.now(),
+      sender: 'ai',
+      text: fullResponse,
+      isComplete: true
     };
     
-    // Start the scroll animation for existing messages
-    if (chatContainerRef.current) {
-      const messageElements = chatContainerRef.current.querySelectorAll('.message');
-      messageElements.forEach(el => {
-        (el as HTMLElement).style.transition = 'transform 0.5s ease, opacity 0.5s ease';
-        (el as HTMLElement).style.transform = 'translateY(-100%)';
-        (el as HTMLElement).style.opacity = '0';
-      });
-    }
-    
-    // After animation completes, update messages
-    setTimeout(() => {
-      setMessages(prev => [newMessage, ...prev.map(msg => ({
-        ...msg,
-        isNew: false
-      }))]);
-      setInputValue('');
-      setNewMessageInProgress(false);
-      
-      // Simulate AI response after a short delay
-      setAiTyping(true);
-      setTimeout(() => {
-        const aiResponse = {
-          id: nextMessageId.current++,
-          text: "I understand your concern. Let me help you with that.",
-          sender: "ai",
-          isNew: true
-        };
-        setMessages(prev => [aiResponse, ...prev]);
-        setAiTyping(false);
-      }, 1500);
-    }, 500);
+    setMessages(prev => [...prev, newMessage]);
+    setCurrentAIResponse(null);
+    setIsTyping(false);
+    // Reset the justScrolled flag after AI response is complete
+    setJustScrolled(false);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isTyping) return;
+    
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now(),
+      sender: 'user',
+      text: inputValue,
+      isComplete: true
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    
+    // Set the flag that we're about to scroll
+    setJustScrolled(true);
+    
+    // Scroll immediately after adding the user message
+    // and BEFORE starting the AI response streaming
+    handleScrollDown();
+    
+    // Simulate AI response
+    simulateAIResponse();
+  };
+
+  // Handle scroll events to detect manual scrolling
+  const handleScroll = () => {
+    // If we just triggered a scroll programmatically, don't set userScroll
+    if (justScrolled) return;
+    
+    if (chatMessagesRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatMessagesRef.current;
+      // If user has scrolled up from bottom, set userScroll to true
+      // Increasing threshold from 100 to 300 to allow more scrolling
+      if (scrollHeight - scrollTop - clientHeight > 300) {
+        setUserScroll(true);
+      } else {
+        setUserScroll(false);
+      }
+    }
+  };
+
+  // Auto-scroll to bottom only when messages change (not on submission or during streaming)
+  useEffect(() => {
+    // Only auto-scroll if:
+    // 1. Not currently typing
+    // 2. User hasn't manually scrolled
+    // 3. We haven't just scrolled due to message submission
+    if (!isTyping && !userScroll && !justScrolled) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isTyping, userScroll, justScrolled]);
+
+  // Reset the justScrolled flag after a brief delay
+  useEffect(() => {
+    if (justScrolled) {
+      const timer = setTimeout(() => {
+        setJustScrolled(false);
+      }, 1000); // Reset the flag after 1 second
+      
+      return () => clearTimeout(timer);
+    }
+  }, [justScrolled]);
+
+  // Group messages into conversation pairs (user message followed by AI response)
+  const groupMessages = () => {
+    const groups: Array<{user: Message, ai: Message | null, isLatest: boolean}> = [];
+    let i = 0;
+    
+    while (i < messages.length) {
+      if (messages[i].sender === 'user') {
+        // Check if there's an AI response following this user message
+        const aiResponse = i + 1 < messages.length && messages[i + 1].sender === 'ai' 
+          ? messages[i + 1] 
+          : null;
+        
+        // Check if this is the latest conversation
+        const isLatest = i === messages.length - 1 || 
+                        (aiResponse !== null && i + 1 === messages.length - 1);
+        
+        groups.push({
+          user: messages[i],
+          ai: aiResponse,
+          isLatest: isLatest
+        });
+        
+        // Skip the AI message in the next iteration if it exists
+        i += aiResponse ? 2 : 1;
+      } else {
+        // Skip orphaned AI messages (should not happen in proper flow)
+        i++;
+      }
+    }
+    
+    return groups;
+  };
+
+  const conversationGroups = groupMessages();
+  const hasCurrentResponse = currentAIResponse !== null && messages.length > 0 && 
+                           messages[messages.length - 1].sender === 'user';
+
   return (
-    <div className="chat-interface" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '500px',
-      width: '400px',
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      overflow: 'hidden',
-      position: 'relative',
-      background: '#f5f5f5'
-    }}>
-      {/* Chat messages container */}
-      <div 
-        ref={chatContainerRef}
-        className="messages-container"
-        onScroll={handleScroll}
-        style={{
-          flex: 1,
-          padding: '16px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
-        }}
-      >
-        {/* AI typing indicator */}
-        {aiTyping && (
-          <div
-            className="message ai typing"
-            style={{
-              alignSelf: 'flex-start',
-              padding: '15px 20px',
-              borderRadius: '18px 18px 18px 4px',
-              backgroundColor: 'white',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-              display: 'flex',
-              gap: '4px',
-              marginBottom: '12px'
-            }}
-          >
-            <span className="dot" style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: '#aaa',
-              borderRadius: '50%',
-              animation: 'typing 1s infinite'
-            }}></span>
-            <span className="dot" style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: '#aaa',
-              borderRadius: '50%',
-              animation: 'typing 1s infinite 0.2s'
-            }}></span>
-            <span className="dot" style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: '#aaa',
-              borderRadius: '50%',
-              animation: 'typing 1s infinite 0.4s'
-            }}></span>
-            <style jsx>{`
-              @keyframes typing {
-                0%, 60%, 100% { transform: translateY(0); }
-                30% { transform: translateY(-4px); }
-              }
-            `}</style>
-          </div>
-        )}
+    <div className="chat-container">
+      <div className="chat-messages" ref={chatMessagesRef} onScroll={handleScroll}>
+        <div className="conversation-container">
+          {/* Past and current conversations */}
+          {conversationGroups.map((group, groupIndex) => {
+            const isCurrentConversation = group.isLatest;
+            
+            return (
+              <div 
+                key={group.user.id} 
+                className={`message-block ${isCurrentConversation ? 'current-block' : 'completed-block'}`}
+              >
+                <div className="block-content">
+                  <div className="user-message">
+                    <div className="message-content user">
+                      {group.user.text}
+                    </div>
+                  </div>
+                  
+                  <div className="ai-message">
+                    {/* Show streaming response for latest conversation if typing */}
+                    {isCurrentConversation && hasCurrentResponse && !group.ai ? (
+                      <div className="message-content ai typing">
+                        {currentAIResponse}
+                      </div>
+                    ) : group.ai ? (
+                      <div className="message-content ai">
+                        {group.ai.text}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         
-        {/* Messages are rendered newest first at the top */}
-        {messages.map((msg, index) => {
-          // Only show first two messages or if showOldMessages is true
-          const isVisible = msg.isNew || index < 2 || showOldMessages;
-          
-          return (
-            <div
-              key={msg.id}
-              className={`message ${msg.sender} ${msg.isNew ? 'new' : ''}`}
-              style={{
-                alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '75%',
-                padding: '10px 16px',
-                borderRadius: msg.sender === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                backgroundColor: msg.sender === 'user' ? '#2b5df0' : 'white',
-                color: msg.sender === 'user' ? 'white' : 'black',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                wordBreak: 'break-word',
-                opacity: isVisible ? 1 : 0,
-                maxHeight: isVisible ? '500px' : '0',
-                padding: isVisible ? '10px 16px' : '0',
-                margin: isVisible ? '0 0 8px 0' : '0',
-                overflow: 'hidden',
-                transition: 'opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease'
-              }}
-            >
-              {msg.text}
-            </div>
-          );
-        })}
-        
-        {/* Scroll indicator when there are hidden messages */}
-        {!showOldMessages && messages.length > 2 && (
-          <div 
-            style={{
-              textAlign: 'center',
-              padding: '8px',
-              color: '#2b5df0',
-              fontSize: '12px',
-              cursor: 'pointer',
-              marginTop: 'auto'
-            }}
-            onClick={() => setShowOldMessages(true)}
-          >
-            Scroll down to see previous messages ▼
-          </div>
-        )}
+        <div ref={messagesEndRef} />
       </div>
       
-      {/* Message input form at the BOTTOM */}
-      <form
-        onSubmit={handleSendMessage}
-        style={{
-          display: 'flex',
-          padding: '12px 16px',
-          borderTop: '1px solid #e5e5e5',
-          background: 'white'
-        }}
-      >
+      <form onSubmit={handleSubmit} className="chat-input">
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Type a message..."
-          disabled={newMessageInProgress || aiTyping}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '24px',
-            border: '1px solid #ddd',
-            outline: 'none',
-            fontSize: '14px'
-          }}
+          disabled={isTyping}
         />
-        <button
-          type="submit"
-          disabled={newMessageInProgress || aiTyping}
-          style={{
-            marginLeft: '8px',
-            padding: '0 16px',
-            height: '42px',
-            borderRadius: '24px',
-            backgroundColor: '#2b5df0',
-            color: 'white',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: newMessageInProgress || aiTyping ? 'not-allowed' : 'pointer',
-            opacity: newMessageInProgress || aiTyping ? 0.7 : 1
-          }}
-        >
+        <button type="submit" disabled={isTyping || !inputValue.trim()}>
           Send
         </button>
       </form>
+      
+      <style jsx>{`
+        .chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+          background-color: white;
+        }
+        
+        .chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          padding: 10px;
+          scroll-behavior: smooth;
+        }
+        
+        .conversation-container {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          width: 100%;
+          background-color: transparent;
+        }
+        
+        .message-block {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          background-color: transparent;
+          padding: 5px 0;
+          border-radius: 0;
+          margin-bottom: 10px;
+        }
+        
+        .block-content {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          justify-content: flex-start;
+        }
+        
+        .completed-block {
+          min-height: auto;
+          height: auto;
+        }
+        
+        .current-block {
+          /* Always maintain 100vh height for latest conversation block */
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .current-block .block-content {
+          align-items: stretch;
+          justify-content: flex-start;
+          flex-grow: 1;
+        }
+        
+        .user-message {
+          display: flex;
+          justify-content: flex-end;
+          padding: 10px;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          background-color: transparent;
+          width: 100%;
+          align-self: flex-start;
+        }
+        
+        .ai-message {
+          display: flex;
+          justify-content: flex-start;
+          padding: 10px;
+          width: 100%;
+          align-self: flex-start;
+        }
+        
+        /* Remove margin to ensure elements start from top */
+        .current-block .ai-message {
+          margin-top: 0;
+        }
+        
+        .message-content {
+          max-width: 80%;
+          padding: 10px 0;
+          word-wrap: break-word;
+        }
+        
+        .message-content.user {
+          color: #444;
+          text-align: right;
+        }
+        
+        .message-content.ai {
+          color: #444;
+          text-align: left;
+        }
+        
+        .message-content.ai.typing::after {
+          content: '▌';
+          animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        
+        .chat-input {
+          display: flex;
+          margin-top: 20px;
+          border-top: 1px solid #ddd;
+          padding-top: 15px;
+          position: sticky;
+          bottom: 0;
+          background-color: white;
+          z-index: 2;
+          padding-bottom: 10px;
+        }
+        
+        .chat-input input {
+          flex: 1;
+          padding: 12px;
+          border: 1px solid #ddd;
+          border-radius: 20px;
+          font-size: 16px;
+          outline: none;
+        }
+        
+        .chat-input button {
+          margin-left: 10px;
+          padding: 10px 20px;
+          background-color: #0084ff;
+          color: white;
+          border: none;
+          border-radius: 20px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+        
+        .chat-input button:disabled {
+          background-color: #cccccc;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
-};
-
-export default SmoothScrollChat;
+}

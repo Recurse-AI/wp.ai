@@ -50,16 +50,12 @@ const Message = ({ message = defaultMessage, onRegenerateMessage }: MessageProps
   const { theme } = useTheme();
   const windowSize = useWindowDimensions();
 
-
-
+  // Smoother scrolling with reduced animation
   useEffect(() => {
-   //scroll to bottom of message container
-   if(messageContainerRef.current) {
-    messageContainerRef.current.scrollIntoView({ behavior: 'smooth' });
-   }
+    if(messageContainerRef.current) {
+      messageContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [currentPhase]);
-
-
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -128,17 +124,17 @@ const Message = ({ message = defaultMessage, onRegenerateMessage }: MessageProps
   return (
     <div 
       ref={messageContainerRef}
-      className="message-container transition-all duration-300 opacity-100 visible-message flex justify-center w-full"
+      className="message-container transition-all duration-200 opacity-100 visible-message flex justify-center w-full"
       style={{ 
-        marginBottom: '1.5rem',
+        marginBottom: '1.25rem', // Reduced margin
         position: 'relative',
         opacity: 1,
         visibility: 'visible',
-        transform: 'translateZ(0)',  // Add hardware acceleration to improve stability
-        willChange: 'transform',     // Hint to browser for optimization
-        overflow: 'visible',         // Ensure no scrollbars in the container itself
-        width: '100%',               // Force full width
-        maxWidth: '50rem',           // Constrain to 50rem
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        overflow: 'visible',
+        width: '100%',
+        maxWidth: '50rem',
         marginLeft: 'auto',
         marginRight: 'auto'
       }}
@@ -163,7 +159,7 @@ const Message = ({ message = defaultMessage, onRegenerateMessage }: MessageProps
               <ThinkAndSearchResultsPanel
                 search_results={Array.isArray(msg?.search_results) ? msg?.search_results : []}
                 thinking={msg?.thinking || ""}
-                messageId={msg.id || "unknown"} // Pass message ID to panel
+                messageId={msg.id || "unknown"}
               />
               
             {/* AI Message (always visible) */}
@@ -171,10 +167,10 @@ const Message = ({ message = defaultMessage, onRegenerateMessage }: MessageProps
               className="ai-response-section completed w-full"
               data-section="response"
               style={{ 
-                transition: 'opacity 0.3s ease',
+                transition: 'opacity 0.25s ease',
                 opacity: 1,
                 visibility: 'visible',
-                overflow: 'visible'  // Ensure no scrollbars
+                overflow: 'visible'
               }}
             >
                 <AIMessage

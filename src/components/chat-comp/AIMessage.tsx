@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import ReactMarkdown from "react-markdown";
 import { AIResponseActions } from "./MessageActions";
-import CodeBlock from "./CodeBlock";
 import { useStreaming } from '@/context/MessageStateContext';
+import MarkdownContent from "./MarkdownContent";
 
 interface AIMessageProps {
   content: string | undefined;
@@ -219,33 +218,39 @@ const AIMessage: React.FC<AIMessageProps> = ({
                   width: 100%;
                   margin: 0 auto;
                 }
+                
+                /* Specific styling for markdown content */
+                .markdown-content {
+                  font-family: var(--font-primary);
+                  line-height: var(--line-height-text);
+                }
+                
+                /* Ensure proper styling for markdown lists */
+                .markdown-ol {
+                  list-style-type: decimal !important;
+                  margin: 0.75rem 0 1rem 0.5rem !important;
+                  padding-left: 1.5rem !important;
+                }
+                
+                .markdown-ul {
+                  list-style-type: disc !important;
+                  margin: 0.75rem 0 1rem 0.5rem !important;
+                  padding-left: 1.25rem !important;
+                }
+                
+                .markdown-li {
+                  display: list-item !important;
+                  margin-bottom: 0.4rem !important;
+                  position: relative !important;
+                }
               `}</style>
-              <ReactMarkdown
-                className={`prose ${theme === "dark" ? "prose-invert" : ""} max-w-none ai-response-text prose-no-scroll`}
-                components={{
-                  p: ({node, ...props}) => <p className="mb-3 font-light text-opacity-90 tracking-normal leading-relaxed" {...props} />,
-                  h1: ({node, ...props}) => <h1 className="text-2xl font-medium mt-6 mb-3 tracking-tight" {...props} />,
-                  h2: ({node, ...props}) => <h2 className="text-xl font-medium mt-5 mb-2 tracking-tight" {...props} />,
-                  h3: ({node, ...props}) => <h3 className="text-lg font-medium mt-4 mb-2 tracking-tight" {...props} />,
-                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
-                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
-                  li: ({node, ...props}) => <li className="mb-1 font-light leading-relaxed" {...props} />,
-                  a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-600 font-normal transition-colors" {...props} />,
-                  blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-gray-300 dark:border-gray-600 pl-3 italic my-3 font-light text-opacity-85" {...props} />,
-                  pre: ({node, children, ...props}) => {
-                    // If it's a pre element, we make sure it has proper spacing
-                    return (
-                      <pre {...props} style={{ margin: '1rem 0' }}>
-                        {children}
-                      </pre>
-                    )
-                  },
-                  code: (props) => <CodeBlock {...props} theme={theme} onCopy={onCopyCode} copiedCode={copiedCode} />
-                }}
-              >
-                {/* Use standard trimming to preserve code formatting */}
-                {displayContent || ""}
-              </ReactMarkdown>
+              
+              <MarkdownContent
+                content={displayContent || ""}
+                theme={theme}
+                onCopyCode={onCopyCode}
+                copiedCode={copiedCode}
+              />
               
               {currentPhase === 'response' && (
                 <span className="animate-pulse text-blue-500 cursor-end">▌</span>

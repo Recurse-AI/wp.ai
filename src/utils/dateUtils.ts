@@ -1,5 +1,5 @@
 // Create a new utility file for date formatting
-export const formatDate = (dateString) => {
+export const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     
     // Format: "Mar 14, 2024, 08:03 AM"

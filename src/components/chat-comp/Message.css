@@ -2,13 +2,13 @@
 :root {
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   --font-code: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
-  --font-weight-light: 300;
+  --font-weight-light: 400;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  --line-height-text: 1.65;
+  --line-height-text: 1.5;
   --font-size-base: 1rem;
-  --letter-spacing: -0.011em;
+  --letter-spacing: -0.01em;
   
   /* New responsive font sizes */
   --font-size-sm: 0.875rem;
@@ -47,19 +47,19 @@ body, html {
 /* Message text styles */
 .ai-response-text, .user-message {
   font-family: var(--font-primary);
-  letter-spacing: -0.015em;
-  word-spacing: -0.02em;
-  font-weight: var(--font-weight-light);
-  line-height: 1.5;
-  font-size: 0.95rem;
+  letter-spacing: var(--letter-spacing);
+  word-spacing: 0;
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-text);
+  font-size: 1rem;
 }
 
 .ai-response-text p, .user-message p {
-  font-weight: var(--font-weight-light);
-  letter-spacing: -0.015em;
-  word-spacing: -0.02em;
-  font-size: 0.95rem;
-  margin-bottom: 0.75rem;
+  font-weight: var(--font-weight-normal);
+  letter-spacing: var(--letter-spacing);
+  word-spacing: 0;
+  font-size: 1rem;
+  margin-bottom: 1rem;
 }
 
 .ai-response-text h1, 
@@ -203,29 +203,29 @@ body, html {
 /* New styles for AI response text */
 .ai-response-text {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  line-height: 1.45;
-  font-size: 0.95rem;
+  line-height: var(--line-height-text);
+  font-size: 1rem;
   color: rgba(17, 24, 39, 0.95);
   word-break: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  letter-spacing: -0.015em;
-  word-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing);
+  word-spacing: 0;
 }
 
 .ai-response-text p {
-  margin-bottom: 0.75rem;
-  line-height: 1.45;
+  margin-bottom: 0.8rem;
+  line-height: var(--line-height-text);
   color: rgba(17, 24, 39, 0.9);
-  font-weight: 300;
+  font-weight: var(--font-weight-normal);
   max-width: 100%;
   overflow-wrap: break-word;
-  letter-spacing: -0.015em;
-  word-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing);
+  word-spacing: 0;
 }
 
 .dark .ai-response-text p {
-  color: rgba(243, 244, 246, 0.9);
+  color: rgba(243, 244, 246, 0.95);
 }
 
 /* Enhance link styles */
@@ -299,51 +299,54 @@ body, html {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Better lists */
+/* Better lists - improved spacing and alignment */
 .ai-response-text ul, 
 .ai-response-text ol,
 .ai-response-text .generated-list {
-  margin: 0.8em 0 1em 0.8em;
-  padding-left: 1em;
+  margin: 0.75rem 0 1rem 0.5rem;
+  padding-left: 1.25rem;
   list-style-position: outside;
 }
 
 .ai-response-text li,
 .ai-response-text .generated-list li {
-  margin-bottom: 0.5em;
-  padding-left: 0.3em;
-  line-height: var(--line-height-text);
-  font-weight: var(--font-weight-light);
+  margin-bottom: 0.4rem;
+  padding-left: 0.25rem;
+  line-height: 1.5;
+  font-weight: var(--font-weight-normal);
   position: relative;
   display: list-item;
 }
 
 .ai-response-text li:last-child,
 .ai-response-text .generated-list li:last-child {
-  margin-bottom: 0.2em;
+  margin-bottom: 0.2rem;
 }
 
-/* Generated lists get bullet styling */
+/* Generated lists get bullet styling with improved spacing */
 .ai-response-text .generated-list {
-  list-style-type: disc;
-  padding-left: 1.5em;
-  margin: 0.5em 0 1em 0;
+  list-style-type: none;
+  padding-left: 1.25em;
+  margin: 0.4em 0 0.8em 0;
 }
 
 .ai-response-text .generated-list li {
   padding-left: 0;
-  display: list-item;
+  display: flex;
+  line-height: 1.5;
+  animation: subtleListFadeIn 0.2s ease-out forwards;
 }
 
-/* Override animation for generated list items */
-.ai-response-text .generated-list li {
-  animation: listItemFadeIn 0.3s ease-out forwards;
+/* Ensure generated list items don't have ::before bullets */
+.ai-response-text .generated-list li::before {
+  content: none;
 }
 
-@keyframes listItemFadeIn {
+/* Subtle animation for list items */
+@keyframes subtleListFadeIn {
   from { 
-    opacity: 0;
-    transform: translateX(-5px);
+    opacity: 0.9;
+    transform: translateX(-2px);
   }
   to { 
     opacity: 1;
@@ -351,18 +354,19 @@ body, html {
   }
 }
 
-/* Styling for paragraphs marked as list items */
+/* Styling for paragraphs marked as list items - improved alignment */
 .ai-response-text p.list-item-dash {
   position: relative;
-  padding-left: 1.25em;
-  margin-bottom: 0.4em;
+  padding-left: 1em;
+  margin-bottom: 0.3em;
   display: flex;
+  line-height: 1.5;
 }
 
 .ai-response-text p.list-item-dash::before {
   content: "•";
   position: absolute;
-  left: 0.5em;
+  left: 0.25em;
   color: inherit;
 }
 
@@ -371,27 +375,23 @@ body, html {
   content: none;
 }
 
-/* Fix for paragraph alignment in lists */
+/* Fix for paragraph alignment in lists - improved spacing */
 .ai-response-text ul li p,
 .ai-response-text ol li p,
 .ai-response-text .generated-list li p {
-  margin-bottom: 0.3em;
+  margin-bottom: 0.2em;
   display: inline;
+  line-height: 1.5;
 }
 
 /* Improved handling for dash-prefixed text */
 .ai-response-text p[data-starts-with="-"] {
   position: relative;
-  padding-left: 1.25em;
-  margin-bottom: 0.4em;
+  padding-left: 1em;
+  margin-bottom: 0.3em;
   display: flex;
-}
-
-.ai-response-text p[data-starts-with="-"]::before {
-  content: "•";
-  position: absolute;
-  left: 0.5em;
-  color: inherit;
+  line-height: 1.5;
+  animation: subtleListFadeIn 0.2s ease-out forwards;
 }
 
 /* Add a subtle highlight effect on hover */
@@ -433,7 +433,7 @@ body, html {
   color: var(--text-primary-dark);
 }
 
-/* Subtle text fade-in animation */
+/* Subtle text fade-in animation - reduced for more normal appearance */
 .ai-response-text p, 
 .ai-response-text h1, 
 .ai-response-text h2, 
@@ -441,13 +441,13 @@ body, html {
 .ai-response-text ul, 
 .ai-response-text ol, 
 .ai-response-text blockquote {
-  animation: textFadeIn 0.3s ease-out forwards;
+  animation: textFadeIn 0.2s ease-out forwards;
 }
 
 @keyframes textFadeIn {
   from { 
-    opacity: 0.7;
-    transform: translateY(3px);
+    opacity: 0.8;
+    transform: translateY(2px);
   }
   to { 
     opacity: 1;
@@ -672,27 +672,31 @@ button:focus-visible {
 code, .inline-code {
   font-family: var(--font-code);
   font-size: 0.9em;
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
   color: var(--code-text-light);
-  background-color: var(--code-bg-light);
+  background-color: transparent;
   font-weight: 400;
   word-break: break-all;
   white-space: pre-wrap;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+  box-shadow: none;
 }
 
 .dark code, .dark .inline-code {
   color: var(--code-text-dark);
-  /* background-color: var(--code-bg-dark); */
+  background-color: transparent;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 /* Fix spacing for code blocks */
 .ai-response-text pre {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
 }
 
 .code-block-wrapper {
-  margin: 0.75rem 0 1rem 0 !important;
+  margin: 0.5rem 0 0.75rem 0 !important;
 }
 
 /* Fix for internationalization content in dark mode */
@@ -730,4 +734,30 @@ code, .inline-code {
 
 .dark .language-php .token.function {
   color: #61AFEF !important;
+}
+
+/* Add styles for ordered lists to match our unordered list styling */
+.ai-response-text .generated-ordered-list {
+  list-style-type: none;
+  padding-left: 1.25em;
+  margin: 0.5em 0 0.8em 0;
+}
+
+.ai-response-text .generated-ordered-list li {
+  padding-left: 0;
+  display: flex;
+  line-height: 1.5;
+  animation: subtleListFadeIn 0.2s ease-out forwards;
+  margin-bottom: 0.4rem;
+}
+
+.ai-response-text .generated-ordered-list li::before {
+  content: none;
+}
+
+.ai-response-text .number-marker {
+  font-weight: var(--font-weight-medium);
+  margin-right: 0.5em;
+  min-width: 1.5em;
+  display: inline-block;
 }

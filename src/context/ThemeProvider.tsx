@@ -2,7 +2,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   // Start with "system" theme to avoid hydration mismatch
-  const [theme, setTheme] = useState("system");
+  const [theme, setTheme] = useState<Theme>("system");
   const [mounted, setMounted] = useState(false);
 
   // Only run after component has mounted (client-side only)
@@ -21,7 +21,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     setMounted(true);
     try {
       const storedTheme = localStorage.getItem("theme") || "system";
-      setTheme(storedTheme);
+      setTheme(storedTheme as Theme);
       document.documentElement.classList.toggle("dark", storedTheme === "dark");
     } catch (error) {
       console.error("Error accessing localStorage:", error);
@@ -42,8 +42,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   // This will prevent useTheme() from returning different values on server vs client
   return (
     <ThemeContext.Provider value={{ 
-      theme: mounted ? theme : "system", 
-      setTheme: updateTheme 
+      theme: mounted && theme !== "system" ? theme as Theme : "light", 
+      setTheme: handleThemeChange 
     }}>
       {children}
     </ThemeContext.Provider>
