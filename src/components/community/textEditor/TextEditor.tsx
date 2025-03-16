@@ -1,18 +1,27 @@
 import React, { useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import styles from './textEditor.module.css';
 import { FaBold, FaItalic, FaCode, FaListUl, FaListOl, FaQuoteLeft, FaLink, FaEye, FaEdit } from 'react-icons/fa';
+import MarkdownRenderer from '../markdownRenderer/MarkdownRenderer';
 
-const TextEditor = ({ value, onChange, placeholder }) => {
-    const textareaRef = useRef(null);
+interface TextEditorProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}
+
+type FormatType = 'bold' | 'italic' | 'ul' | 'ol' | 'code' | 'link' | 'quote';
+
+const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, placeholder }) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [isPreview, setIsPreview] = useState(false);
 
-    const insertFormat = (format, e) => {
+    const insertFormat = (format: FormatType, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         
         const textarea = textareaRef.current;
+        if (!textarea) return;
+
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const text = textarea.value;
@@ -122,11 +131,6 @@ const TextEditor = ({ value, onChange, placeholder }) => {
         }, 0);
     };
 
-    const togglePreview = (e) => {
-        e.preventDefault();
-        setIsPreview(!isPreview);
-    };
-
     return (
         <div className={styles.editor}>
             <div className={styles.toolbar}>
@@ -184,11 +188,21 @@ const TextEditor = ({ value, onChange, placeholder }) => {
                 <div className={styles.viewToggle}>
                     <button 
                         type="button"
-                        onClick={togglePreview}
+                        onClick={() => setIsPreview(!isPreview)}
                         title={isPreview ? "Write" : "Preview"}
                         className={styles.previewButton}
                     >
-                        {isPreview ? <FaEdit /> : <FaEye />}
+                        {isPreview ? (
+                            <>
+                                <FaEdit className={styles.buttonIcon} />
+                                <span>Write</span>
+                            </>
+                        ) : (
+                            <>
+                                <FaEye className={styles.buttonIcon} />
+                                <span>Preview</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -196,18 +210,7 @@ const TextEditor = ({ value, onChange, placeholder }) => {
             {isPreview ? (
                 <div className={styles.preview}>
                     {value ? (
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                                p: ({node, ...props}) => <p className={styles.paragraph} {...props} />,
-                                code: ({node, ...props}) => <code className={styles.code} {...props} />,
-                                blockquote: ({node, ...props}) => <blockquote className={styles.blockquote} {...props} />,
-                                ul: ({node, ...props}) => <ul className={styles.list} {...props} />,
-                                ol: ({node, ...props}) => <ol className={styles.list} {...props} />
-                            }}
-                        >
-                            {value}
-                        </ReactMarkdown>
+                        <MarkdownRenderer content={value} />
                     ) : (
                         <p className={styles.placeholder}>Nothing to preview</p>
                     )}

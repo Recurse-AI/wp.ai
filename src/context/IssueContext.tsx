@@ -1,13 +1,46 @@
 "use client";
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import { formatText } from "@/utils/textUtils";
 
-export const IssueContext = createContext();
+export interface Comment {
+    id: number;
+    content: string;
+    author: {
+        username: string;
+    };
+    created_at: string;
+    replies?: Comment[];
+}
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+export interface Issue {
+    id: number;
+    title: string;
+    description: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    created_by: {
+        id: number;
+        username: string;
+    };
+    comments?: Comment[];
+}
+
+export interface IssueContextType {
+    issues: Issue[];
+    addIssue: (newIssue: Partial<Issue>) => Promise<Issue>;
+    isLoading: boolean;
+    error: string | null;
+    isLoaded: boolean;
+    refetchIssues: () => Promise<void>;
+    getAuthHeaders: () => HeadersInit;
+    API_BASE_URL: string;
+}
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL as string;
 
 // Helper function to get auth headers
-export const getAuthHeaders = () => {
+export const getAuthHeaders = (): HeadersInit => {
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         return {
@@ -20,11 +53,17 @@ export const getAuthHeaders = () => {
     };
 };
 
-export const IssueProvider = ({ children }) => {
-    const [issues, setIssues] = useState([]);
+export const IssueContext = createContext<IssueContextType | undefined>(undefined);
+
+interface IssueProviderProps {
+    children: React.ReactNode;
+}
+
+export const IssueProvider: React.FC<IssueProviderProps> = ({ children }) => {
+    const [issues, setIssues] = useState<Issue[]>([]);
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Fetch all issues
     const fetchIssues = async () => {
@@ -42,7 +81,7 @@ export const IssueProvider = ({ children }) => {
             setIssues(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching issues:', err);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : 'An error occurred');
             setIssues([]);
         } finally {
             setIsLoading(false);
@@ -50,7 +89,7 @@ export const IssueProvider = ({ children }) => {
     };
 
     // Add new issue
-    const addIssue = async (newIssue) => {
+    const addIssue = async (newIssue: Partial<Issue>): Promise<Issue> => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
                 method: 'POST',
@@ -67,7 +106,7 @@ export const IssueProvider = ({ children }) => {
             return data;
         } catch (err) {
             console.error('Error adding issue:', err);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : 'An error occurred');
             throw err;
         }
     };
@@ -80,18 +119,28 @@ export const IssueProvider = ({ children }) => {
         }
     }, []);
 
+    const contextValue: IssueContextType = {
+        issues,
+        addIssue,
+        isLoading,
+        error,
+        isLoaded: isClient && !isLoading,
+        refetchIssues: fetchIssues,
+        getAuthHeaders,
+        API_BASE_URL
+    };
+
     return (
-        <IssueContext.Provider value={{ 
-            issues,
-            addIssue,
-            isLoading,
-            error,
-            isLoaded: isClient && !isLoading,
-            refetchIssues: fetchIssues,
-            getAuthHeaders,
-            API_BASE_URL
-        }}>
+        <IssueContext.Provider value={contextValue}>
             {children}
         </IssueContext.Provider>
     );
 };
+
+export function useIssue() {
+    const context = useContext(IssueContext);
+    if (!context) {
+        throw new Error("useIssue must be used within an IssueProvider");
+    }
+    return context;
+} 
