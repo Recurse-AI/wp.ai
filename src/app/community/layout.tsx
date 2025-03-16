@@ -7,10 +7,15 @@ import Navbar from "@/components/community/navbar/Navbar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useAuth from "@/lib/useAuth";
+import { ThemeProvider } from "@/context/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({ children }) {
+interface RootLayoutProps {
+    children: React.ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
     const router = useRouter();
     const { isAuthenticated, loading } = useAuth();
     const [isClient, setIsClient] = useState(false);
@@ -20,13 +25,11 @@ export default function RootLayout({ children }) {
     }, []);
 
     useEffect(() => {
-        // Only run this check on the client side and after auth state is determined
         if (isClient && !loading && !isAuthenticated) {
             router.push("/login?redirect=/community");
         }
     }, [isClient, isAuthenticated, loading, router]);
 
-    // Show loading state while checking authentication
     if (loading || !isClient || !isAuthenticated) {
         return (
             <html lang="en">
@@ -44,20 +47,20 @@ export default function RootLayout({ children }) {
         );
     }
 
-    // Show content only if authenticated
     return (
         <html lang="en">
             <body className={inter.className}>
                 <div className="container">
                     <div className="wrapper">
-                        <IssueProvider>
-                            <Navbar />
-                            {children}
-                            {/* <Footer /> */}
-                        </IssueProvider>
+                      
+                            <IssueProvider>
+                                <Navbar />
+                                {children}
+                            </IssueProvider>
+                   
                     </div>
                 </div>
             </body>
         </html>
     );
-}
+} 

@@ -5,19 +5,34 @@ import styles from "./newIssue.module.css";
 import TextEditor from "@/components/community/textEditor/TextEditor";
 import { useRouter } from "next/navigation";
 import { IssueContext } from "@/context/IssueContext";
-import { FaExclamationCircle, FaInfoCircle } from "react-icons/fa";
+import { FaExclamationCircle } from "react-icons/fa";
 
-const NewIssue = () => {
-    const { addIssue } = useContext(IssueContext);
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
+interface NewIssue {
+    id: number;
+    title: string;
+    author: string;
+    description: string;
+    labels: string[];
+    comments: any[];
+    date: string;
+}
+
+const NewIssue: React.FC = () => {
+    const context = useContext(IssueContext);
+    if (!context) {
+        throw new Error("NewIssue must be used within an IssueProvider");
+    }
+    const { addIssue } = context;
+    
+    const [title, setTitle] = useState<string>("");
+    const [description, setDescription] = useState<string>("");
     const router = useRouter();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) return;
 
-        const newIssue = {
+        const newIssue: NewIssue = {
             id: Date.now(),
             title: title.trim(),
             author: "Current User",
@@ -92,4 +107,4 @@ const NewIssue = () => {
     );
 };
 
-export default NewIssue;
+export default NewIssue; 

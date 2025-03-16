@@ -23,6 +23,7 @@ const excludedPaths = [
   '/verify-email',
   '/verify-email/:uidb64',
   '/verify-email/:uidb64/:token',
+  '/community',
 ];
 
 // Client component wrapper to use React hooks
@@ -31,23 +32,23 @@ function RootLayoutClient({ children }: { children: React.ReactNode }) {
   useSyntaxHighlighting();
   
   return (
-  // <SessionProvider>
-  //   <ThemeProvider>
-  //     <StreamingProvider>
-  //       <ActiveSessionProvider>
-  //           <AuthProvider>
-  //             <ToasterProvider />
-  //           <div className="flex flex-col min-h-screen">
-  //             <Header 
-  //               excludedPaths={excludedPaths}
-  //             />
+  <SessionProvider>
+    <ThemeProvider>
+      <StreamingProvider>
+        <ActiveSessionProvider>
+            <AuthProvider>
+              <ToasterProvider />
+            <div className="flex flex-col min-h-screen">
+              <Header 
+                excludedPaths={excludedPaths}
+              />
               <main className="flex-1 relative">{children}</main>
-  //           </div>
-  //         </AuthProvider>
-  //       </ActiveSessionProvider>
-  //     </StreamingProvider>
-  //   </ThemeProvider>
-  // </SessionProvider>
+            </div>
+          </AuthProvider>
+        </ActiveSessionProvider>
+      </StreamingProvider>
+    </ThemeProvider>
+  </SessionProvider>
   );
 }
 

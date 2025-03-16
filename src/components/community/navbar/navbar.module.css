@@ -33,60 +33,10 @@
     gap: 10px;
 }
 
-/* Responsive Styles */
-@media screen and (max-width: 1280px) {
-    .navbarActions {
-        flex: 3;
-        justify-content: flex-end;
-    }
-}
-
-@media screen and (max-width: 1024px) {
-    .container {
-        flex-direction: column;
-        height: auto;
-        gap: 15px;
-        padding: 15px;
-    }
-
-    .searchBar {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .navbarActions {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media screen and (max-width: 768px) {
-    .container {
-        padding: 12px 0;
-    }
-
-    .searchBar {
-        width: 100%;
-    }
-
-    .navbarActions {
-        width: 100%;
-    }
-}
-
-@media screen and (max-width: 640px) {
-    .searchBar {
-        width: 100%;
-    }
-
-    .navbarActions {
-        width: 100%;
-        flex-direction: column;
-        gap: 10px;
-    }
-}
-
 .newIssueButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background-color: #2da44e;
     color: #ffffff;
     padding: 6px 16px;
@@ -95,6 +45,7 @@
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
+    text-decoration: none;
     transition: all 0.2s ease;
 }
 
@@ -109,4 +60,37 @@
     background-color: #298e46;
     transform: translateY(0);
     box-shadow: none;
+}
+
+/* Responsive Styles */
+@media screen and (max-width: 1280px) {
+    .navbarActions {
+        flex: 3;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .searchBar, .navbarActions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 12px 0;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .navbarActions {
+        flex-direction: column;
+        gap: 10px;
+    }
 }

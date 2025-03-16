@@ -1,25 +1,26 @@
 "use client";
 
-import React, { useContext, useState } from "react";
-import styles from "./box.module.css";
-import IssueList from "../issueList/IssueList";
-import { IssueContext } from "@/context/IssueContext";
+import React, { useState } from "react";
 import { FaCaretDown, FaSearch } from "react-icons/fa";
-import { getTotalCommentCount } from "@/utils/commentUtils";
+import { useIssue } from "@/context/IssueContext";
+import IssueList from "@/components/community/issueList/IssueList";
+import styles from "./community.module.css";
+import "@/app/community/globals.css";
+interface SortConfig {
+    type: 'time' | 'comments';
+    order: 'asc' | 'desc';
+}
 
-const Box = () => {
-    const { issues } = useContext(IssueContext);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortConfig, setSortConfig] = useState({
+export default function Home() {
+    const { issues } = useIssue();
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [sortConfig, setSortConfig] = useState<SortConfig>({
         type: 'time',
         order: 'desc'
     });
-    const [showSortMenu, setShowSortMenu] = useState(false);
+    const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
 
-    // Filter and sort issues
-    // console.log(issues);
     const filteredAndSortedIssues = [...issues]
-        // First filter
         .filter(issue => {
             if (!searchQuery.trim()) return true;
             
@@ -29,28 +30,24 @@ const Box = () => {
                 issue.description.toLowerCase().includes(search) ||
                 issue.created_by.username.toLowerCase().includes(search) ||
                 issue.id.toString().includes(search)
-            );//The .includes() method checks if a string contains a specified substring. It returns true if the substring is found and false otherwise.
+            );
         })
-        // Then sort
         .sort((a, b) => {
             if (sortConfig.type === 'comments') {
                 const countA = a.comments ? a.comments.length : 0;
                 const countB = b.comments ? b.comments.length : 0;
                 return sortConfig.order === 'desc' ? countB - countA : countA - countB;
             } else {
-                // Compare ISO date strings directly for more accurate sorting
                 const dateA = a.created_at || a.updated_at;
                 const dateB = b.created_at || b.updated_at;
                 
-                if (sortConfig.order === 'desc') {
-                    return dateB.localeCompare(dateA);
-                } else {
-                    return dateA.localeCompare(dateB);
-                }
+                return sortConfig.order === 'desc' 
+                    ? dateB.localeCompare(dateA)
+                    : dateA.localeCompare(dateB);
             }
         });
 
-    const handleSortChange = (type) => {
+    const handleSortChange = (type: 'time' | 'comments') => {
         setSortConfig(prev => ({
             type,
             order: prev.type === type ? (prev.order === 'desc' ? 'asc' : 'desc') : 'desc'
@@ -122,6 +119,4 @@ const Box = () => {
             <IssueList issues={filteredAndSortedIssues} />
         </div>
     );
-};
-
-export default Box;
+} 
