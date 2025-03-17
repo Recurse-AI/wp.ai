@@ -1,30 +1,7 @@
 "use client";
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { formatText } from "@/utils/textUtils";
-
-export interface Comment {
-    id: number;
-    content: string;
-    author: {
-        username: string;
-    };
-    created_at: string;
-    replies?: Comment[];
-}
-
-export interface Issue {
-    id: number;
-    title: string;
-    description: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    created_by: {
-        id: number;
-        username: string;
-    };
-    comments?: Comment[];
-}
+import { communityApi, Issue, Comment } from "@/lib/services/communityApi";
+export type { Issue, Comment } from "@/lib/services/communityApi";
 
 export interface IssueContextType {
     issues: Issue[];
@@ -65,19 +42,11 @@ export const IssueProvider: React.FC<IssueProviderProps> = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch all issues
+    // Fetch all issues using communityApi
     const fetchIssues = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
-                headers: getAuthHeaders()
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch issues');
-            }
-            
-            const data = await response.json();
+            const data = await communityApi.fetchIssues();
             setIssues(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching issues:', err);
@@ -88,20 +57,10 @@ export const IssueProvider: React.FC<IssueProviderProps> = ({ children }) => {
         }
     };
 
-    // Add new issue
+    // Add new issue using communityApi
     const addIssue = async (newIssue: Partial<Issue>): Promise<Issue> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(newIssue),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to create issue');
-            }
-            
-            const data = await response.json();
+            const data = await communityApi.addIssue(newIssue);
             setIssues(prev => [...prev, data]);
             return data;
         } catch (err) {

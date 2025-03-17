@@ -10,7 +10,7 @@ import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRe
 import TextEditor from '@/components/community/textEditor/TextEditor';
 import { formatDate } from '@/utils/dateUtils';
 import { useIssue } from '@/context/IssueContext';
-import type { Comment as CommentType } from '@/context/IssueContext';
+import { communityApi, type Comment as CommentType } from '@/lib/services/communityApi';
 
 interface CommentProps {
     comment: CommentType;
@@ -22,7 +22,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onQuoteReply, onCommentUpdat
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(comment.content);
     const [isEdited, setIsEdited] = useState(false);
-    const { API_BASE_URL, getAuthHeaders } = useIssue();
 
     const handleQuoteReply = () => {
         // Format the comment content as a quote
@@ -44,19 +43,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onQuoteReply, onCommentUpdat
 
     const handleSave = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/community/comments/${comment.id}/`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    content: editedContent
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update comment');
-            }
-
-            const updatedComment = await response.json();
+            const updatedComment = await communityApi.updateComment(comment.id, editedContent);
             onCommentUpdate(updatedComment);
             setIsEditing(false);
             setIsEdited(true);
