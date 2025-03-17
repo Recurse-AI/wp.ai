@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaCaretDown, FaSearch } from "react-icons/fa";
 import { useIssue } from "@/context/IssueContext";
 import IssueList from "@/components/community/issueList/IssueList";
 import styles from "./community.module.css";
 import "@/app/community/globals.css";
+
 interface SortConfig {
     type: 'time' | 'comments';
     order: 'asc' | 'desc';
@@ -19,33 +20,43 @@ export default function Home() {
         order: 'desc'
     });
     const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
+    const [mounted, setMounted] = useState(false);
 
-    const filteredAndSortedIssues = [...issues]
-        .filter(issue => {
-            if (!searchQuery.trim()) return true;
-            
-            const search = searchQuery.toLowerCase();
-            return (
-                issue.title.toLowerCase().includes(search) ||
-                issue.description.toLowerCase().includes(search) ||
-                issue.created_by.username.toLowerCase().includes(search) ||
-                issue.id.toString().includes(search)
-            );
-        })
-        .sort((a, b) => {
-            if (sortConfig.type === 'comments') {
-                const countA = a.comments ? a.comments.length : 0;
-                const countB = b.comments ? b.comments.length : 0;
-                return sortConfig.order === 'desc' ? countB - countA : countA - countB;
-            } else {
-                const dateA = a.created_at || a.updated_at;
-                const dateB = b.created_at || b.updated_at;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Ensure that sorting and filtering logic is consistent
+    const filteredAndSortedIssues = React.useMemo(() => {
+        if (!mounted) return [];
+        
+        return [...issues]
+            .filter(issue => {
+                if (!searchQuery.trim()) return true;
                 
-                return sortConfig.order === 'desc' 
-                    ? dateB.localeCompare(dateA)
-                    : dateA.localeCompare(dateB);
-            }
-        });
+                const search = searchQuery.toLowerCase();
+                return (
+                    issue.title.toLowerCase().includes(search) ||
+                    issue.description.toLowerCase().includes(search) ||
+                    issue.created_by.username.toLowerCase().includes(search) ||
+                    issue.id.toString().includes(search)
+                );
+            })
+            .sort((a, b) => {
+                if (sortConfig.type === 'comments') {
+                    const countA = a.comments ? a.comments.length : 0;
+                    const countB = b.comments ? b.comments.length : 0;
+                    return sortConfig.order === 'desc' ? countB - countA : countA - countB;
+                } else {
+                    const dateA = a.created_at || a.updated_at;
+                    const dateB = b.created_at || b.updated_at;
+                    
+                    return sortConfig.order === 'desc' 
+                        ? dateB.localeCompare(dateA)
+                        : dateA.localeCompare(dateB);
+                }
+            });
+    }, [issues, searchQuery, sortConfig, mounted]);
 
     const handleSortChange = (type: 'time' | 'comments') => {
         setSortConfig(prev => ({
@@ -62,6 +73,9 @@ export default function Home() {
             : `Newest first ${orderSymbol}`;
     };
 
+    if (!mounted) {
+        return <div className={styles.loading}>Loading...</div>;
+    }
     return (
         <div className={styles.container}>
             <div className={styles.header}>

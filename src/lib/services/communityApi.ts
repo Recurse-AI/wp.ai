@@ -1,4 +1,4 @@
-import TokenManager from './tokenManager';
+import TokenManager from '../tokenManager';
 const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL as string;
 
 // Get auth headers using TokenManager

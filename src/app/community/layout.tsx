@@ -7,7 +7,6 @@ import Navbar from "@/components/community/navbar/Navbar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useAuth from "@/lib/useAuth";
-import { ThemeProvider } from "@/context/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,8 +31,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
     if (loading || !isClient || !isAuthenticated) {
         return (
-            <html lang="en">
-                <body className={inter.className}>
                     <div className="container">
                         <div className="wrapper">
                             <div className="loading-auth">
@@ -42,8 +39,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
                             </div>
                         </div>
                     </div>
-                </body>
-            </html>
         );
     }
 
