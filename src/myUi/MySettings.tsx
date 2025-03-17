@@ -36,7 +36,6 @@ const DEFAULT_SETTINGS_DATA = [
 ];
 
 interface UserData {
-  name: string;
   username?: string;
   email?: string;
   image: string;
@@ -49,13 +48,11 @@ interface UserData {
 
 interface SettingsPageProps {
   user: UserData;
-  setUser: (user: UserData) => void;
   onClose: () => void;
 }
 
 export default function SettingsPage({
   user,
-  setUser,
   onClose,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState("general");
@@ -119,11 +116,11 @@ export default function SettingsPage({
 
       // 3. Reset user state
       setIsLoggedIn(false);
-      setUser({
-        name: "",
-        image:
-          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      });
+      // setUser({
+      //   name: "",
+      //   image:
+      //     "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
+      // });
 
       // 4. Call logout functions from auth providers
       if (contextLogout) await contextLogout();
@@ -174,11 +171,11 @@ export default function SettingsPage({
 
       // Even if API call fails, clear local state
       setIsLoggedIn(false);
-      setUser({
-        name: "",
-        image:
-          "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      });
+      // setUser({
+      //   name: "",
+      //   image:
+      //     "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
+      // });
     }
   };
 
