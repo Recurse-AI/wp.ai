@@ -109,9 +109,9 @@ export default function LandingPage() {
           content: feedback
         })
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(data.error || 'Failed to submit feedback');
       }
