@@ -18,12 +18,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useAuth from "@/lib/useAuth";
 import { useAuthContext } from "@/context/AuthProvider";
 import { signOut, useSession } from "next-auth/react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import ClientTooltip from "@/components/ui/ClientTooltip";
 
 // Define default settings data
 const DEFAULT_SETTINGS_DATA = [
@@ -49,6 +44,21 @@ interface UserData {
 interface SettingsPageProps {
   user: UserData;
   onClose: () => void;
+}
+
+// New client component to handle local storage clearing
+function ClearLocalStorage() {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("userData");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("isChat");
+      window.dispatchEvent(new Event("storage")); // Notify other components
+    }
+  }, []);
+
+  return null; // This component does not render anything
 }
 
 export default function SettingsPage({
@@ -106,13 +116,7 @@ export default function SettingsPage({
       });
 
       // 2. Clear local storage data
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("userData");
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("isChat");
-        window.dispatchEvent(new Event("storage")); // Notify other components
-      }
+      <ClearLocalStorage />
 
       // 3. Reset user state
       setIsLoggedIn(false);
@@ -275,22 +279,16 @@ export default function SettingsPage({
                         <Label className="text-base">
                           Always show code when using data analyst
                         </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Switch
+
+                        <ClientTooltip text="Coming Soon">
+                            <Switch
                                 checked={codeDataAnalyst}
                                 onCheckedChange={(checked) =>
                                   setCodeDataAnalyst(checked)
                                 }
                                 className="hover:bg-transparent"
                               />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Coming Soon</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        </ClientTooltip>
                       </div>
 
                       {/* Font Size */}
@@ -302,30 +300,15 @@ export default function SettingsPage({
                             { size: "medium", label: "Medium" },
                             { size: "large", label: "Large" },
                           ].map((item) => (
-                            <TooltipProvider key={item.size} delayDuration={0}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={() => setFontSize(item.size)}
-                                    variant={
-                                      fontSize === item.size
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    className="min-w-[80px]"
-                                  >
-                                    {item.label}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  align="center"
-                                  sideOffset={5}
+                              <ClientTooltip key={item.size} content={<p>Coming Soon</p>}>  
+                                <Button
+                                  onClick={() => setFontSize(item.size)}
+                                  variant={fontSize === item.size ? "default" : "outline"}
+                                  className="min-w-[80px]"
                                 >
-                                  <p>Coming Soon</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                                  {item.label}
+                                </Button>
+                              </ClientTooltip>                          
                           ))}
                         </div>
                       </div>
@@ -428,28 +411,17 @@ export default function SettingsPage({
                         </Label>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className="capitalize text-base min-w-[120px]"
-                                  >
-                                    {language}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  align="center"
-                                  sideOffset={5}
-                                >
-                                  <p>
-                                    Currently only English is available.
-                                    Additional languages coming soon.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            
+                        <ClientTooltip
+                          content={
+                            <p>Currently only English is available. Additional languages coming soon.</p>
+                          }
+                        >
+                          <Button variant="outline" className="capitalize text-base min-w-[120px]">
+                            {language}
+                          </Button>
+                        </ClientTooltip>
+
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
@@ -506,26 +478,17 @@ export default function SettingsPage({
                                 history
                               </p>
                             </div>
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="destructive"
-                                    className="flex items-center gap-2 text-base"
-                                    onClick={handleDeleteAllChats}
-                                  >
-                                    <Trash2 size={18} /> Delete All
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  align="center"
-                                  sideOffset={5}
-                                >
-                                  <p>Coming Soon</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+
+                            <ClientTooltip content={<p>Coming Soon</p>}>
+                              <Button
+                                variant="destructive"
+                                className="flex items-center gap-2 text-base"
+                                onClick={handleDeleteAllChats}
+                              >
+                                <Trash2 size={18} /> Delete All
+                              </Button>
+                            </ClientTooltip>
+
                           </div>
                         </div>
                       </div>
@@ -558,22 +521,10 @@ export default function SettingsPage({
                               email.
                             </p>
                           </div>
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="outline" className="shrink-0">
-                                  Enable
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                side="top"
-                                align="center"
-                                sideOffset={5}
-                              >
-                                <p>Coming Soon</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                        <ClientTooltip content={<p>Coming Soon</p>}>
+                          <Button variant="outline" className="shrink-0">Enable</Button>
+                        </ClientTooltip>
+
                         </div>
 
                         {/* Logout Section */}
@@ -588,25 +539,11 @@ export default function SettingsPage({
                               30 minutes for other devices to be logged out.
                             </p>
                           </div>
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="destructive"
-                                  className="shrink-0"
-                                >
-                                  Log out all
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                side="top"
-                                align="center"
-                                sideOffset={5}
-                              >
-                                <p>Coming Soon</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+
+                        <ClientTooltip content={<p>Coming Soon</p>}>
+                          <Button variant="destructive" className="shrink-0">Log out all</Button>
+                        </ClientTooltip>
+
                         </div>
                       </div>
                     </div>
@@ -634,24 +571,13 @@ export default function SettingsPage({
                                     : "Upgrade to access premium features"}
                                 </p>
                               </div>
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
-                                      {user?.subscriptionPlan
-                                        ? "Manage Plan"
-                                        : "Upgrade Now"}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    side="top"
-                                    align="center"
-                                    sideOffset={5}
-                                  >
-                                    <p>Coming Soon</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+
+                            <ClientTooltip content={<p>Coming Soon</p>}>
+                              <Button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+                                {user?.subscriptionPlan ? "Manage Plan" : "Upgrade Now"}
+                              </Button>
+                            </ClientTooltip>
+
                             </div>
                           </div>
 
