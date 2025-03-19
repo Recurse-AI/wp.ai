@@ -1,5 +1,5 @@
 .markdown {
-    color: #24292f;
+    color: var(--textColor);
     font-size: 14px;
     line-height: 1.5;
     position: relative;
@@ -15,7 +15,7 @@
 
 .markdown strong {
     font-weight: 600;
-    color: #24292f;
+    color: var(--textColor);
 }
 
 /* Ensure em elements only show italic styling */
@@ -53,6 +53,8 @@
 .codeBlockWrapper {
     position: relative;
     /* margin: 16px 0; */
+    display: flex;
+    flex-direction: column;
 }
 
 .copyButton {
@@ -61,15 +63,18 @@
     right: 8px;
     padding: 6px;
     background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
-    color: #57606a;
+    color: var(--softTextColor);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transition: all 0.2s ease;
+    z-index: 2;
+    height: 28px;
+    width: 28px;
 }
 
 .codeBlockWrapper:hover .copyButton {
@@ -77,16 +82,17 @@
 }
 
 .copyButton:hover {
-    background: #f3f4f6;
-    color: #24292f;
+    background: rgba(111, 114, 117, 0.95);
+    color: var(--textColor);
 }
 
 .codeBlock {
-    background-color: #f6f8fa;
+    background-color: var(--softBg);
     border-radius: 6px;
-    /* padding: 16px; */
     overflow: auto;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+    position: relative;
+    padding: 16px;
 }
 
 .code {
@@ -94,7 +100,7 @@
     padding: 0;
     margin: 0;
     font-size: 85%;
-    color: #24292f;
+    color: var(--textColor);
     white-space: pre;
     overflow-x: auto;
 }
@@ -104,14 +110,15 @@
     display: block;
     overflow-x: auto;
     padding: 1em;
-    background: #f6f8fa;
-    color: #24292f;
+    padding-right: 40px;
+    background: var(--softBg);
+    color: var(--textColor);
 }
 
 .markdown blockquote {
     padding: 0 1em;
-    color: #57606a;
-    border-left: 0.25em solid #d0d7de;
+    color: var(--softTextColor);
+    border-left: 0.25em solid var(--borderColor);
     margin: 16px 0;
 }
 
@@ -158,12 +165,12 @@
 .listItem {
     margin: 4px 0;
     line-height: 1.6;
-    color: #24292f;
+    color: var(--textColor);
     display: list-item !important;
 }
 
 .listItem::marker {
-    color: #57606a;
+    color: var(--softTextColor);
 }
 
 /* Nested list styles */
@@ -174,7 +181,7 @@
     margin-left: 24px !important;
 }
 
-/* Add these new styles */
+/* Remove these redundant styles */
 .contentWrapper {
     position: relative;
     width: 100%;
@@ -186,10 +193,10 @@
     top: 8px;
     right: 8px;
     padding: 6px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #d0d7de;
+    background: var(--softBg);
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
-    color: #57606a;
+    color: var(--softTextColor);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -204,8 +211,8 @@
 }
 
 .contentCopyButton:hover {
-    background: #f3f4f6;
-    color: #24292f;
+    background:rgba(111, 114, 117, 0.95);
+    color: var(--textColor);
 }
 
 .descriptionRow {

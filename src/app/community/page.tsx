@@ -77,6 +77,7 @@ export default function Home() {
         return <div className={styles.loading}>Loading...</div>;
     }
     return (
+        // `${inter.className} ${theme === "dark" ? "dark" : "light"}`}
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.tabs}>
