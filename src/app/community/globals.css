@@ -7,6 +7,7 @@
     /* Soft background color */
     --softTextColor: #626262;
     /* Soft text color */
+    --borderColor: #dcdcdc; /* Light mode border color */
 }
 
 * {
@@ -22,6 +23,7 @@ body {
     color: var(--textColor);
     font-family: Arial, sans-serif;
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
@@ -29,27 +31,23 @@ a {
     text-decoration: none;
 }
 
-/* 🌙 Dark Mode */
-.dark {
-    --bg: #292a2e;
-    /* Dark background */
-    --textColor: #e4d9d9;
-    /* Light text */
-    --softBg: #1f273a;
-    /* Darker soft background */
-    --softTextColor: #cfcfcf;
-    /* Softer but readable text */
+.light {
+    --bg: #ffffff; /* White background */
+    --textColor: black; /* Default text */
+    --softBg: #e6eaef; /* Light grayish-blue for elements */
+    --softTextColor: #5a5a5a; /* Slightly muted text for contrast */
+    --borderColor: #b6b6bd; /* Soft border color */
 }
 
-.light {
-    --bg: white;
-    /* Default background color */
-    --textColor: black;
-    /* Default text color */
-    --softBg: #f0dbdb;
-    /* Soft background color */
-    --softTextColor: #626262;
+.dark {
+    --bg: #0d1117; /* Main dark background */
+    --textColor: #f0f6fc; /* Brighter text for better readability */
+    --softBg: #151b23; /* Secondary background */
+    --softTextColor: #d1d5db; /* Softer but readable text */
+    --borderColor: #1a2027; /* Dark mode border color */
 }
+
+
 
 .container {
     padding-top: 80px;

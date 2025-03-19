@@ -1,6 +1,6 @@
 .container {
-    background: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(208, 215, 222, 1);
+    background: var(--bg);
+    border: 1px solid var(--borderColor);
     border-radius: 2px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow-wrap: break-word;
@@ -13,8 +13,8 @@
 .noResults {
     text-align: center;
     padding: 30px;
-    color: #57606a;
-    background-color: rgba(246, 248, 250, 0.95);
+    color: var(--softTextColor);
+    background-color: var(--softBg);
 }
 
 .noResults h2 {
@@ -30,8 +30,8 @@
 .noItems {
     text-align: center;
     padding: 32px 16px;
-    background-color: rgba(246, 248, 250, 0.95);
-    border: 1px solid rgba(208, 215, 222, 1);
+    background-color: var(--softBg);
+    border: 1px solid var(--borderColor);
     border-radius: 8px;
     margin: 16px 0;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -41,14 +41,14 @@
 .noItems h3 {
     font-size: 16px;
     font-weight: 600;
-    color: #24292f;
+    color: var(--textColor);
     margin-bottom: 4px;
     overflow-wrap: break-word;
 }
 
 .noItems p {
     font-size: 14px;
-    color: #57606a;
+    color: var(--softTextColor);
     overflow-wrap: break-word;
 }
 
@@ -57,7 +57,7 @@
     display: flex;
     flex-direction: column;
     padding: 16px;
-    border-bottom: 1px solid rgba(208, 215, 222, 1);
+    border-bottom: 1px solid var(--borderColor);
     gap: 8px;
     align-items: flex-start;
     min-height: 60px;
@@ -65,6 +65,7 @@
     position: relative;
     overflow-wrap: break-word;
     width: 100%;
+    background-color: var(--bg);
 }
 
 .issueItem:last-child {
@@ -73,9 +74,9 @@
 }
 
 .issueItem:hover {
-    background-color: rgba(246, 248, 250, 0.98);
+    background-color: var(--softBg);
     transform: translateX(4px);
-    box-shadow: -4px 0 0 0 #8250df;
+    box-shadow: -4px 0 0 0 var(--highlightColor);
     overflow-wrap: break-word;
 }
 
@@ -97,14 +98,14 @@
 
 .infoIcon {
     flex-shrink: 0;
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 16px;
     display: flex;
     align-items: center;
 }
 
 .title {
-    color: #24292f;
+    color: var(--textColor);
     font-weight: 600;
     font-size: 16px;
     text-decoration: none;
@@ -118,7 +119,7 @@
 }
 
 .title:hover {
-    color: #0969da;
+    color: var(--linkHoverColor);
 }
 
 .content {
@@ -143,7 +144,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 12px;
     padding: 4px 8px;
     background: rgba(175, 184, 193, 0.1);
@@ -159,7 +160,7 @@
 
 .commentCount:empty::after {
     content: "0";
-    color: #57606a;
+    color: var(--softTextColor);
     overflow-wrap: break-word;
 }
 
@@ -167,7 +168,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 12px;
     flex-wrap: wrap;
 }
@@ -180,7 +181,7 @@
 
 /* Style for issue number */
 .meta span:first-child {
-    color: #24292f;
+    color: var(--textColor);
     font-weight: 600;
     background: rgba(175, 184, 193, 0.1);
     padding: 2px 6px;
@@ -190,31 +191,31 @@
 
 /* Style for author name */
 .meta span:nth-child(2) {
-    color: #24292f;
+    color: var(--textColor);
     font-weight: 500;
     overflow-wrap: break-word;
 }
 
 /* Style for date */
 .meta span:last-child {
-    color: #57606a;
+    color: var(--softTextColor);
     overflow-wrap: break-word;
 }
 
 .meta a {
-    color: #57606a;
+    color: var(--softTextColor);
     text-decoration: none;
     overflow-wrap: break-word;
 }
 
 .meta a:hover {
-    color: rgba(9, 105, 218, 0.95);
+    color: var(--linkHoverColor);
     text-decoration: underline;
     overflow-wrap: break-word;
 }
 
 .description {
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 13px;
     line-height: 1.5;
     overflow: hidden;
@@ -233,7 +234,7 @@
 
 .description strong {
     font-weight: 600;
-    color: #24292f;
+    color: var(--textColor);
     overflow-wrap: break-word;
 }
 
@@ -246,14 +247,14 @@
     background-color: rgba(175, 184, 193, 0.2);
     padding: 0.2em 0.4em;
     border-radius: 6px;
-    border: 1px solid rgba(208, 215, 222, 1);
+    border: 1px solid var(--borderColor);
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 85%;
     overflow-wrap: break-word;
 }
 
 .description .link {
-    color: #0969da;
+    color: var(--linkColor);
     text-decoration: none;
     overflow-wrap: break-word;
 }
@@ -275,10 +276,10 @@
     justify-content: center;
     align-items: center;
     padding: 2rem;
-    background-color: #f6f8fa;
-    border: 1px solid #d0d7de;
+    background-color: var(--softBg);
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 16px;
     margin: 1rem 0;
     overflow-wrap: break-word;
@@ -290,8 +291,8 @@
     align-items: center;
     justify-content: center;
     padding: 3rem 1rem;
-    background-color: #f6f8fa;
-    border: 1px solid #d0d7de;
+    background-color: var(--softBg);
+    border: 1px solid var(--borderColor);
     border-radius: 8px;
     margin: 1rem 0;
     text-align: center;
@@ -302,13 +303,13 @@
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #24292f;
+    color: var(--textColor);
     overflow-wrap: break-word;
 }
 
 .noItems p {
     font-size: 1rem;
-    color: #57606a;
+    color: var(--softTextColor);
 }
 
 .description .unorderedList,
@@ -329,11 +330,11 @@
 .description .listItem {
     display: list-item;
     margin: 2px 0;
-    color: #57606a;
+    color: var(--softTextColor);
 }
 
 .description .listItem::marker {
-    color: #57606a;
+    color: var(--softTextColor);
 }
 
 /* Remove these classes */
@@ -343,7 +344,7 @@
 }
 
 .infoIcon {
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 16px;
     margin-right: 8px;
     vertical-align: middle;
@@ -352,7 +353,7 @@
 }
 
 .infoIcon:hover {
-    color: #0969da;
+    color: var(--linkHoverColor);
 }
 
 /* Add responsive styles */
@@ -371,7 +372,7 @@
 
     .title {
         font-size: 14px;
-        -webkit-line-clamp: 3; /* Allow 3 lines on smaller screens */
+        -webkit-line-clamp: 3;
     }
 
     .description {
@@ -438,17 +439,17 @@
 .searchInput {
     flex: 1;
     padding: 6px 12px;
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
     font-size: 14px;
-    color: #24292f;
+    color: var(--textColor);
     min-width: 200px;
     max-width: 100%;
 }
 
 .searchInput:focus {
     outline: none;
-    border-color: #0969da;
+    border-color: var(--linkHoverColor);
     box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
 }
 
@@ -457,17 +458,17 @@
     align-items: center;
     gap: 4px;
     padding: 6px 12px;
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
-    background: #f6f8fa;
-    color: #24292f;
+    background: var(--softBg);
+    color: var(--textColor);
     font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .filterButton:hover {
-    background: #f3f4f6;
+    background: var(--linkHoverColor);
 }
 
 @media screen and (max-width: 768px) {
