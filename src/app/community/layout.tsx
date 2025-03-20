@@ -31,20 +31,18 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
     if (loading || !isClient || !isAuthenticated) {
         return (
-            
-                    <div className="container">
-                        <div className="wrapper">
-                            <div className="loading-auth">
-                                <div className="loading-spinner"></div>
-                                <p>Checking authentication...</p>
-                            </div>
-                        </div>
+            <div className={`container ${theme === "dark" ? "dark" : "light"}`}>
+                <div className="wrapper">
+                    <div className="loading-auth">
+                        <div className="loading-spinner"></div>
+                        <p>Checking authentication...</p>
                     </div>
+                </div>
+            </div>
         );
     }
 
     return (
-        <html lang="en">
             <body className={`${inter.className} ${theme === "dark" ? "dark" : "light"}`}>
                 <div className="container">
                     <div className="wrapper">
@@ -56,6 +54,5 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     </div>
                 </div>
             </body>
-        </html>
     );
 } 
