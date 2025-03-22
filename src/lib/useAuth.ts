@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import AuthService, { LoginCredentials, UserProfile, UserRegistration } from './authService';
-import TokenManager from './tokenManager';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import AuthService, {
+  LoginCredentials,
+  UserProfile,
+  UserRegistration,
+} from "./authService";
+import TokenManager from "./tokenManager";
 
 // Re-export UserProfile type for easy import by other components
-export type { UserProfile } from './authService';
+export type { UserProfile } from "./authService";
 
 interface AuthState {
   user: UserProfile | null;
@@ -24,31 +28,31 @@ export default function useAuth() {
 
   // Add setUserData function
   const setUserData = useCallback((userData: UserProfile) => {
-    setAuthState(prevState => ({
+    setAuthState((prevState) => ({
       ...prevState,
       user: userData,
-      isAuthenticated: true
+      isAuthenticated: true,
     }));
   }, []);
 
   const safeLocalStorage = {
     getItem: (key: string): string | null => {
-      if (typeof window !== 'undefined') return localStorage.getItem(key);
+      if (typeof window !== "undefined") return localStorage.getItem(key);
       return null;
     },
     setItem: (key: string, value: string): void => {
-      if (typeof window !== 'undefined') localStorage.setItem(key, value);
+      if (typeof window !== "undefined") localStorage.setItem(key, value);
     },
     removeItem: (key: string): void => {
-      if (typeof window !== 'undefined') localStorage.removeItem(key);
-    }
+      if (typeof window !== "undefined") localStorage.removeItem(key);
+    },
   };
 
   useEffect(() => {
     const checkTokenValidity = async () => {
       const token = TokenManager.getToken();
       if (!token) return;
-  
+
       if (TokenManager.isTokenExpired(token)) {
         try {
           await TokenManager.refreshAccessToken();
@@ -58,19 +62,22 @@ export default function useAuth() {
             user: null,
             loading: false,
             isAuthenticated: false,
-            error: 'Session expired. Please login again.',
+            error: "Session expired. Please login again.",
           });
-  
+
           const refreshToken = TokenManager.getRefreshToken();
-          if (refreshToken && TokenManager.isRefreshTokenExpired(refreshToken)) {
-            router.push('/signin?reason=expired');
+          if (
+            refreshToken &&
+            TokenManager.isRefreshTokenExpired(refreshToken)
+          ) {
+            router.push("/signin?reason=expired");
           } else {
-            router.push('/signin?reason=session_expired');
+            router.push("/signin?reason=session_expired");
           }
         }
       }
     };
-  
+
     checkTokenValidity();
     const intervalId = setInterval(checkTokenValidity, 5 * 60 * 1000);
     return () => clearInterval(intervalId);
@@ -84,13 +91,13 @@ export default function useAuth() {
           // User is already loaded, no need to fetch again
           return;
         }
-        
+
         const token = TokenManager.getToken();
-        
+
         if (!token) {
-          const userDataString = safeLocalStorage.getItem('userData');
-          const authToken = safeLocalStorage.getItem('token');
-          
+          const userDataString = safeLocalStorage.getItem("userData");
+          const authToken = safeLocalStorage.getItem("token");
+
           if (userDataString) {
             try {
               const userData = JSON.parse(userDataString);
@@ -104,15 +111,15 @@ export default function useAuth() {
             } catch (parseError) {}
           } else if (authToken) {
             setAuthState({
-              user: { id: 0, email: '', username: '' },
+              user: { id: 0, email: "", username: "" },
               loading: false,
               isAuthenticated: true,
               error: null,
             });
-            
+
             try {
               // Only fetch user profile if we don't have it in localStorage
-              const userDataString = safeLocalStorage.getItem('userData');
+              const userDataString = safeLocalStorage.getItem("userData");
               if (!userDataString) {
                 const user = await AuthService.getUserProfile();
                 if (user) {
@@ -122,17 +129,17 @@ export default function useAuth() {
                     isAuthenticated: true,
                     error: null,
                   });
-                  safeLocalStorage.setItem('userData', JSON.stringify(user));
+                  safeLocalStorage.setItem("userData", JSON.stringify(user));
                 }
               }
             } catch (fetchError) {
               const apiError = fetchError as any;
-              
-              if (apiError.tokenError === 'expired_refresh') {
+
+              if (apiError.tokenError === "expired_refresh") {
                 TokenManager.clearTokens();
-                safeLocalStorage.removeItem('userData');
-                router.push('/signin?reason=expired');
-              } else if (apiError.tokenError === 'expired_access') {
+                safeLocalStorage.removeItem("userData");
+                router.push("/signin?reason=expired");
+              } else if (apiError.tokenError === "expired_access") {
                 try {
                   await TokenManager.refreshAccessToken();
                   const user = await AuthService.getUserProfile();
@@ -143,14 +150,14 @@ export default function useAuth() {
                       isAuthenticated: true,
                       error: null,
                     });
-                    safeLocalStorage.setItem('userData', JSON.stringify(user));
+                    safeLocalStorage.setItem("userData", JSON.stringify(user));
                   }
                 } catch (refreshError) {}
               }
             }
             return;
           }
-          
+
           setAuthState({
             user: null,
             loading: false,
@@ -161,14 +168,17 @@ export default function useAuth() {
         }
 
         // Check if we already have user data in localStorage before making API call
-        const userDataString = safeLocalStorage.getItem('userData');
+        const userDataString = safeLocalStorage.getItem("userData");
         if (userDataString) {
           try {
             const userData = JSON.parse(userDataString);
             // Check if the user data is recent (less than 5 minutes old)
-            const lastFetchTime = safeLocalStorage.getItem('userDataFetchTime');
+            const lastFetchTime = safeLocalStorage.getItem("userDataFetchTime");
             const currentTime = Date.now();
-            if (lastFetchTime && (currentTime - parseInt(lastFetchTime)) < 5 * 60 * 1000) {
+            if (
+              lastFetchTime &&
+              currentTime - parseInt(lastFetchTime) < 5 * 60 * 1000
+            ) {
               setAuthState({
                 user: userData,
                 loading: false,
@@ -189,30 +199,30 @@ export default function useAuth() {
           isAuthenticated: true,
           error: null,
         });
-        
-        safeLocalStorage.setItem('userData', JSON.stringify(user));
-        safeLocalStorage.setItem('userDataFetchTime', Date.now().toString());
+
+        safeLocalStorage.setItem("userData", JSON.stringify(user));
+        safeLocalStorage.setItem("userDataFetchTime", Date.now().toString());
       } catch (error) {
         const apiError = error as any;
-        
-        const userDataString = safeLocalStorage.getItem('userData');
-        const authToken = safeLocalStorage.getItem('token');
-        
-        if (apiError.tokenError === 'expired_refresh') {
+
+        const userDataString = safeLocalStorage.getItem("userData");
+        const authToken = safeLocalStorage.getItem("token");
+
+        if (apiError.tokenError === "expired_refresh") {
           TokenManager.clearTokens();
-          safeLocalStorage.removeItem('userData');
-          
+          safeLocalStorage.removeItem("userData");
+
           setAuthState({
             user: null,
             loading: false,
             isAuthenticated: false,
-            error: 'Session expired. Please login again.',
+            error: "Session expired. Please login again.",
           });
-          
-          router.push('/signin?reason=expired');
+
+          router.push("/signin?reason=expired");
           return;
         }
-        
+
         if (userDataString) {
           try {
             const user = JSON.parse(userDataString);
@@ -226,20 +236,20 @@ export default function useAuth() {
           } catch (parseError) {}
         } else if (authToken) {
           setAuthState({
-            user: { id: 0, email: '', username: '' },
+            user: { id: 0, email: "", username: "" },
             loading: false,
             isAuthenticated: true,
             error: null,
           });
           return;
         }
-        
+
         TokenManager.clearTokens();
         setAuthState({
           user: null,
           loading: false,
           isAuthenticated: false,
-          error: 'Session expired. Please login again.',
+          error: "Session expired. Please login again.",
         });
       }
     };
@@ -247,63 +257,66 @@ export default function useAuth() {
     loadUser();
   }, [router]);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const response = await AuthService.login(credentials);
-      TokenManager.storeTokens(response.access, response.refresh);
-      localStorage.setItem("token", response.access);
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 3);
-      localStorage.setItem("tokenExpiry", expiryDate.toISOString());
-      const user = response.user;
-      console.log('user', user);
-      setAuthState({
-        user,
-        loading: false,
-        isAuthenticated: true,
-        error: null,
-      });
-          
-      setTimeout(() => {
-        if(localStorage.getItem("isChat")){
-          localStorage.removeItem("isChat");
-          router.push("/chat");
-        } else {
-          router.push("/");
-        }
-      }, 500);
-      
-      return user;
-    } catch (error) {
-      const errorMessage = (error as any)?.message || 'Login failed. Please try again.';
-      
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        isAuthenticated: false,
-        error: errorMessage,
-      }));
-      
-      throw error;
-    }
-  }, [router]);
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+
+      try {
+        const response = await AuthService.login(credentials);
+        TokenManager.storeTokens(response.access, response.refresh);
+        localStorage.setItem("token", response.access);
+
+        const user = response.user;
+        console.log("user", user);
+        setAuthState({
+          user,
+          loading: false,
+          isAuthenticated: true,
+          error: null,
+        });
+
+        setTimeout(() => {
+          if (localStorage.getItem("isChat")) {
+            localStorage.removeItem("isChat");
+            router.push("/chat");
+          } else {
+            router.push("/");
+          }
+        }, 500);
+
+        return user;
+      } catch (error) {
+        const errorMessage =
+          (error as any)?.message || "Login failed. Please try again.";
+
+        setAuthState((prev) => ({
+          ...prev,
+          loading: false,
+          isAuthenticated: false,
+          error: errorMessage,
+        }));
+
+        throw error;
+      }
+    },
+    [router]
+  );
 
   const register = useCallback(async (userData: UserRegistration) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
+    setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+
     try {
       const response = await AuthService.register(userData);
-      setAuthState(prev => ({
+      setAuthState((prev) => ({
         ...prev,
         loading: false,
         error: null,
       }));
       return response;
     } catch (error) {
-      const errorMessage = (error as any)?.message || 'Registration failed. Please try again.';
-      setAuthState(prev => ({
+      const errorMessage =
+        (error as any)?.message || "Registration failed. Please try again.";
+      setAuthState((prev) => ({
         ...prev,
         loading: false,
         error: errorMessage,
@@ -313,53 +326,55 @@ export default function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    setAuthState(prev => ({ ...prev, loading: true }));
-    
+    setAuthState((prev) => ({ ...prev, loading: true }));
+
     try {
       await AuthService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
-      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-      const isProtectedRoute = currentPath.includes('/chat') || 
-                              currentPath.includes('/dashboard') || 
-                              currentPath.includes('/profile') ||
-                              currentPath.includes('/settings');
-      
+      const currentPath =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      const isProtectedRoute =
+        currentPath.includes("/chat") ||
+        currentPath.includes("/dashboard") ||
+        currentPath.includes("/profile") ||
+        currentPath.includes("/settings");
+
       TokenManager.clearTokens();
-      safeLocalStorage.removeItem('userData');
-      safeLocalStorage.removeItem('token');
-      
+      safeLocalStorage.removeItem("userData");
+      safeLocalStorage.removeItem("token");
+
       setAuthState({
         user: null,
         loading: false,
         isAuthenticated: false,
         error: null,
       });
-      
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('storage'));
-        safeLocalStorage.setItem('recentLogout', Date.now().toString());
-        setTimeout(() => safeLocalStorage.removeItem('recentLogout'), 1000);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"));
+        safeLocalStorage.setItem("recentLogout", Date.now().toString());
+        setTimeout(() => safeLocalStorage.removeItem("recentLogout"), 1000);
       }
-      
+
       if (isProtectedRoute) {
-        router.push('/signin');
+        router.push("/signin");
       } else {
-        router.push('/');
+        router.push("/");
       }
     }
   }, [router]);
 
   const socialAuth = {
-    google: async (code: string) => {
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    google: async (email: string, image?: string) => {
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        const response = await AuthService.googleAuth(code);
+        const response = await AuthService.googleAuth(email, image);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
-        safeLocalStorage.setItem('userData', JSON.stringify(user));
-        
+        safeLocalStorage.setItem("userData", JSON.stringify(user));
+
         setAuthState({
           user,
           loading: false,
@@ -368,8 +383,9 @@ export default function useAuth() {
         });
         return user;
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Google authentication failed.';
-        setAuthState(prev => ({
+        const errorMessage =
+          (error as any)?.message || "Google authentication failed.";
+        setAuthState((prev) => ({
           ...prev,
           loading: false,
           error: errorMessage,
@@ -377,15 +393,15 @@ export default function useAuth() {
         throw error;
       }
     },
-    
+
     facebook: async (accessToken: string) => {
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const response = await AuthService.facebookAuth(accessToken);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
-        safeLocalStorage.setItem('userData', JSON.stringify(user));
-        
+        safeLocalStorage.setItem("userData", JSON.stringify(user));
+
         setAuthState({
           user,
           loading: false,
@@ -394,8 +410,9 @@ export default function useAuth() {
         });
         return user;
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Facebook authentication failed.';
-        setAuthState(prev => ({
+        const errorMessage =
+          (error as any)?.message || "Facebook authentication failed.";
+        setAuthState((prev) => ({
           ...prev,
           loading: false,
           error: errorMessage,
@@ -403,15 +420,15 @@ export default function useAuth() {
         throw error;
       }
     },
-    
+
     github: async (code: string) => {
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const response = await AuthService.githubAuth(code);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
-        safeLocalStorage.setItem('userData', JSON.stringify(user));
-        
+        safeLocalStorage.setItem("userData", JSON.stringify(user));
+
         setAuthState({
           user,
           loading: false,
@@ -420,8 +437,9 @@ export default function useAuth() {
         });
         return user;
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'GitHub authentication failed.';
-        setAuthState(prev => ({
+        const errorMessage =
+          (error as any)?.message || "GitHub authentication failed.";
+        setAuthState((prev) => ({
           ...prev,
           loading: false,
           error: errorMessage,
@@ -429,15 +447,15 @@ export default function useAuth() {
         throw error;
       }
     },
-    
+
     wordpress: async (code: string) => {
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const response = await AuthService.wordpressAuth(code);
         TokenManager.storeTokens(response.access, response.refresh);
         const user = response.user;
-        safeLocalStorage.setItem('userData', JSON.stringify(user));
-        
+        safeLocalStorage.setItem("userData", JSON.stringify(user));
+
         setAuthState({
           user,
           loading: false,
@@ -446,90 +464,112 @@ export default function useAuth() {
         });
         return user;
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'WordPress authentication failed.';
-        setAuthState(prev => ({
+        const errorMessage =
+          (error as any)?.message || "WordPress authentication failed.";
+        setAuthState((prev) => ({
           ...prev,
           loading: false,
           error: errorMessage,
         }));
         throw error;
       }
-    }
+    },
   };
 
-  const updateProfile = useCallback(async (profileData: Partial<UserProfile>) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const updatedProfile = await AuthService.updateUserProfile(profileData);
-      
-      const userDataString = safeLocalStorage.getItem('userData');
-      if (userDataString) {
-        try {
-          const userData = JSON.parse(userDataString);
-          const updatedUserData = { ...userData, ...updatedProfile };
-          safeLocalStorage.setItem('userData', JSON.stringify(updatedUserData));
-        } catch (parseError) {}
-      } else {
-        safeLocalStorage.setItem('userData', JSON.stringify(updatedProfile));
-      }
-      
-      setAuthState(prev => ({
-        ...prev,
-        user: updatedProfile,
-        loading: false,
-        error: null,
-      }));
-      
-      return updatedProfile;
-    } catch (error) {
-      const errorMessage = (error as any)?.message || 'Failed to update profile.';
-      
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage,
-      }));
-      
-      throw error;
-    }
-  }, []);
+  const updateProfile = useCallback(
+    async (profileData: Partial<UserProfile>) => {
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
 
-  const changePassword = useCallback(async (oldPassword: string, newPassword: string, confirmPassword: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      await AuthService.changePassword({
-        old_password: oldPassword,
-        new_password: newPassword,
-        confirm_password: confirmPassword,
-      });
-      
-      setAuthState(prev => ({ ...prev, loading: false, error: null }));
-    } catch (error) {
-      const errorMessage = (error as any)?.message || 'Password change failed.';
-      
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage,
-      }));
-      
-      throw error;
-    }
-  }, []);
+      try {
+        const updatedProfile = await AuthService.updateUserProfile(profileData);
+
+        const userDataString = safeLocalStorage.getItem("userData");
+        if (userDataString) {
+          try {
+            const userData = JSON.parse(userDataString);
+            const updatedUserData = { ...userData, ...updatedProfile };
+            safeLocalStorage.setItem(
+              "userData",
+              JSON.stringify(updatedUserData)
+            );
+          } catch (parseError) {}
+        } else {
+          safeLocalStorage.setItem("userData", JSON.stringify(updatedProfile));
+        }
+
+        setAuthState((prev) => ({
+          ...prev,
+          user: updatedProfile,
+          loading: false,
+          error: null,
+        }));
+
+        return updatedProfile;
+      } catch (error) {
+        const errorMessage =
+          (error as any)?.message || "Failed to update profile.";
+
+        setAuthState((prev) => ({
+          ...prev,
+          loading: false,
+          error: errorMessage,
+        }));
+
+        throw error;
+      }
+    },
+    []
+  );
+
+  const changePassword = useCallback(
+    async (
+      oldPassword: string,
+      newPassword: string,
+      confirmPassword: string
+    ) => {
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+
+      try {
+        await AuthService.changePassword({
+          old_password: oldPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        });
+
+        setAuthState((prev) => ({ ...prev, loading: false, error: null }));
+      } catch (error) {
+        const errorMessage =
+          (error as any)?.message || "Password change failed.";
+
+        setAuthState((prev) => ({
+          ...prev,
+          loading: false,
+          error: errorMessage,
+        }));
+
+        throw error;
+      }
+    },
+    []
+  );
 
   const passwordReset = {
     request: async (email: string) => {
       try {
         return await AuthService.requestPasswordReset(email);
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Password reset request failed.';
+        const errorMessage =
+          (error as any)?.message || "Password reset request failed.";
         throw new Error(errorMessage);
       }
     },
-    
-    confirm: async (uid: string, token: string, newPassword: string, confirmPassword: string) => {
+
+    confirm: async (
+      uid: string,
+      token: string,
+      newPassword: string,
+      confirmPassword: string
+    ) => {
       try {
         return await AuthService.confirmPasswordReset({
           uid,
@@ -538,10 +578,11 @@ export default function useAuth() {
           confirm_password: confirmPassword,
         });
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Password reset confirmation failed.';
+        const errorMessage =
+          (error as any)?.message || "Password reset confirmation failed.";
         throw new Error(errorMessage);
       }
-    }
+    },
   };
 
   const emailVerification = {
@@ -549,19 +590,21 @@ export default function useAuth() {
       try {
         return await AuthService.requestEmailVerification();
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Email verification request failed.';
+        const errorMessage =
+          (error as any)?.message || "Email verification request failed.";
         throw new Error(errorMessage);
       }
     },
-    
+
     confirm: async (uidb64: string, token: string) => {
       try {
         return await AuthService.confirmEmailVerification(uidb64, token);
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Email verification confirmation failed.';
+        const errorMessage =
+          (error as any)?.message || "Email verification confirmation failed.";
         throw new Error(errorMessage);
       }
-    }
+    },
   };
 
   const phoneVerification = {
@@ -569,11 +612,12 @@ export default function useAuth() {
       try {
         return await AuthService.requestPhoneVerification(phoneNumber);
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Phone verification request failed.';
+        const errorMessage =
+          (error as any)?.message || "Phone verification request failed.";
         throw new Error(errorMessage);
       }
     },
-    
+
     confirm: async (phoneNumber: string, verificationCode: string) => {
       try {
         return await AuthService.verifyPhone({
@@ -581,10 +625,11 @@ export default function useAuth() {
           verification_code: verificationCode,
         });
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Phone verification confirmation failed.';
+        const errorMessage =
+          (error as any)?.message || "Phone verification confirmation failed.";
         throw new Error(errorMessage);
       }
-    }
+    },
   };
 
   const sessions = {
@@ -592,30 +637,35 @@ export default function useAuth() {
       try {
         return await AuthService.getUserSessions();
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Failed to retrieve sessions.';
+        const errorMessage =
+          (error as any)?.message || "Failed to retrieve sessions.";
         throw new Error(errorMessage);
       }
     },
-    
+
     terminate: async (sessionId: number) => {
       try {
         return await AuthService.terminateSession(sessionId);
       } catch (error) {
-        const errorMessage = (error as any)?.message || 'Failed to terminate session.';
+        const errorMessage =
+          (error as any)?.message || "Failed to terminate session.";
         throw new Error(errorMessage);
       }
-    }
+    },
   };
 
   const verifyEmail = useCallback(async (uidb64: string, token: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
+    setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+
     try {
-      const response = await AuthService.confirmEmailVerification(uidb64, token);
-      
+      const response = await AuthService.confirmEmailVerification(
+        uidb64,
+        token
+      );
+
       if (response.access && response.refresh && response.user) {
         TokenManager.storeTokens(response.access, response.refresh);
-        
+
         setAuthState({
           user: response.user,
           loading: false,
@@ -623,23 +673,25 @@ export default function useAuth() {
           error: null,
         });
       } else {
-        setAuthState(prev => ({
+        setAuthState((prev) => ({
           ...prev,
           loading: false,
           error: null,
         }));
       }
-      
+
       return response;
     } catch (error) {
-      const errorMessage = (error as any)?.message || 'Email verification failed. Please try again.';
-      
-      setAuthState(prev => ({
+      const errorMessage =
+        (error as any)?.message ||
+        "Email verification failed. Please try again.";
+
+      setAuthState((prev) => ({
         ...prev,
         loading: false,
         error: errorMessage,
       }));
-      
+
       throw error;
     }
   }, []);
@@ -662,4 +714,4 @@ export default function useAuth() {
     phoneVerification,
     sessions,
   };
-} 
+}

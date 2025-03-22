@@ -255,10 +255,6 @@ export default function SignUp() {
           localStorage.removeItem('authProvider');
 
           localStorage.setItem("token", userData.access);
-          const expiryDate = new Date();
-          expiryDate.setMonth(expiryDate.getMonth() + 3);
-          localStorage.setItem("tokenExpiry", expiryDate.toISOString());
-          
           // Redirect without showing success toast (since handleSignUp will show it)
           if(localStorage.getItem("isChat")){
             localStorage.removeItem("isChat");
