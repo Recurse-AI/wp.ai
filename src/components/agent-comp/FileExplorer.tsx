@@ -15,6 +15,7 @@ import WordPressPlayground from "./WordPressPlayground";
 interface FileExplorerProps {
     onFileSelect: (file: CodeFile) => void;
     selectedFileId?: string;
+    onFilesChange?: (files: Record<string, FileNode>) => void;
 }
 
 interface FileNode {
@@ -36,8 +37,8 @@ const PLUGIN_FILES: Record<string, FileNode> = {
 Plugin Name: My Plugin
 Description: Adds a 'Generate Image' button to the media library to generate AI images.
 Version: 1.0
-Author: Unayes
-Author URI: https://github.com/unayes09
+Author:  Mehedi Hasan
+Author URI: https://github.com/MehediHasan-75
 */
 
 // Hook into the media library to add the button
@@ -138,7 +139,7 @@ function handle_my_plugin() {
     },
 };
 
-const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
+const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect, onFilesChange }) => {
     const [files, setFiles] = useState<Record<string, FileNode>>(PLUGIN_FILES);
     const [currentFiles, setCurrentFiles] = useState<Record<string, FileNode>>(PLUGIN_FILES);
 
@@ -205,13 +206,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
 
     useEffect(() => {
         setCurrentFiles(files);
-    }, [files]);
+        onFilesChange?.(files);
+    }, [files, onFilesChange]);
 
     return (
         <div className="h-full overflow-y-auto p-2 bg-white text-gray-800">
             <h3 className="font-medium">WordPress Plugin Files</h3>
             <div className="space-y-1">{Object.entries(files).map(([name, item]) => renderItem(name, item))}</div>
-            <WordPressPlayground files={currentFiles} />
+            {/* <WordPressPlayground files={currentFiles} /> */}
         </div>
     );
 };
