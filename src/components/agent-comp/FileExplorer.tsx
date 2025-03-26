@@ -1,38 +1,30 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import {
-    FiFolder,
-    FiFile,
-    FiFolderPlus,
-    FiFilePlus,
-    FiChevronDown,
-    FiChevronRight,
-    FiTrash,
-} from "react-icons/fi";
+import { FiFolder, FiFile, FiFolderPlus, FiChevronDown } from "react-icons/fi";
 import { CodeFile } from "@/lib/services/agentService";
-import WordPressPlayground from "./WordPressPlayground";
 
 interface FileExplorerProps {
-    onFileSelect: (file: CodeFile) => void;
-    selectedFileId?: string;
-    onFilesChange?: (files: Record<string, FileNode>) => void;
+  onFileSelect: (file: CodeFile) => void;
+  selectedFileId?: string;
+  onFilesChange?: (files: Record<string, FileNode>) => void;
+  dynamicFiles?: Record<string, FileNode>;
 }
 
 interface FileNode {
-    type: "file" | "folder";
-    content?: string;
-    language?: string;
-    children?: Record<string, FileNode>;
+  type: "file" | "folder";
+  content?: string;
+  language?: string;
+  children?: Record<string, FileNode>;
 }
 
 // ✅ WordPress Plugin Structure (Renamed to "my-plugin")
 const PLUGIN_FILES: Record<string, FileNode> = {
-    "my-plugin": {
-        type: "folder",
-        children: {
-            "my-plugin.php": {
-                type: "file",
-                content: `<?php
+  "my-plugin": {
+    type: "folder",
+    children: {
+      "my-plugin.php": {
+        type: "file",
+        content: `<?php
 /*
 Plugin Name: My Plugin
 Description: Adds a 'Generate Image' button to the media library to generate AI images.
@@ -90,25 +82,25 @@ function handle_my_plugin() {
         wp_send_json_error('Failed to generate image using DALL-E 3.');
     }
 }`,
-                language: "php",
-            },
-            assets: {
-                type: "folder",
-                children: {
-                    "style.css": {
-                        type: "file",
-                        content: `#my-plugin-btn {
+        language: "php",
+      },
+      assets: {
+        type: "folder",
+        children: {
+          "style.css": {
+            type: "file",
+            content: `#my-plugin-btn {
               display: inline-flex;
               align-items: center;
               justify-content: center;
               height: 36px;
               margin-left: 10px;
           }`,
-                        language: "css",
-                    },
-                    "script.js": {
-                        type: "file",
-                        content: `jQuery(document).ready(function ($) {
+            language: "css",
+          },
+          "script.js": {
+            type: "file",
+            content: `jQuery(document).ready(function ($) {
               $('.media-toolbar-primary').append('<button id="my-plugin-btn" class="button">Generate Image</button>');
 
               $('#my-plugin-btn').on('click', function () {
@@ -131,91 +123,111 @@ function handle_my_plugin() {
                   }
               });
           });`,
-                        language: "js",
-                    },
-                },
-            },
+            language: "js",
+          },
         },
+      },
     },
+  },
 };
 
-const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect, onFilesChange }) => {
-    const [files, setFiles] = useState<Record<string, FileNode>>(PLUGIN_FILES);
-    const [currentFiles, setCurrentFiles] = useState<Record<string, FileNode>>(PLUGIN_FILES);
+const FileExplorer: React.FC<FileExplorerProps> = ({
+  onFileSelect,
+  onFilesChange,
+  dynamicFiles,
+}) => {
+  const [files, setFiles] = useState<Record<string, FileNode>>(
+    dynamicFiles || PLUGIN_FILES
+  );
+  const [currentFiles, setCurrentFiles] = useState<Record<string, FileNode>>(
+    dynamicFiles || PLUGIN_FILES
+  );
 
-    // ✅ Handle file or folder creation
-    const handleCreate = (path: string, isFolder: boolean) => {
-        const name = prompt(`Enter new ${isFolder ? "folder" : "file"} name:`);
-        if (!name) return;
+  // ✅ Handle file or folder creation
+  const handleCreate = (path: string, isFolder: boolean) => {
+    const name = prompt(`Enter new ${isFolder ? "folder" : "file"} name:`);
+    if (!name) return;
 
-        const newFiles = { ...files };
-        if (!newFiles[path]) return;
+    const newFiles = { ...files };
+    if (!newFiles[path]) return;
 
-        if (!newFiles[path].children) {
-            newFiles[path].children = {};
-        }
+    if (!newFiles[path].children) {
+      newFiles[path].children = {};
+    }
 
-        newFiles[path].children![name] = isFolder
-            ? { type: "folder", children: {} }
-            : { type: "file", content: "", language: "php" };
+    newFiles[path].children![name] = isFolder
+      ? { type: "folder", children: {} }
+      : { type: "file", content: "", language: "php" };
 
-        setFiles(newFiles);
-    };
+    setFiles(newFiles);
+  };
 
-    // ✅ Render file or folder recursively
-    const renderItem = (name: string, item: FileNode, path = "") => {
-        const fullPath = path ? `${path}/${name}` : name;
+  // ✅ Render file or folder recursively
+  const renderItem = (name: string, item: FileNode, path = "") => {
+    const fullPath = path ? `${path}/${name}` : name;
 
-        if (item.type === "folder") {
-            return (
-                <div key={fullPath}>
-                    <div className="flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                        <FiChevronDown className="mr-1" />
-                        <FiFolder className="mr-2 text-yellow-500" />
-                        <span>{name}</span>
-                        <FiFolderPlus className="ml-auto text-green-500 cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleCreate(fullPath, true);
-                            }} />
-                    </div>
-                    <div className="pl-4 border-l border-gray-200 dark:border-gray-700 ml-2">
-                        {Object.entries(item.children || {}).map(([childName, childItem]) =>
-                            renderItem(childName, childItem, fullPath)
-                        )}
-                    </div>
-                </div>
-            );
-        } else {
-            return (
-                <div key={fullPath} className="flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                    onClick={() => onFileSelect({
-                        id: `plugin-${fullPath}`,
-                        name,
-                        path: fullPath,
-                        content: item.content || "",
-                        language: item.language || "text",
-                        lastModified: new Date(),
-                    })}>
-                    <FiFile className="mr-2 text-gray-500" />
-                    <span>{name}</span>
-                </div>
-            );
-        }
-    };
-
-    useEffect(() => {
-        setCurrentFiles(files);
-        onFilesChange?.(files);
-    }, [files, onFilesChange]);
-
-    return (
-        <div className="h-full overflow-y-auto p-2 bg-white text-gray-800">
-            <h3 className="font-medium">WordPress Plugin Files</h3>
-            <div className="space-y-1">{Object.entries(files).map(([name, item]) => renderItem(name, item))}</div>
-            {/* <WordPressPlayground files={currentFiles} /> */}
+    if (item.type === "folder") {
+      return (
+        <div key={fullPath}>
+          <div className="flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+            <FiChevronDown className="mr-1" />
+            <FiFolder className="mr-2 text-yellow-500" />
+            <span>{name}</span>
+            <FiFolderPlus
+              className="ml-auto text-green-500 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreate(fullPath, true);
+              }}
+            />
+          </div>
+          <div className="pl-4 border-l border-gray-200 dark:border-gray-700 ml-2">
+            {Object.entries(item.children || {}).map(([childName, childItem]) =>
+              renderItem(childName, childItem, fullPath)
+            )}
+          </div>
         </div>
-    );
+      );
+    } else {
+      return (
+        <div
+          key={fullPath}
+          className="flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          onClick={() =>
+            onFileSelect({
+              id: `plugin-${fullPath}`,
+              name,
+              path: fullPath,
+              content: item.content || "",
+              language: item.language || "text",
+              lastModified: new Date(),
+            })
+          }
+        >
+          <FiFile className="mr-2 text-gray-500" />
+          <span>{name}</span>
+        </div>
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (dynamicFiles) {
+      setFiles(dynamicFiles);
+      setCurrentFiles(dynamicFiles);
+      onFilesChange?.(dynamicFiles);
+    }
+  }, [dynamicFiles, onFilesChange]);
+
+  return (
+    <div className="h-full overflow-y-auto p-2 bg-white text-gray-800">
+      <h3 className="font-medium">WordPress Plugin Files</h3>
+      <div className="space-y-1">
+        {Object.entries(files).map(([name, item]) => renderItem(name, item))}
+      </div>
+      {/* <WordPressPlayground files={currentFiles} /> */}
+    </div>
+  );
 };
 
 export default FileExplorer;

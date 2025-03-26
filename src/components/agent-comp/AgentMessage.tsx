@@ -6,10 +6,8 @@ import toast from "react-hot-toast";
 import { getToastStyle } from "@/lib/toastConfig";
 import { detectLanguage } from "@/lib/utils/codeHighlightUtils";
 import { useSyntaxHighlighting } from "@/lib/init";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { useStreaming } from "@/context/MessageStateContext";
-import { User2 } from "lucide-react";
-import { PiRobotFill } from "react-icons/pi";
 import dynamic from "next/dynamic";
 
 // Load syntax highlighting styles from our custom component
@@ -25,14 +23,21 @@ interface AgentMessageProps {
   content: string;
   isUser?: boolean;
   isLatestMessage?: boolean;
-  streamingActive?: boolean;
+  onCodeBlocksChange?: (files: Record<string, FileNode>) => void;
+}
+
+interface FileNode {
+  type: "file" | "folder";
+  content?: string;
+  language?: string;
+  children?: Record<string, FileNode>;
 }
 
 const AgentMessage: React.FC<AgentMessageProps> = ({
   content,
   isUser = false,
   isLatestMessage = false,
-  streamingActive = false,
+  onCodeBlocksChange,
 }) => {
   const { theme } = useTheme();
   const [displayedText, setDisplayedText] = useState("");
@@ -40,6 +45,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
   const { isStreaming } = useStreaming();
   const messageRef = useRef<HTMLDivElement>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const previousContentRef = useRef<string>("");
 
   // Apply syntax highlighting styles
   useSyntaxHighlighting();
@@ -69,16 +75,113 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     return () => clearInterval(timer);
   }, [content, isStreaming, isLatestMessage, isUser]);
 
-  // Scroll into view when streaming new content
+  // Effect to process code blocks and update file structure
   useEffect(() => {
-    if (messageRef.current && isLatestMessage && isStreaming) {
-      const scrollOptions: ScrollIntoViewOptions = {
-        behavior: "smooth",
-        block: "end",
-      };
-      messageRef.current.scrollIntoView(scrollOptions);
+    if (
+      !content ||
+      !onCodeBlocksChange ||
+      content === previousContentRef.current
+    )
+      return;
+
+    const codeBlockRegex =
+      /```(\w+)?\s*(?:\(\s*([^)]+)\s*\))?\s*([\s\S]*?)```/g;
+    const files: Record<string, FileNode> = {};
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      const specifiedLang = match[1]?.toLowerCase();
+      const fileName = match[2];
+      const codeContent = match[3].trim();
+
+      // Detect language from file name if provided
+      const fileNameLang = fileName
+        ? detectLanguageFromFileName(fileName)
+        : null;
+
+      // Detect if this looks like JSX even if not explicitly marked
+      const isJsxCode = isReactCode(codeContent);
+
+      // Check if the content is JSON by trying to parse it
+      const isJsonContent =
+        !isJsxCode &&
+        (() => {
+          try {
+            if (
+              (codeContent.trim().startsWith("{") ||
+                codeContent.trim().startsWith("[")) &&
+              (codeContent.trim().endsWith("}") ||
+                codeContent.trim().endsWith("]"))
+            ) {
+              JSON.parse(codeContent);
+              return true;
+            }
+            return false;
+          } catch {
+            return false;
+          }
+        })();
+
+      // Determine language with better detection
+      let detectedLang;
+      if (fileNameLang) {
+        detectedLang = fileNameLang;
+      } else if (isJsxCode) {
+        detectedLang =
+          specifiedLang === "tsx" || specifiedLang === "typescript"
+            ? "tsx"
+            : "jsx";
+      } else if (isJsonContent) {
+        detectedLang = "json";
+      } else {
+        detectedLang = detectLanguage(codeContent, specifiedLang);
+      }
+
+      // Force extension-based detection for common file types
+      if (fileName) {
+        if (fileName.endsWith(".jsx")) detectedLang = "jsx";
+        if (fileName.endsWith(".tsx")) detectedLang = "tsx";
+        if (fileName.endsWith(".json")) detectedLang = "json";
+      }
+
+      // Update file structure
+      if (fileName) {
+        const pathParts = fileName.split("/");
+        let current = files;
+
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          const folderName = pathParts[i];
+          if (!current[folderName]) {
+            current[folderName] = { type: "folder", children: {} };
+          }
+          current = current[folderName].children!;
+        }
+
+        const finalFileName = pathParts[pathParts.length - 1];
+        current[finalFileName] = {
+          type: "file",
+          content: codeContent,
+          language: detectedLang,
+        };
+      } else {
+        // Handle unnamed code block
+        const defaultName = `code-${Object.keys(files).length + 1}`;
+        files[defaultName] = {
+          type: "file",
+          content: codeContent,
+          language: detectedLang,
+        };
+      }
     }
-  }, [displayedText, isLatestMessage, isStreaming]);
+
+    // Only update if we found code blocks
+    if (Object.keys(files).length > 0) {
+      onCodeBlocksChange(files);
+    }
+
+    // Update the previous content ref
+    previousContentRef.current = content;
+  }, [content, onCodeBlocksChange]);
 
   // Function to check if code is React/JSX
   const isReactCode = (code: string): boolean => {
@@ -118,8 +221,8 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     return false;
   };
 
+  // Function to render code blocks with VS Code-like syntax highlighting
   const renderContentWithCodeBlocks = (text: string) => {
-    // Regex to find code blocks (text between triple backticks with optional language identifier and optional file name)
     const codeBlockRegex =
       /```(\w+)?\s*(?:\(\s*([^)]+)\s*\))?\s*([\s\S]*?)```/g;
     const parts = [];
@@ -138,7 +241,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
 
       // Extract language (if specified), file name (if specified), and code content
       const specifiedLang = match[1]?.toLowerCase();
-      const fileName = match[2]; // Optional file name within parentheses
+      const fileName = match[2];
       const codeContent = match[3].trim();
 
       // Detect language from file name if provided
@@ -154,7 +257,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
         !isJsxCode &&
         (() => {
           try {
-            // Check if it starts with { or [ and try parsing it
             if (
               (codeContent.trim().startsWith("{") ||
                 codeContent.trim().startsWith("[")) &&
@@ -165,28 +267,23 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
               return true;
             }
             return false;
-          } catch (e) {
+          } catch {
             return false;
           }
         })();
 
       // Determine language with better detection
       let detectedLang;
-
       if (fileNameLang) {
-        // If we have a file name with a recognized extension, prioritize that
         detectedLang = fileNameLang;
       } else if (isJsxCode) {
-        // If it looks like JSX/React code
         detectedLang =
           specifiedLang === "tsx" || specifiedLang === "typescript"
             ? "tsx"
             : "jsx";
       } else if (isJsonContent) {
-        // If it's valid JSON
         detectedLang = "json";
       } else {
-        // Otherwise use our generic detection or the specified language
         detectedLang = detectLanguage(codeContent, specifiedLang);
       }
 
@@ -198,8 +295,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
       }
 
       const isCopied = copiedCode === codeContent;
-
-      // Prepare the language display name
       const displayLang = fileName || detectedLang.toUpperCase();
 
       // Add code block with VS Code-like styling
@@ -287,6 +382,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
 
     return parts;
   };
+
   // Process content to extract code blocks when on client
   const processedContent = isClient
     ? renderContentWithCodeBlocks(displayedText || "")
@@ -355,8 +451,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     return null;
   };
 
-  // Function to render code blocks with VS Code-like syntax highlighting
-
   return (
     <div
       ref={messageRef}
@@ -371,11 +465,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
           className={`rounded-full overflow-hidden w-8 h-8 mt-1 flex-shrink-0 ${
             isUser ? "bg-blue-500" : "bg-purple-600"
           }`}
-        >
-          {/* <AvatarFallback className="text-white flex items-center justify-center">
-            {isUser ? <User2 size={14} /> : <PiRobotFill size={16} />}
-          </AvatarFallback> */}
-        </Avatar>
+        />
 
         <div
           className={`rounded-lg p-3 text-sm flex-1 ${
