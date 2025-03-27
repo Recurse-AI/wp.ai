@@ -13,6 +13,30 @@ import dynamic from "next/dynamic";
 // Load syntax highlighting styles from our custom component
 import "@/lib/utils/syntaxRegistration";
 
+/**
+ * Prompt will be like this:
+ * 
+ * Create a WordPress plugin named `admin-welcome-message` that:
+
+- Shows a message at the top of the WordPress admin dashboard saying:
+  **“👋 Welcome from Admin!”**
+- The message should be styled using CSS (e.g., blue background, white text).
+- JavaScript should be loaded as well (e.g., log to console or support future interactivity).
+- Use `admin_notices` to output the message HTML.
+- Use `admin_enqueue_scripts` to enqueue the CSS and JS files.
+
+📁 File structure:
+- `admin-welcome-message/admin-welcome-message.php` → PHP code to hook into `admin_notices` and enqueue scripts/styles.
+- `admin-welcome-message/assets/style.css` → CSS to style the welcome message.
+- `admin-welcome-message/assets/script.js` → JS file (e.g., logs a message to console).
+
+Return the code using markdown like this:
+
+```php:admin-welcome-message/admin-welcome-message.php
+<?php
+// PHP code here
+ */
+
 // Dynamically import CodeSyntaxHighlighter with no SSR to prevent hydration issues
 const CodeSyntaxHighlighter = dynamic(
   () => import("@/components/ui/code-syntax-highlighter"),
@@ -75,7 +99,50 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     return () => clearInterval(timer);
   }, [content, isStreaming, isLatestMessage, isUser]);
 
-  // Effect to process code blocks and update file structure
+  // Improved file extension detection
+  const detectLanguageFromFileName = (fileName: string): string | null => {
+    if (!fileName) return null;
+    const lowerFileName = fileName.toLowerCase();
+    const fileExtensions: Record<string, string> = {
+      ".js": "javascript",
+      ".jsx": "jsx",
+      ".ts": "typescript",
+      ".tsx": "tsx",
+      ".py": "python",
+      ".html": "html",
+      ".css": "css",
+      ".json": "json",
+      ".md": "markdown",
+      ".php": "php",
+      ".rb": "ruby",
+      ".java": "java",
+      ".go": "go",
+      ".c": "c",
+      ".cpp": "cpp",
+      ".cs": "csharp",
+      ".rs": "rust",
+      ".sh": "bash",
+      ".yml": "yaml",
+      ".yaml": "yaml",
+      ".sql": "sql",
+      ".swift": "swift",
+      ".kt": "kotlin",
+    };
+    for (const ext in fileExtensions) {
+      if (lowerFileName.endsWith(ext)) {
+        return fileExtensions[ext];
+      }
+    }
+    if (
+      /[A-Z][a-zA-Z]*\.jsx?$/.test(fileName) ||
+      /[A-Z][a-zA-Z]*Component\.(js|ts)$/.test(fileName) ||
+      /[A-Z][a-zA-Z]*(View|Page|Card|Button|Container)\.(js|ts)$/.test(fileName)
+    ) {
+      return "jsx";
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (
       !content ||
@@ -84,36 +151,36 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     )
       return;
 
-    const codeBlockRegex =
-      /```(\w+)?\s*(?:\(\s*([^)]+)\s*\))?\s*([\s\S]*?)```/g;
+    const codeBlockRegex = /```(\w+)\s*:\s*([\w-/]+\.[\w]+)\s*\n([\s\S]*?)```/g;
+
     const files: Record<string, FileNode> = {};
     let match;
 
     while ((match = codeBlockRegex.exec(content)) !== null) {
       const specifiedLang = match[1]?.toLowerCase();
-      const fileName = match[2];
+      const filePath = match[2];
       const codeContent = match[3].trim();
 
-      // Detect language from file name if provided
-      const fileNameLang = fileName
-        ? detectLanguageFromFileName(fileName)
-        : null;
+      const rootFolder = filePath.split("/")[0];
+      if (!files[rootFolder]) {
+        files[rootFolder] = {
+          type: "folder",
+          children: {},
+        };
+      }
 
-      // Detect if this looks like JSX even if not explicitly marked
+      const fileNameLang = detectLanguageFromFileName(filePath);
       const isJsxCode = isReactCode(codeContent);
-
-      // Check if the content is JSON by trying to parse it
       const isJsonContent =
         !isJsxCode &&
         (() => {
           try {
+            const trimmed = codeContent.trim();
             if (
-              (codeContent.trim().startsWith("{") ||
-                codeContent.trim().startsWith("[")) &&
-              (codeContent.trim().endsWith("}") ||
-                codeContent.trim().endsWith("]"))
+              (trimmed.startsWith("{") || trimmed.startsWith("[")) &&
+              (trimmed.endsWith("}") || trimmed.endsWith("]"))
             ) {
-              JSON.parse(codeContent);
+              JSON.parse(trimmed);
               return true;
             }
             return false;
@@ -122,81 +189,55 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
           }
         })();
 
-      // Determine language with better detection
-      let detectedLang;
-      if (fileNameLang) {
-        detectedLang = fileNameLang;
-      } else if (isJsxCode) {
-        detectedLang =
-          specifiedLang === "tsx" || specifiedLang === "typescript"
+      let detectedLang =
+        fileNameLang ||
+        (isJsxCode
+          ? specifiedLang === "tsx" || specifiedLang === "typescript"
             ? "tsx"
-            : "jsx";
-      } else if (isJsonContent) {
-        detectedLang = "json";
-      } else {
-        detectedLang = detectLanguage(codeContent, specifiedLang);
-      }
+            : "jsx"
+          : isJsonContent
+          ? "json"
+          : detectLanguage(codeContent, specifiedLang));
 
-      // Force extension-based detection for common file types
-      if (fileName) {
-        if (fileName.endsWith(".jsx")) detectedLang = "jsx";
-        if (fileName.endsWith(".tsx")) detectedLang = "tsx";
-        if (fileName.endsWith(".json")) detectedLang = "json";
-      }
+      if (filePath.endsWith(".jsx")) detectedLang = "jsx";
+      if (filePath.endsWith(".tsx")) detectedLang = "tsx";
+      if (filePath.endsWith(".json")) detectedLang = "json";
 
-      // Update file structure
-      if (fileName) {
-        const pathParts = fileName.split("/");
-        let current = files;
+      const pathParts = filePath.split("/");
+      const fileName = pathParts.pop()!;
+      let current = files[rootFolder].children!;
 
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          const folderName = pathParts[i];
-          if (!current[folderName]) {
-            current[folderName] = { type: "folder", children: {} };
-          }
-          current = current[folderName].children!;
+      for (const folder of pathParts.slice(1)) {
+        if (!current[folder]) {
+          current[folder] = { type: "folder", children: {} };
         }
-
-        const finalFileName = pathParts[pathParts.length - 1];
-        current[finalFileName] = {
-          type: "file",
-          content: codeContent,
-          language: detectedLang,
-        };
-      } else {
-        // Handle unnamed code block
-        const defaultName = `code-${Object.keys(files).length + 1}`;
-        files[defaultName] = {
-          type: "file",
-          content: codeContent,
-          language: detectedLang,
-        };
+        current = current[folder].children!;
       }
+
+      current[fileName] = {
+        type: "file",
+        content: codeContent,
+        language: detectedLang,
+      };
     }
 
-    // Only update if we found code blocks
     if (Object.keys(files).length > 0) {
       onCodeBlocksChange(files);
     }
 
-    // Update the previous content ref
     previousContentRef.current = content;
   }, [content, onCodeBlocksChange]);
 
-  // Function to check if code is React/JSX
   const isReactCode = (code: string): boolean => {
-    // Check for React imports
     if (
       code.includes("import React") ||
       code.includes('from "react"') ||
       code.includes("from 'react'") ||
       code.includes("extends React.Component") ||
       code.includes("extends Component")
-    ) {
+    )
       return true;
-    }
 
-    // Check for JSX syntax
     if (
       code.includes("<") &&
       code.includes(">") &&
@@ -206,25 +247,21 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
         code.includes("props") ||
         code.includes("style=") ||
         code.includes("children"))
-    ) {
+    )
       return true;
-    }
 
-    // Check for React component patterns
     if (
       /function\s+[A-Z][a-zA-Z]*\s*\(/g.test(code) ||
       /const\s+[A-Z][a-zA-Z]*\s*=\s*(\(\)|React\.memo|\(props)/g.test(code)
-    ) {
+    )
       return true;
-    }
 
     return false;
   };
 
   // Function to render code blocks with VS Code-like syntax highlighting
   const renderContentWithCodeBlocks = (text: string) => {
-    const codeBlockRegex =
-      /```(\w+)?\s*(?:\(\s*([^)]+)\s*\))?\s*([\s\S]*?)```/g;
+    const codeBlockRegex = /```(\w+)\s*:\s*([\w-/]+\.\w+)\s*\n([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
     let match;
@@ -399,56 +436,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     setTimeout(() => {
       setCopiedCode(null);
     }, 2000);
-  };
-
-  // Improved file extension detection
-  const detectLanguageFromFileName = (fileName: string): string | null => {
-    if (!fileName) return null;
-
-    const lowerFileName = fileName.toLowerCase();
-    const fileExtensions: Record<string, string> = {
-      ".js": "javascript",
-      ".jsx": "jsx",
-      ".ts": "typescript",
-      ".tsx": "tsx",
-      ".py": "python",
-      ".html": "html",
-      ".css": "css",
-      ".json": "json",
-      ".md": "markdown",
-      ".php": "php",
-      ".rb": "ruby",
-      ".java": "java",
-      ".go": "go",
-      ".c": "c",
-      ".cpp": "cpp",
-      ".cs": "csharp",
-      ".rs": "rust",
-      ".sh": "bash",
-      ".yml": "yaml",
-      ".yaml": "yaml",
-      ".sql": "sql",
-      ".swift": "swift",
-      ".kt": "kotlin",
-    };
-
-    // First check for exact file extension match
-    for (const ext in fileExtensions) {
-      if (lowerFileName.endsWith(ext)) {
-        return fileExtensions[ext];
-      }
-    }
-
-    // Special handling for React component files that might not have explicit extensions
-    if (
-      /[A-Z][a-zA-Z]*\.jsx?$/.test(fileName) ||
-      /[A-Z][a-zA-Z]*Component\.(js|ts)$/.test(fileName) ||
-      /[A-Z][a-zA-Z]*(View|Page|Card|Button|Container)\.(js|ts)$/.test(fileName)
-    ) {
-      return "jsx";
-    }
-
-    return null;
   };
 
   return (

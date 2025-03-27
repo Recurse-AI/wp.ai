@@ -14,7 +14,7 @@ const AgentInput: React.FC<AgentInputProps> = ({
   onSendMessage,
   disabled = false,
   onRegenerateMessage,
-  showRegenerateButton = false
+  showRegenerateButton = false,
 }) => {
   const { theme } = useTheme();
   const [message, setMessage] = useState("");
@@ -23,7 +23,7 @@ const AgentInput: React.FC<AgentInputProps> = ({
   // Handle input change and auto-resize
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    
+
     // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px"; // Reset height
@@ -43,10 +43,10 @@ const AgentInput: React.FC<AgentInputProps> = ({
   // Handle message submission
   const handleSubmit = async () => {
     if (!message.trim() || disabled) return;
-    
+
     try {
       await onSendMessage(message);
-      
+
       // Clear the input
       setMessage("");
       if (textareaRef.current) {
@@ -77,12 +77,14 @@ const AgentInput: React.FC<AgentInputProps> = ({
           </button>
         )}
       </div>
-      
-      <div className={`flex items-end rounded-lg border mt-2 ${
-        theme === "dark" 
-          ? "bg-gray-800 border-gray-700" 
-          : "bg-white border-gray-200"
-      } overflow-hidden`}>
+
+      <div
+        className={`flex items-end rounded-lg border mt-2 ${
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        } overflow-hidden`}
+      >
         <textarea
           ref={textareaRef}
           value={message}
@@ -90,11 +92,13 @@ const AgentInput: React.FC<AgentInputProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Ask about your code or request changes..."
           className={`flex-1 resize-none outline-none py-3 px-4 min-h-[40px] max-h-[120px] ${
-            theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+            theme === "dark"
+              ? "bg-gray-800 text-white"
+              : "bg-white text-gray-800"
           }`}
           disabled={disabled}
         />
-        
+
         <button
           onClick={handleSubmit}
           disabled={!message.trim() || disabled}
@@ -107,12 +111,14 @@ const AgentInput: React.FC<AgentInputProps> = ({
           <SendHorizontal className="w-5 h-5" />
         </button>
       </div>
-      
+
       <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
-        {disabled ? "Processing your request..." : "The agent will help you understand and modify your code."}
+        {disabled
+          ? "Processing your request..."
+          : "The agent will help you understand and modify your code."}
       </div>
     </div>
   );
 };
 
-export default AgentInput; 
+export default AgentInput;

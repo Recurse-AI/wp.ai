@@ -137,10 +137,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   dynamicFiles,
 }) => {
   const [files, setFiles] = useState<Record<string, FileNode>>(
-    dynamicFiles || PLUGIN_FILES
-  );
-  const [currentFiles, setCurrentFiles] = useState<Record<string, FileNode>>(
-    dynamicFiles || PLUGIN_FILES
+    dynamicFiles ? dynamicFiles : PLUGIN_FILES
   );
 
   // ✅ Handle file or folder creation
@@ -214,7 +211,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   useEffect(() => {
     if (dynamicFiles) {
       setFiles(dynamicFiles);
-      setCurrentFiles(dynamicFiles);
       onFilesChange?.(dynamicFiles);
     }
   }, [dynamicFiles, onFilesChange]);
