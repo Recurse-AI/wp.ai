@@ -21,6 +21,7 @@ import {
   useStreaming
 } from "@/context/MessageStateContext";
 import { useSidebar } from "../layout"; // Import the sidebar context
+import sendAgentMessage from '@/lib/services/agentService'
 
 // Local implementation of extractThinkingContent and other functions from MessageProvider
 const extractThinkingContent = (message: string) => {
