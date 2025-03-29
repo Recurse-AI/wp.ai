@@ -64,9 +64,10 @@ const AI_PROVIDERS = [
 interface AIProviderSelectProps {
   className?: string;
   onModelChange?: (settings: { provider: string; model: string }) => void;
+  disabled?: boolean;
 }
 
-const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelChange }) => {
+const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelChange, disabled = false }) => {
   const { theme } = useTheme();
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [currentProvider, setCurrentProvider] = useState(AI_PROVIDERS[0]);
@@ -131,13 +132,15 @@ const AIProviderSelect: React.FC<AIProviderSelectProps> = ({ className, onModelC
     <div className={`relative ${className}`}>
       <button
         ref={aiButtonRef}
-        onClick={() => setShowAIDropdown(!showAIDropdown)}
+        onClick={() => !disabled && setShowAIDropdown(!showAIDropdown)}
+        disabled={disabled}
         className={`flex items-center gap-1 font-medium tracking-wide px-2 py-1.5 rounded-lg text-xs duration-300
           ${
             theme === "dark"
               ? "bg-gray-700/60 text-white hover:bg-gray-700/70"
               : "bg-white text-gray-800 hover:bg-gray-100"
-          }`}
+          }
+          ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <div className="flex items-center gap-1.5">
           {currentProvider.id === 'openai' && <SiOpenai className="text-sm" />}

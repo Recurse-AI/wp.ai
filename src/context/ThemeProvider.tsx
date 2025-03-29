@@ -9,11 +9,15 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+// Create context with default values to prevent undefined errors
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "light",
+  setTheme: () => {},
+});
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Start with "system" theme to avoid hydration mismatch
-  const [theme, setTheme] = useState<Theme>("system");
+  // Start with "light" theme to avoid hydration mismatch
+  const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   // Only run after component has mounted (client-side only)
@@ -38,11 +42,9 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // To avoid hydration mismatch, use initial theme until client-side code runs
-  // This will prevent useTheme() from returning different values on server vs client
   return (
     <ThemeContext.Provider value={{ 
-      theme: mounted && theme !== "system" ? theme as Theme : "light", 
+      theme: mounted ? theme : "light", 
       setTheme: handleThemeChange 
     }}>
       {children}
@@ -51,9 +53,5 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }

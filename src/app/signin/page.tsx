@@ -118,7 +118,7 @@ export default function SignIn() {
       
       try {
         // Call your API with social profile data
-        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/auth/google/`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/auth/google/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

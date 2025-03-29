@@ -45,7 +45,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
         throw new Error("Authentication token not found");
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/delete-account/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/delete-account/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

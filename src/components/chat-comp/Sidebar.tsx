@@ -12,12 +12,10 @@ import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { Bot, MessageSquare, Sparkles } from "lucide-react";
 import axios from 'axios';
-import { ChatService } from "@/lib/services/chatService";
+import ChatService from "@/lib/services/chatService";
 import { ChatConversation } from "@/lib/types/chat";
 import { getToastStyle } from "@/lib/toastConfig";
 import toast from "react-hot-toast";
-import { useChatStore } from "@/lib/store/chatStore";
-import { useChatNavigation } from "@/lib/hooks/useChatNavigation";
 
 const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
@@ -28,14 +26,11 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const [chatService] = useState(() => new ChatService());
   const [isNavigating, setIsNavigating] = useState(false);
   const [clickedChatId, setClickedChatId] = useState<string | null>(null);
+  const [recentSessions, setRecentSessions] = useState<ChatConversation[]>([]);
 
   const router = useRouter();
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  
-  // Get conversations from store
-  const { recentSessions, setRecentSessions } = useChatStore();
-  const { navigateToChat } = useChatNavigation();
 
   useEffect(() => {
     getUser(setIsLoggedIn, setUser, router, pathname);
@@ -47,16 +42,11 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     try {
       // Fetch recent conversations using our ChatService
       const recentConversations = await chatService.getRecentConversations(10);
-      
-      // Update both local state and store
-      setRecentSessions(recentConversations.map(conv => ({
-        ...conv,
-        message_count: conv.message_count || 0 // Ensure message_count is always a number
-      })));
-      console.log(recentConversations, "recentConversations");
+      // Update local state
+      setRecentSessions(recentConversations || []);
     } catch (err) {
       console.error("Error fetching conversations:", err);
-      
+      console.log(err);
       // Handle specific status codes
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 401) {
@@ -80,7 +70,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     fetchConversations();
   }, []);
 
-  const handleChatSelect = (conversationId: string, mode: 'agent' | 'default') => {
+  const handleChatSelect = (conversationId: string) => {
     // Prevent multiple rapid clicks or clicking on the same chat again
     if (isNavigating || clickedChatId === conversationId || pathname === `/chat/${conversationId}`) return;
     
@@ -88,8 +78,8 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       setIsNavigating(true);
       setClickedChatId(conversationId);
       
-      // Use our navigation hook to navigate to the chat
-      navigateToChat(conversationId);
+      // Navigate to the chat page
+      router.push(`/chat/${conversationId}`);
       
       // Close the sidebar on mobile if onClose is provided
       if (onClose) {
@@ -179,7 +169,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                 Chat History
               </p>
               
-              {recentSessions.length > 0 && (
+              {recentSessions && recentSessions.length > 0 && (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-300 text-gray-700"}`}>
                   {recentSessions.length}
                 </span>
@@ -204,7 +194,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                   Failed to load chats.
                 </p>
               </div>
-            ) : recentSessions.length > 0 ? (
+            ) : recentSessions && recentSessions.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -224,10 +214,10 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
                       openDropdown={openDropdown}
                       setOpenDropdown={setOpenDropdown}
                       refreshChats={fetchConversations}
-                      onSelect={() => handleChatSelect(chat.id, chat.mode || 'default')}
+                      onSelect={() => handleChatSelect(chat.id)}
                       onDelete={() => handleDeleteChat(chat.id)}
-                      lastMessage={chat.last_message?.content}
-                      timestamp={chat.updated_at}
+                      lastMessage={chat?.last_message_preview?.preview || "No messages yet"}
+                      timestamp={chat?.last_message_preview?.timestamp || new Date().toLocaleString()}
                       isActive={pathname === `/chat/${chat.id}`}
                     />
                   </motion.div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// Types
 interface Message {
   id: number;
   sender: 'user' | 'ai';
@@ -9,18 +10,24 @@ interface Message {
   isComplete: boolean;
 }
 
-interface ConversationPair {
-  user: Message | null;
+interface ConversationGroup {
+  user: Message;
   ai: Message | null;
+  isLatest: boolean;
 }
 
 export default function ChatBot() {
+  // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [currentAIResponse, setCurrentAIResponse] = useState<string | null>(null);
+  
+  // UI state
   const [isTyping, setIsTyping] = useState(false);
   const [userScroll, setUserScroll] = useState(false);
-  const [justScrolled, setJustScrolled] = useState(false); // Track if we just scrolled
+  const [justScrolled, setJustScrolled] = useState(false);
+  
+  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   
@@ -32,31 +39,29 @@ export default function ChatBot() {
     "Great question! The concept you're asking about has several dimensions to it. First, we need to consider the technical aspects. Second, there are usability concerns to address. And finally, we should think about scalability for future growth."
   ];
 
-  const handleScrollDown = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  // Force scroll to bottom
+  const scrollToBottom = () => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
   };
 
-  // Function to simulate AI typing with streaming effect
+  // Simulate AI typing with streaming effect
   const simulateAIResponse = async () => {
-    // Set typing state BEFORE starting the stream
     setIsTyping(true);
     
-    // Choose a random response based on input length to simulate different responses
+    // Select random response
     const responseIndex = Math.floor(Math.random() * aiResponses.length);
     const fullResponse = aiResponses[responseIndex];
     
     // Stream the response character by character
     setCurrentAIResponse('');
     for (let i = 0; i < fullResponse.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 30)); // Adjust speed as needed
+      await new Promise(resolve => setTimeout(resolve, 30));
       setCurrentAIResponse(prev => prev + fullResponse[i]);
-      
-      // No auto-scrolling during streaming to allow free scrolling
     }
     
-    // When complete, add to messages
+    // Add completed message
     const newMessage: Message = {
       id: Date.now(),
       sender: 'ai',
@@ -67,11 +72,11 @@ export default function ChatBot() {
     setMessages(prev => [...prev, newMessage]);
     setCurrentAIResponse(null);
     setIsTyping(false);
-    // Reset the justScrolled flag after AI response is complete
     setJustScrolled(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle message submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isTyping) return;
     
@@ -85,66 +90,53 @@ export default function ChatBot() {
     
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    
-    // Set the flag that we're about to scroll
     setJustScrolled(true);
     
-    // Scroll immediately after adding the user message
-    // and BEFORE starting the AI response streaming
-    handleScrollDown();
+    // Ensure DOM is updated before scrolling
+    await new Promise(resolve => setTimeout(resolve, 0));
+    scrollToBottom();
     
-    // Simulate AI response
+    // Generate AI response
     simulateAIResponse();
   };
 
   // Handle scroll events to detect manual scrolling
   const handleScroll = () => {
-    // If we just triggered a scroll programmatically, don't set userScroll
     if (justScrolled) return;
     
     if (chatMessagesRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatMessagesRef.current;
-      // If user has scrolled up from bottom, set userScroll to true
-      // Increasing threshold from 100 to 300 to allow more scrolling
-      if (scrollHeight - scrollTop - clientHeight > 300) {
-        setUserScroll(true);
-      } else {
-        setUserScroll(false);
-      }
+      // Using a smaller threshold of 20 pixels to ensure we detect when very close to bottom
+      const isNearBottom = scrollHeight - scrollTop - clientHeight <= 20;
+      setUserScroll(!isNearBottom);
     }
   };
 
-  // Auto-scroll to bottom only when messages change (not on submission or during streaming)
+  // Auto-scroll on message changes
   useEffect(() => {
-    // Only auto-scroll if:
-    // 1. Not currently typing
-    // 2. User hasn't manually scrolled
-    // 3. We haven't just scrolled due to message submission
-    if (!isTyping && !userScroll && !justScrolled) {
+    const shouldAutoScroll = !isTyping && !userScroll && !justScrolled;
+    if (shouldAutoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping, userScroll, justScrolled]);
 
-  // Reset the justScrolled flag after a brief delay
+  // Reset the justScrolled flag after a delay
   useEffect(() => {
     if (justScrolled) {
-      const timer = setTimeout(() => {
-        setJustScrolled(false);
-      }, 1000); // Reset the flag after 1 second
-      
+      const timer = setTimeout(() => setJustScrolled(false), 1000);
       return () => clearTimeout(timer);
     }
   }, [justScrolled]);
 
-  // Group messages into conversation pairs (user message followed by AI response)
-  const groupMessages = () => {
-    const groups: Array<{user: Message, ai: Message | null, isLatest: boolean}> = [];
+  // Group messages into conversation pairs
+  const groupMessages = (): ConversationGroup[] => {
+    const groups: ConversationGroup[] = [];
     let i = 0;
     
     while (i < messages.length) {
       if (messages[i].sender === 'user') {
-        // Check if there's an AI response following this user message
-        const aiResponse = i + 1 < messages.length && messages[i + 1].sender === 'ai' 
+        // Find AI response that follows
+        const aiResponse = (i + 1 < messages.length && messages[i + 1].sender === 'ai') 
           ? messages[i + 1] 
           : null;
         
@@ -155,13 +147,13 @@ export default function ChatBot() {
         groups.push({
           user: messages[i],
           ai: aiResponse,
-          isLatest: isLatest
+          isLatest
         });
         
-        // Skip the AI message in the next iteration if it exists
+        // Skip the AI message in next iteration if it exists
         i += aiResponse ? 2 : 1;
       } else {
-        // Skip orphaned AI messages (should not happen in proper flow)
+        // Skip orphaned AI messages
         i++;
       }
     }
@@ -169,46 +161,44 @@ export default function ChatBot() {
     return groups;
   };
 
+  // Prepare data for rendering
   const conversationGroups = groupMessages();
-  const hasCurrentResponse = currentAIResponse !== null && messages.length > 0 && 
+  const hasCurrentResponse = currentAIResponse !== null && 
+                           messages.length > 0 && 
                            messages[messages.length - 1].sender === 'user';
 
   return (
     <div className="chat-container">
       <div className="chat-messages" ref={chatMessagesRef} onScroll={handleScroll}>
         <div className="conversation-container">
-          {/* Past and current conversations */}
-          {conversationGroups.map((group, groupIndex) => {
-            const isCurrentConversation = group.isLatest;
-            
-            return (
-              <div 
-                key={group.user.id} 
-                className={`message-block ${isCurrentConversation ? 'current-block' : 'completed-block'}`}
-              >
-                <div className="block-content">
-                  <div className="user-message">
-                    <div className="message-content user">
-                      {group.user.text}
-                    </div>
-                  </div>
-                  
-                  <div className="ai-message">
-                    {/* Show streaming response for latest conversation if typing */}
-                    {isCurrentConversation && hasCurrentResponse && !group.ai ? (
-                      <div className="message-content ai typing">
-                        {currentAIResponse}
-                      </div>
-                    ) : group.ai ? (
-                      <div className="message-content ai">
-                        {group.ai.text}
-                      </div>
-                    ) : null}
+          {conversationGroups.map((group) => (
+            <div 
+              key={group.user.id} 
+              className={`message-block ${group.isLatest ? 'current-block' : 'completed-block'}`}
+            >
+              <div className="block-content">
+                {/* User message */}
+                <div className="user-message">
+                  <div className="message-content user">
+                    {group.user.text}
                   </div>
                 </div>
+                
+                {/* AI message or streaming response */}
+                <div className="ai-message">
+                  {group.isLatest && hasCurrentResponse && !group.ai ? (
+                    <div className="message-content ai typing">
+                      {currentAIResponse}
+                    </div>
+                  ) : group.ai ? (
+                    <div className="message-content ai">
+                      {group.ai.text}
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
         
         <div ref={messagesEndRef} />
@@ -280,8 +270,8 @@ export default function ChatBot() {
         }
         
         .current-block {
-          /* Always maintain 100vh height for latest conversation block */
-          min-height: 100vh;
+          /* Always maintain 80vh height for latest conversation block */
+          min-height: 80vh;
           display: flex;
           flex-direction: column;
         }
@@ -296,9 +286,6 @@ export default function ChatBot() {
           display: flex;
           justify-content: flex-end;
           padding: 10px;
-          position: sticky;
-          top: 0;
-          z-index: 1;
           background-color: transparent;
           width: 100%;
           align-self: flex-start;
@@ -312,7 +299,6 @@ export default function ChatBot() {
           align-self: flex-start;
         }
         
-        /* Remove margin to ensure elements start from top */
         .current-block .ai-message {
           margin-top: 0;
         }

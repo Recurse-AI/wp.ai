@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
     
     // If we have uidb64 and token, use the direct confirmation URL
     if (uidb64 && token) {
-      apiUrl = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/verify-email/${uidb64}/${token}`;
+      apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/verify-email/${uidb64}/${token}`;
       console.log('Using direct confirmation URL:', apiUrl);
     } 
     // If we just have the token, append it as a query parameter
     else if (token) {
-      apiUrl = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/verify-email/?token=${token}`;
+      apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/verify-email/?token=${token}`;
       console.log('Using token query parameter URL:', apiUrl);
     }
     
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the backend API to request a new verification email
-    const apiUrl = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/verify-email/`;
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/verify-email/`;
     
     console.log('Requesting verification email for:', email); // Debug log
     

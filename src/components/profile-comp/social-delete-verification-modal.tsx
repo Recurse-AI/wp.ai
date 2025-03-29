@@ -33,7 +33,7 @@ export default function SocialDeleteVerificationModal({
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/verify-social-deletion/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/verify-social-deletion/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

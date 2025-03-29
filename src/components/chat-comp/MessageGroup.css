@@ -1,0 +1,72 @@
+/* MessageGroup styling */
+.message-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background-color: transparent;
+  padding: 5px 0;
+  border-radius: 0;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.block-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  justify-content: flex-start;
+}
+
+.completed-block {
+  min-height: auto;
+  height: auto;
+}
+
+.current-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.current-block .block-content {
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-grow: 1;
+}
+
+/* Typing indicators */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.typing-indicator::after {
+  content: '...';
+  animation: ellipsis 1.5s infinite;
+  width: 20px;
+  display: inline-block;
+  text-align: left;
+}
+
+@keyframes ellipsis {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+}
+
+/* Cursor blink animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: currentColor;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: text-bottom;
+} 

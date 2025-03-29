@@ -1,273 +1,149 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { AIResponseActions } from "./MessageActions";
-import { useStreaming } from '@/context/MessageStateContext';
 import MarkdownContent from "./MarkdownContent";
+import { useChatSocket } from "@/context/ChatSocketContext";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface AIMessageProps {
   content: string | undefined;
-  theme: string;
   responseContainerRef: React.RefObject<HTMLDivElement | null>;
   onCopyCode: (code: string) => void;
-  copiedCode: string | null;
-  onRegenerate?: () => void;
-  metadata?: Record<string, any>;
-  messageId: string;
-  disableActionButtons?: boolean;
+  isCodeCopied: (code: string) => boolean;
+  onRegenerate?: () => Promise<void>;
+  isLatestMessage?: boolean;
+  isFinalResponse?: boolean;
 }
 
 const AIMessage: React.FC<AIMessageProps> = ({ 
   content, 
-  theme,  
   responseContainerRef, 
-  onCopyCode, 
-  copiedCode, 
+  onCopyCode,
+  isCodeCopied,
   onRegenerate,
-  metadata,
-  messageId,
-  disableActionButtons
+  isLatestMessage = false,
+  isFinalResponse = false
 }) => {
-  // Force visibility to be true initially
-  const [showLoading, setShowLoading] = useState(false);
-  const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
-  const [showActionButtons, setShowActionButtons] = useState(true);
+  // Local state for streaming effect
   const contentRef = useRef<HTMLDivElement>(null);
-  const [displayContent, setDisplayContent] = useState<string>('');
-
-  // Add a ref to track if streaming is in progress to prevent multiple streaming processes
-  const isStreamingRef = useRef(false);
-  // Add a ref to track animation frame ID for cleanup
-  const animationFrameRef = useRef<number | null>(null);
-
-  // Get streaming context
-  const { 
-    currentPhase,
-    id,
-    completeAIResponse,
-  } = useStreaming();
-
-  // Stream AI response content
-  useEffect(() => {
-    // Reference to the animation frame for cleanup
-    let animFrameId: number | null = null;
-    
-    // If the messageId is the same as the id and there's no content, we're still waiting
-    if(messageId !== id) {
-      // If this isn't the current message, just show the full content
-      setDisplayContent(content || '');
-      setShowLoading(false);
-      setShowActionButtons(true);
-    } else if (messageId === id && content && !isStreamingRef.current && currentPhase === 'response') {
-      // Start streaming content if this is the current message and we have content
-      setShowLoading(false);
-      
-      // Stream content with requestAnimationFrame for better performance
-      const streamContent = () => {
-        // Set streaming flag to prevent multiple streaming processes
-        isStreamingRef.current = true;
-        
-        // Reset display content
-        setDisplayContent('');
-        
-        // Prepare content for streaming
-        const fullText = content || '';
-        let currentIndex = 0;
-        let lastUpdateTime = 0;
-        
-        // Define how many characters to add per update based on content length
-        const getChunkSize = () => {
-          const length = fullText.length;
-          return length > 10000 ? 15 : length > 5000 ? 10 : length > 2000 ? 7 : 1;
-        };
-        
-        const chunkSize = getChunkSize();
-        const frameDelay = 16; // Aim for 60fps (approx 16ms between frames)
-        
-        // Animation function using requestAnimationFrame
-        const updateText = (timestamp: number) => {
-          if (!lastUpdateTime) lastUpdateTime = timestamp;
-          
-          const elapsed = timestamp - lastUpdateTime;
-          
-          // Only update if enough time has passed
-          if (elapsed >= frameDelay && currentIndex < fullText.length) {
-            // Calculate how many characters to add, considering elapsed time
-            // This helps maintain consistent speed regardless of frame drops
-            const charsToAdd = Math.min(
-              Math.ceil(chunkSize * (elapsed / frameDelay)),
-              fullText.length - currentIndex
-            );
-            
-            currentIndex = Math.min(currentIndex + charsToAdd, fullText.length);
-            setDisplayContent(fullText.slice(0, currentIndex));
-            lastUpdateTime = timestamp;
-          }
-          
-          // Continue animation if there's more text
-          if (currentIndex < fullText.length) {
-            animFrameId = requestAnimationFrame(updateText);
-            animationFrameRef.current = animFrameId;
-          } else {
-            // Streaming complete
-            setTimeout(() => {
-              completeAIResponse();
-              isStreamingRef.current = false;
-              setShowActionButtons(true);
-            }, 100);
-          }
-        };
-        
-        // Start the animation
-        animFrameId = requestAnimationFrame(updateText);
-        animationFrameRef.current = animFrameId;
-      };
-      
-      // Start streaming content
-      streamContent();
-    } else if (messageId === id && !isStreamingRef.current && currentPhase === 'response' && !content) {
-      // Reset display content
-      setDisplayContent('');
-      completeAIResponse();
-    }
-    
-    // Cleanup function to cancel animation frame on unmount or dependency change
-    return () => {
-      // Cancel any ongoing animation frames
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      
-      // Also cancel the local animation frame if it exists
-      if (animFrameId) {
-        cancelAnimationFrame(animFrameId);
-      }
-    };
-  }, [messageId, id, content, completeAIResponse, currentPhase]);
-
- 
-
-  // The loading indicator that shows only the loading icon
-  const renderLoadingIndicator = () => (
-    <div className="py-3 response-indicator" data-ai-response-ready="true">
-      <div className="inline-flex items-center justify-center w-full">
-        <div className="w-4 h-4 border-2 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mr-2"></div>
-        <div className="w-3 h-3 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mr-2"></div>
-        <div className="w-2 h-2 border-2 border-t-green-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-      </div>
-    </div>            
-  );
-
-  if (messageId === id && (currentPhase === "search" || currentPhase === "thinking" || !content)) {
+  const { isLoading } = useChatSocket();
+  
+  const { theme } = useTheme();
+  
+  // If no content to display at all, don't render
+  if (!content) {
     return null;
   }
 
+
   return (
-    <div className="flex justify-start w-full max-w-[50rem] px-4 mt-3 mb-4 font-inter overflow-x-hidden ai-message-wrapper">
+    <div className={`flex justify-start w-full max-w-[50rem] px-4 mt-3 mb-4 font-inter overflow-x-hidden ai-message-wrapper ${
+      isLatestMessage ? 'latest-message' : ''
+    } ${isFinalResponse ? 'final-response' : ''}`}
+    >
       <div
         ref={responseContainerRef}
-        className={`py-4 px-6 rounded-xl w-full ai-response-container group ${
+        className={`py-4 px-2 w-full ai-response-container group ${
           theme === "dark" 
-            ? "bg-gray-800/70 text-gray-100" 
-            : "bg-white/85 text-gray-800"
-        } transition-all duration-300 ease-in-out`}
+            ? "text-gray-100" 
+            : "text-gray-800"
+        } transition-all duration-300 ease-in-out ${
+          isLoading ? 'streaming-active' : ''
+        } ${isFinalResponse ? 'final-active' : ''}`}
         style={{
-          opacity: 1, // Always visible
-          visibility: 'visible', // Always visible
+          opacity: 1,
+          visibility: 'visible',
           transition: 'all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)',
-          minHeight: containerHeight ? `${containerHeight}px` : undefined,
           position: 'relative',
-          boxShadow: theme === "dark" 
-            ? '0 2px 10px rgba(0,0,0,0.12)' 
-            : '0 2px 8px rgba(0,0,0,0.04)',
-          border: theme === "dark" 
-            ? '1px solid rgba(75, 85, 99, 0.3)' 
-            : '1px solid rgba(229, 231, 235, 0.8)',
           width: '100%',
-          // Add these properties to fix the scrollbar and stability issues
           transform: 'translateZ(0)',
           willChange: 'transform',
-          overflow: 'hidden' // Hide any scrollbars that might appear
+          overflow: 'hidden',
+          background: 'transparent'
         }}
         data-ai-response="true"
         data-visible="true"
+        data-complete={!isLoading ? "true" : "false"}
+        data-final={isFinalResponse ? "true" : "false"}
       >
-        {(showLoading && !displayContent) ? (
-          renderLoadingIndicator()
-        ) : (
-          <>
-            <div 
-              className="ai-response-content"
-              ref={contentRef}
-              style={{ overflow: 'hidden' }} // Hide any scrollbars that might appear
-            >
-              <style jsx global>{`
-                .prose-no-scroll {
-                  overflow: hidden !important;
-                }
-                .prose-no-scroll * {
-                  overflow-y: hidden !important;
-                }
-                .prose-no-scroll pre {
-                  overflow-x: auto !important;
-                }
-                
-                /* Fix centering for AI messages */
-                .ai-message-wrapper {
-                  display: flex;
-                  justify-content: center;
-                  width: 100%;
-                  margin: 0 auto;
-                }
-                
-                /* Specific styling for markdown content */
-                .markdown-content {
-                  font-family: var(--font-primary);
-                  line-height: var(--line-height-text);
-                }
-                
-                /* Ensure proper styling for markdown lists */
-                .markdown-ol {
-                  list-style-type: decimal !important;
-                  margin: 0.75rem 0 1rem 0.5rem !important;
-                  padding-left: 1.5rem !important;
-                }
-                
-                .markdown-ul {
-                  list-style-type: disc !important;
-                  margin: 0.75rem 0 1rem 0.5rem !important;
-                  padding-left: 1.25rem !important;
-                }
-                
-                .markdown-li {
-                  display: list-item !important;
-                  margin-bottom: 0.4rem !important;
-                  position: relative !important;
-                }
-              `}</style>
-              
-              <MarkdownContent
-                content={displayContent || ""}
-                theme={theme}
-                onCopyCode={onCopyCode}
-                copiedCode={copiedCode}
-              />
-              
-              {currentPhase === 'response' && (
-                <span className="animate-pulse text-blue-500 cursor-end">▌</span>
-              )}
+        <div 
+          className="message-content flex flex-col w-full"
+          ref={contentRef}
+        >
+          {/* Final response badge */}
+          {isFinalResponse && !isLoading && (
+            <div className="final-badge text-xs px-2 py-1 mb-2 rounded inline-flex items-center text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30 w-fit">
+              <svg className="w-3 h-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" clipRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
+              </svg>
+              Final Response
             </div>
-            
-              {/* Always show action buttons for better UX */}
-          {showActionButtons && !isStreamingRef.current && !showLoading && !disableActionButtons && (messageId !== id || (messageId === id && currentPhase === "complete")) && (
-            <AIResponseActions 
-              content={displayContent || ""} 
-              onRegenerate={onRegenerate}
-              metadata={metadata}
-            />
           )}
-          </>
-        )}
+          
+          {/* Main content with markdown */}
+          <div 
+            className={`markup-content w-full font-normal text-base overflow-visible relative ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+          >
+            <MarkdownContent
+              content={content || ""}
+              onCopyCode={onCopyCode}
+              isCodeCopied={isCodeCopied}
+              className={`${isFinalResponse ? 'final-markdown' : ''}`}
+            />
+          </div>
+          
+          {/* Action buttons */}
+          {!isLoading && content && (
+            <div className="action-buttons ai-response-actions relative w-full mt-2 mb-1 flex justify-start">
+              <AIResponseActions
+                content={content || ""}
+                onRegenerate={onRegenerate}
+              />
+            </div>
+          )}
+        </div>
       </div>
+      
+      <style jsx global>{`
+        /* Ensure action buttons are visible */
+        .ai-response-actions {
+          opacity: 0.9 !important;
+          visibility: visible !important;
+          display: flex !important;
+        }
+        
+        /* Enhance visibility on hover */
+        .group:hover .ai-response-actions {
+          opacity: 1 !important;
+        }
+        
+        /* Latest message styling */
+        .latest-message {
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Streaming animation - removed any color effects */
+        .streaming-active {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+        
+        /* Final response styling */
+        .final-active {
+          border-left: 2px solid ${theme === "dark" ? "#10b981" : "#34d399"};
+          padding-left: 0.5rem;
+        }
+        
+        .final-markdown {
+          position: relative;
+        }
+        
+        @keyframes blink {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };

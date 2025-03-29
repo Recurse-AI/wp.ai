@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, apiPostWithoutAuth } from './api';
 import { ApiPaths } from './apiPaths';
 import TokenManager from './tokenManager';
 
@@ -88,8 +88,13 @@ const AuthService = {
   login: (credentials: LoginCredentials) => 
     apiPost<TokenResponse>(ApiPaths.LOGIN, credentials),
 
-  refreshToken: (refresh: string) => 
-    apiPost<{ access: string }>(ApiPaths.REFRESH_TOKEN, { refresh }),
+  refreshToken: (refresh: string) => {
+    // For refresh token requests, we use the no-auth version of apiPost
+    // to avoid sending the expired access token in the Authorization header
+    console.log('🔄 AuthService: Refreshing token with refresh token (using no-auth endpoint)');
+    
+    return apiPostWithoutAuth(ApiPaths.REFRESH_TOKEN, { refresh });
+  },
 
   verifyToken: (token: string) => 
     apiPost<{ status: string }>(ApiPaths.VERIFY_TOKEN, { token }),

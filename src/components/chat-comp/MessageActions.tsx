@@ -49,13 +49,11 @@ export const UserMessageActions: React.FC<UserMessageActionsProps> = ({
 interface AIResponseActionsProps {
   content: string;
   onRegenerate?: () => void;
-  metadata?: Record<string, any>;
 }
 
 export const AIResponseActions: React.FC<AIResponseActionsProps> = ({
   content,
-  onRegenerate,
-  metadata
+  onRegenerate
 }) => {
   const { theme } = useTheme();
 
@@ -124,7 +122,7 @@ export const AIResponseActions: React.FC<AIResponseActionsProps> = ({
       
       <button 
         onClick={handleLove}
-        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-green-500 transition-colors duration-200"
+        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
         title="Helpful response"
       >
         <ThumbsUp size={16} className="action-icon" />

@@ -13,6 +13,9 @@ export default {
       fontFamily: {
         inter: ["Inter", "sans-serif"],
       },
+      animation: {
+        "ping-slow": "ping 2s cubic-bezier(0, 0, 0.2, 1) infinite",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

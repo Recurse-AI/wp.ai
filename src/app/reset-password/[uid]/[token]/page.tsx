@@ -74,7 +74,7 @@ export default function ResetPassword() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/reset-password/${uid}/${token}/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/reset-password/${uid}/${token}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: token, new_password: newPassword }),

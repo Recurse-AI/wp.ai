@@ -151,4 +151,193 @@
 @keyframes cursorBlink {
   0%, 100% { opacity: 0; }
   50% { opacity: 1; }
+}
+
+/* Markdown styling for lists and paragraphs */
+.markdown-content,
+.ai-response-text {
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Consistent paragraph spacing */
+.markdown-p {
+  margin: 0.75rem 0;
+}
+
+/* Properly styled unordered lists */
+.markdown-ul {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* Properly styled ordered lists */
+.markdown-ol {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* List item spacing */
+.markdown-li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Make sure the lists are visible with proper indentation */
+.ai-response-text ul,
+.markdown-content ul {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.ai-response-text ol,
+.markdown-content ol {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.ai-response-text li,
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Fix for nested lists */
+.ai-response-text ul ul,
+.markdown-content ul ul,
+.ai-response-text ol ol,
+.markdown-content ol ol,
+.ai-response-text ul ol,
+.markdown-content ul ol,
+.ai-response-text ol ul,
+.markdown-content ol ul {
+  margin: 0.5rem 0;
+}
+
+/* Generated lists from transformations */
+ul.generated-list {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+ol.generated-list {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* Fix for dash-bullet points */
+.bullet-point {
+  display: inline-block;
+  margin-right: 0.5em;
+  width: 0.5em;
+}
+
+/* Make sure list transformation works properly */
+.list-item-dash,
+.numbered-list-item {
+  position: relative;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+}
+
+/* Task list styling */
+.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.task-list-item input[type="checkbox"] {
+  margin-top: 0.25rem;
+  margin-right: 0.5rem;
+  min-width: 1rem;
+  height: 1rem;
+}
+
+/* Table styling */
+.markdown-content table,
+.ai-response-text table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.markdown-content th,
+.ai-response-text th {
+  font-weight: 600;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content td, 
+.markdown-content th,
+.ai-response-text td, 
+.ai-response-text th {
+  padding: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .markdown-content td,
+.dark .markdown-content th,
+.dark .ai-response-text td,
+.dark .ai-response-text th {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Image styling */
+.markdown-content img,
+.ai-response-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+/* Link styling */
+.markdown-content a,
+.ai-response-text a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.markdown-content a:hover,
+.ai-response-text a:hover {
+  text-decoration: underline;
+}
+
+.dark .markdown-content a,
+.dark .ai-response-text a {
+  color: #60a5fa;
+}
+
+/* Better horizontal rule */
+.markdown-content hr,
+.ai-response-text hr {
+  border: 0;
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+}
+
+.dark .markdown-content hr,
+.dark .ai-response-text hr {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Improved inline code */
+.inline-code {
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.875em;
+}
+
+.dark .inline-code {
+  background-color: rgba(255, 255, 255, 0.1);
 } 

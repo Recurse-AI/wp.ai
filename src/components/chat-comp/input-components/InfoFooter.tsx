@@ -1,16 +1,16 @@
 "use client";
 import React from 'react';
-import { Database, Zap, Trash2 } from "lucide-react";
+import { Database, Globe } from "lucide-react";
 import { useTheme } from "@/context/ThemeProvider";
 
 interface InfoFooterProps {
-  embeddingEnabled: boolean;
-  agentMode: boolean;
+  do_web_search: boolean;
+  do_vector_search: boolean;
 }
 
 const InfoFooter: React.FC<InfoFooterProps> = ({ 
-  embeddingEnabled, 
-  agentMode,
+  do_web_search,
+  do_vector_search
 }) => {
   const { theme } = useTheme();
 
@@ -21,7 +21,7 @@ const InfoFooter: React.FC<InfoFooterProps> = ({
           theme === "dark" ? "text-gray-500" : "text-gray-600"
         }`}
       >
-        {embeddingEnabled && (
+        {do_web_search && (
           <>
             <span className="flex items-center gap-1">
               <Database className="w-4 h-4 text-blue-500" strokeWidth={2} />
@@ -30,11 +30,11 @@ const InfoFooter: React.FC<InfoFooterProps> = ({
             <span className="mx-1">•</span>
           </>
         )}
-        {agentMode && (
+        {do_vector_search && (
           <>
             <span className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-purple-500" strokeWidth={2.5} />
-              <span className="text-purple-500">Agent mode active</span>
+              <Globe className="w-4 h-4 text-green-500" strokeWidth={2} />
+              <span className="text-green-500">Web Search active</span>
             </span>
             <span className="mx-1">•</span>
           </>

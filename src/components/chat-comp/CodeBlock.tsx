@@ -3,21 +3,52 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus, vs } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Copy, Check } from "lucide-react";
 import { detectLanguage } from "@/lib/utils/codeHighlightUtils";
+import { useTheme } from "@/context/ThemeProvider";
 
 // Function to transform paragraphs starting with "- " into list items
 export const transformDashesToLists = () => {
-  // Run this after component mount and content updates
+  // Run with a delay to ensure DOM is fully rendered
   setTimeout(() => {
-    const aiResponseElements = document.querySelectorAll('.ai-response-text, .markdown-content');
-    
-    aiResponseElements.forEach(container => {
-      // First, handle numbered lists with proper nesting
-      processNumberedLists(container);
+    try {
+      const aiResponseElements = document.querySelectorAll('.ai-response-text, .markdown-content');
       
-      // Then process regular dash lists
-      processDashLists(container);
-    });
+      aiResponseElements.forEach(container => {
+        // First, handle numbered lists with proper nesting
+        processNumberedLists(container);
+        
+        // Then process regular dash lists
+        processDashLists(container);
+        
+        // Fix any incorrectly processed inline lists
+        fixInlineListStyles(container);
+      });
+    } catch (error) {
+      console.error("Error transforming dashes to lists:", error);
+    }
   }, 75); // Faster delay for more responsive rendering
+};
+
+// New helper function to fix any inline list issues
+const fixInlineListStyles = (container: Element) => {
+  // Find all ul/ol elements and ensure they have proper styling
+  const lists = container.querySelectorAll('ul, ol');
+  lists.forEach(list => {
+    if (!list.classList.contains('markdown-ul') && !list.classList.contains('markdown-ol')) {
+      if (list.tagName.toLowerCase() === 'ul') {
+        list.classList.add('markdown-ul');
+      } else {
+        list.classList.add('markdown-ol');
+      }
+    }
+    
+    // Fix list items missing class
+    const items = list.querySelectorAll('li');
+    items.forEach(item => {
+      if (!item.classList.contains('markdown-li')) {
+        item.classList.add('markdown-li');
+      }
+    });
+  });
 };
 
 // Process ordered/numbered lists
@@ -420,13 +451,13 @@ const processCodeLinks = (codeString: string) => {
 interface CodeBlockProps {
   className?: string;
   children?: React.ReactNode;
-  theme: string;
   onCopy: (code: string) => void;
-  copiedCode: string | null;
+  isCopied: boolean;
 }
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ className, children, theme, onCopy, copiedCode }) => {
+const CodeBlock: React.FC<CodeBlockProps> = ({ className, children, onCopy, isCopied }) => {
   const match = /language-(\w+)/.exec(className || "");
+  const { theme } = useTheme();
   
   // Call the transformation function when component mounts or updates
   useEffect(() => {
@@ -435,7 +466,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ className, children, theme, onCop
   
   // Simple trimming that preserves code formatting
   const codeString = children ? String(children).replace(/^\n|\n$/g, "") : "";
-  const isCopied = copiedCode === codeString;
   
   // For inline code (no language specified)
   if (!match) {

@@ -2,9 +2,15 @@
 const nextConfig = {
   async rewrites() {
     return [
+      // WordPress API rewrites
       {
         source: '/wp-api/:userId/:path*',
         destination: 'http://localhost:8000/user_:userId/wp-json/:path*'
+      },
+      // WebSocket API proxy - Using HTTP for proxy config as Next.js doesn't support direct WebSocket rewrites
+      {
+        source: '/api/ws/:path*',
+        destination: 'http://localhost:8000/ws/:path*'
       }
     ];
   },

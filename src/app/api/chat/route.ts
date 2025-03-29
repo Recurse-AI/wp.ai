@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       provider: provider || 'openai',
       model: model || 'gpt-4',
       temperature: temperature || 0.7,
-      max_tokens: max_tokens || 2048,
+      max_tokens: max_tokens || 1024,
       user_id: session.user.email,
     };
     

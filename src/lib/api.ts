@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import TokenManager from './tokenManager';
 
 // Base API URLs - these should match your environment variables
-const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://192.168.93.41:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://192.168.93.41:8000';
 
 // Error interface
 export interface ApiError {
@@ -15,6 +15,15 @@ export interface ApiError {
 
 // Create axios instance with default config
 const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // Include cookies in requests
+});
+
+// Create a separate axios instance without auth interceptors for token refresh
+const apiClientNoAuth = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -177,6 +186,60 @@ export const apiRequest = async <T>(
   }
 };
 
+// Generic API request function without authentication (for token refresh)
+export const apiRequestWithoutAuth = async <T = any>(
+  method: string,
+  url: string,
+  data?: any,
+  config?: AxiosRequestConfig
+): Promise<T> => {
+  try {
+    console.log(`🔄 API Request (No Auth): ${method} ${url}`, { data });
+    const response: AxiosResponse<T> = await apiClientNoAuth({
+      method,
+      url,
+      data,
+      ...config,
+    });
+    
+    // More detailed logging for debugging
+    if (url.includes('refresh')) {
+      console.log(`✅ Token Refresh Response:`, {
+        status: response.status,
+        hasAccessToken: response.data && (response.data as any).access ? true : false,
+        data: response.data
+      });
+    } else {
+      console.log(`✅ API Response (No Auth): ${method} ${url}`, { 
+        status: response.status
+      });
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error(`❌ API Error (No Auth): ${method} ${url}`, error);
+    const axiosError = error as AxiosError<any>;
+    
+    // More detailed error logging for token refresh failures
+    if (url.includes('refresh')) {
+      console.error('Token refresh error details:', {
+        status: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message
+      });
+    }
+    
+    const apiError: ApiError = {
+      status: axiosError.response?.status || 500,
+      message: axiosError.response?.data?.message || axiosError.response?.data?.detail || 'Something went wrong',
+      errors: axiosError.response?.data?.errors,
+      data: axiosError.response?.data,
+    };
+    
+    throw apiError;
+  }
+};
+
 // Helper methods for common HTTP methods
 export const apiGet = <T>(url: string, config?: AxiosRequestConfig) => 
   apiRequest<T>('GET', url, undefined, config);
@@ -191,4 +254,8 @@ export const apiPatch = <T>(url: string, data?: any, config?: AxiosRequestConfig
   apiRequest<T>('PATCH', url, data, config);
 
 export const apiDelete = <T>(url: string, config?: AxiosRequestConfig) => 
-  apiRequest<T>('DELETE', url, undefined, config); 
+  apiRequest<T>('DELETE', url, undefined, config);
+
+// Helper methods for no-auth API requests
+export const apiPostWithoutAuth = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+  apiRequestWithoutAuth<T>('POST', url, data, config); 

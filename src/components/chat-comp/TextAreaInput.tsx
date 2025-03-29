@@ -1,18 +1,21 @@
 import React, { useRef, useEffect } from "react";
 import { useTheme } from "@/context/ThemeProvider";
+import styles from "./TextAreaInput.module.css";
 
 interface TextAreaInputProps {
   prompt: string;
   handleInput: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const TextAreaInput: React.FC<TextAreaInputProps> = ({
   prompt,
   handleInput,
   handleKeyDown,
-  placeholder = "Ask about WordPress themes, plugins, development, or any WP questions..."
+  placeholder = "Ask about WordPress themes, plugins, development, or any WP questions...",
+  disabled = false
 }) => {
   const { theme } = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,12 +40,14 @@ const TextAreaInput: React.FC<TextAreaInputProps> = ({
       onChange={handleInput}
       onKeyDown={handleKeyDown}
       value={prompt}
-      className={`bg-transparent w-full outline-none 
+      disabled={disabled}
+      className={`${styles.scrollbarHide} bg-transparent w-full outline-none 
         font-medium tracking-wide text-base resize-none overflow-y-auto px-3
         ${theme === "dark" 
           ? "text-gray-200 placeholder:text-gray-400" 
           : "text-gray-800 placeholder:text-gray-500"
         }
+        ${disabled ? "opacity-70 cursor-not-allowed" : ""}
         font-sans placeholder:font-medium placeholder:tracking-wide`}
       style={{
         minHeight: "40px", // Starts at 1 line height

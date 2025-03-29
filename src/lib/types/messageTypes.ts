@@ -1,28 +1,3 @@
-// Common message types for both chat and agent components
-
-// Base message interface
-export interface BaseMessage {
-  id: string;
-  content: string;
-  timestamp: Date;
-}
-
-// Chat message types
-export interface ChatMessage extends BaseMessage {
-  owner_name: string;
-  user_prompt?: string;
-  ai_response?: string;
-  group?: number;
-}
-
-// Agent message types
-export interface AgentMessage extends BaseMessage {
-  role: 'user' | 'agent' | 'system';
-  projectId?: string;
-  sessionId?: string;
-  codeChanges?: CodeChange[];
-}
-
 // Code change interface for agent messages
 export interface CodeChange {
   type: 'create' | 'update' | 'delete';
@@ -55,4 +30,55 @@ export interface Attachment {
   content: string | ArrayBuffer;
   size: number;
   mimeType: string;
-} 
+}
+
+// Message group data schema for streamable messages
+export interface MessageGroupData {
+  type: 'message_group_data';
+  message_group: {
+    id: string;
+    user_content: string;
+    ai_content: string;
+    system_content?: string;
+    function_content?: any;
+    created_at: string;
+    updated_at: string;
+    status: 'complete' | 'pending' | 'error';
+    metadata?: {
+      embedding_context?: {
+        processed_context?: string;
+        query?: string;
+        processed_at?: string;
+      };
+      custom_field?: string;
+      [key: string]: any;
+    };
+    search_results?: Array<{
+      title: string;
+      url: string;
+      snippet: string;
+      position: number;
+    }>;
+    embeddings?: {
+      results: Array<{
+        content: string;
+        metadata: {
+          source: string;
+          document_id: string;
+          [key: string]: any;
+        };
+      }>;
+      query?: string;
+    };
+    thinking_process?: Array<{
+      step: number;
+      content: string;
+    }>;
+  };
+  message_group_id: string;
+  conversation_id: string;
+  status: 'complete' | 'pending' | 'error';
+  is_final: boolean;
+  final_response: boolean;
+}
+

@@ -9,7 +9,8 @@ export const CHAT_CONFIG = {
     model: 'gpt-4o',
     temperature: 0.7,
     max_tokens: 2000,
-    use_vector_search: false,
+    do_vector_search: false,
+    do_web_search: false,
     extended_thinking: false,
     extended_thinking_budget: 1024,
   },
@@ -47,10 +48,10 @@ export interface ChatSettings {
   model: ChatModel;
   temperature: number;
   max_tokens: number;
-  use_vector_search: boolean;
+  do_vector_search?: boolean;
   extended_thinking?: boolean;
   extended_thinking_budget?: number;
   id?: string;
-  is_new_chat?: boolean;
   mode?: string;
+  do_web_search?: boolean;
 } 

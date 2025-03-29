@@ -109,7 +109,7 @@ export default function ProfileContent({ initialUserData }: ProfileContentProps)
     } else {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/request-social-deletion-verification/`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/request-social-deletion-verification/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

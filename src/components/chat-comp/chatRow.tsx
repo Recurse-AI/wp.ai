@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { BiSolidTrashAlt } from "react-icons/bi";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaEdit, FaCheck } from "react-icons/fa";
@@ -10,9 +10,9 @@ import { useTheme } from "@/context/ThemeProvider";
 import { toast } from "react-hot-toast";
 import { getToastStyle } from "@/lib/toastConfig";
 import { formatDistanceToNow } from "date-fns";
-import { useChatStore } from "@/lib/store/chatStore";
-import { useChatNavigation } from "@/lib/hooks/useChatNavigation";
-import { chatService } from "@/lib/services/chatService";
+import ChatService from "@/lib/services/chatService";
+import { useChatSocket } from "@/context/ChatSocketContext";
+
 
 const ChatRow = ({
   id,
@@ -47,14 +47,27 @@ const ChatRow = ({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Get store functions
-  const { updateSession } = useChatStore();
+  const [chatService] = useState(() => new ChatService());
+
+  // Get WebSocket connection
+  const { connect, disconnect, isLoading } = useChatSocket();
 
   // Format the timestamp for display
-  const formattedTime = timestamp 
-    ? formatDistanceToNow(new Date(timestamp), { addSuffix: true })
-    : '';
+  const formattedTime = useMemo(() => {
+    if (!timestamp) return '';
+    
+    try {
+      const date = new Date(timestamp);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  }, [timestamp]);
 
   useEffect(() => {
     if (openDropdown === id && buttonRef.current) {
@@ -132,11 +145,9 @@ const ChatRow = ({
     setLoading(true);
 
     try {
-      // Update title in the store
-      updateSession({  title: newTitle });
       
       // Also update on the server if needed
-      await chatService.updateChatTitle(id, newTitle);
+      await chatService.renameConversation(id, newTitle);
       
       toast.success("Chat title updated!", getToastStyle(theme));
       setIsEditing(false);
@@ -170,9 +181,25 @@ const ChatRow = ({
     }
   };
 
-  const handleClick = () => {
-    if (onSelect) {
-      onSelect(id);
+  const handleClick = () => { 
+    if (isLoading) {
+      toast.error("Chat is loading...", getToastStyle(theme));
+      return;
+    }
+    try {
+      // First disconnect from any existing connection
+      disconnect();
+      
+      // Store the conversation ID we're connecting to
+      localStorage.setItem('currentConversationId', id);
+      
+      // Navigate to the chat page for this conversation
+      router.push(`/chat/${id}`);
+      
+      // Don't connect here - let the page component handle connection
+      // after navigation completes
+    } catch (error) {
+      console.error("Error navigating to conversation:", error);
     }
   };
 
@@ -252,7 +279,7 @@ const ChatRow = ({
         {lastMessage && (
           <div className="mt-1">
             <p className={`text-sm truncate ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-              {lastMessage.length > 30 ? lastMessage.slice(0, 30) + "..." : lastMessage}
+              {lastMessage.length > 30 ? lastMessage.slice(0, 30) + "..." : lastMessage || "New chat"}
             </p>
           </div>
         )}

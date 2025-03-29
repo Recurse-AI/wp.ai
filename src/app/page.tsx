@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import { useTheme } from "@/context/ThemeProvider";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -21,7 +21,7 @@ const LoadingBackground = () => (
   </div>
 );
 
-// Lazy load ParticlesBackground with loading state
+// Lazy load components with consistent loading states
 const ParticlesBackground = dynamic(
   () => import("@/components/landing-page/ParticlesBackground"),
   { 
@@ -74,10 +74,16 @@ const LoadingFallback = () => (
 
 export default function LandingPage() {
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { isAuthenticated, user, loading } = useAuth();
   const router = useRouter();
+
+  // Ensure component is mounted before accessing theme-dependent styles
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle plan upgrade
   const handleUpgrade = (planId: string) => {
@@ -102,7 +108,7 @@ export default function LandingPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/feedback/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/feedback/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -130,18 +136,24 @@ export default function LandingPage() {
     router.push("/chat");
   };
 
+  // Determine theme-based classes - use light theme styles before mounting
+  const bgClass = mounted && theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900";
+  const textClass = mounted && theme === "dark" ? "text-gray-400" : "text-gray-600";
+  const linkClass = mounted && theme === "dark" ? "text-gray-400 hover:text-blue-400" : "text-gray-600 hover:text-blue-600";
+  
+  // Show content only after mounting to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="bg-[#F8FAFC] min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`relative min-h-screen overflow-hidden ${theme === "dark" ? "bg-[#0A0F1C] text-white" : "bg-[#F8FAFC] text-gray-900"}`}>
+    <div className={`relative min-h-screen overflow-hidden landing-page ${bgClass}`}>
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden">
-        {/* Base Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-30" />
-        
-        {/* Glowing Orbs */}
-        <div className="absolute -top-[10%] -left-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
-        <div className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-[10%] left-[30%] w-[600px] h-[600px] bg-pink-600/20 rounded-full blur-3xl" />
-        
         {/* Particles - client-side only */}
         <Suspense fallback={<LoadingBackground />}>
           <ParticlesBackground />
@@ -185,18 +197,18 @@ export default function LandingPage() {
             onSubmit={handleFeedbackSubmit} 
           />
         </Suspense>
-          </div>
+      </div>
 
       {/* Footer */}
       <footer className="relative py-10 text-center">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
         <div className="relative max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-lg text-gray-600 dark:text-gray-400">© 2025 WP.ai - All rights reserved.</p>
+            <p className={`text-lg ${textClass}`}>© 2025 WP.ai - All rights reserved.</p>
             <div className="flex gap-8 mt-4 md:mt-0">
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Privacy</a>
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Terms</a>
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Contact</a>
+              <a href="#" className={linkClass}>Privacy</a>
+              <a href="#" className={linkClass}>Terms</a>
+              <a href="#" className={linkClass}>Contact</a>
             </div>
           </div>
         </div>

@@ -2,26 +2,10 @@
 
 export const KnowledgeBaseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4" y="3" width="16" height="18" rx="2" fill="url(#kb_gradient)" fillOpacity="0.25" />
-    <path d="M4 7C4 5.34315 5.34315 4 7 4H17C18.6569 4 20 5.34315 20 7V21H7C5.34315 21 4 19.6569 4 18V7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M20 21V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M4 7H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M4 11H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M4 15H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="16" cy="7" r="2" fill="url(#kb_accent)" />
-    <path d="M11 7H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M11 11H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M11 15H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <defs>
-      <linearGradient id="kb_gradient" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#3B82F6" />
-        <stop offset="1" stopColor="#1D4ED8" />
-      </linearGradient>
-      <linearGradient id="kb_accent" x1="14" y1="5" x2="18" y2="9" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#60A5FA" />
-        <stop offset="1" stopColor="#3B82F6" />
-      </linearGradient>
-    </defs>
+    <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M8 8H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M8 16H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 

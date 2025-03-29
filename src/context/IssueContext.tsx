@@ -2,9 +2,20 @@
 import React, { createContext, useState, useEffect } from "react";
 import { formatText } from "@/utils/textUtils";
 
-export const IssueContext = createContext();
+interface IssueContextType {
+    issues: any[];
+    addIssue: (newIssue: any) => Promise<any>;
+    isLoading: boolean;
+    error: string | null;
+    isLoaded: boolean;
+    refetchIssues: () => Promise<void>;
+    getAuthHeaders: () => Record<string, string | undefined>;
+    API_BASE_URL: string | undefined;
+}
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+export const IssueContext = createContext<IssueContextType | undefined>(undefined);
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Helper function to get auth headers
 export const getAuthHeaders = () => {
@@ -20,8 +31,8 @@ export const getAuthHeaders = () => {
     };
 };
 
-export const IssueProvider = ({ children }) => {
-    const [issues, setIssues] = useState([]);
+export const IssueProvider = ({ children }: { children: React.ReactNode }) => {
+    const [issues, setIssues] = useState<any[]>([]);
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -31,7 +42,7 @@ export const IssueProvider = ({ children }) => {
         try {
             setIsLoading(true);
             const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
-                headers: getAuthHeaders()
+                headers: getAuthHeaders() as HeadersInit
             });
             
             if (!response.ok) {
@@ -40,7 +51,7 @@ export const IssueProvider = ({ children }) => {
             
             const data = await response.json();
             setIssues(Array.isArray(data) ? data : []);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching issues:', err);
             setError(err.message);
             setIssues([]);
@@ -50,11 +61,11 @@ export const IssueProvider = ({ children }) => {
     };
 
     // Add new issue
-    const addIssue = async (newIssue) => {
+    const addIssue = async (newIssue: any) => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/community/issues/`, {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: getAuthHeaders() as HeadersInit,
                 body: JSON.stringify(newIssue),
             });
             
@@ -63,9 +74,9 @@ export const IssueProvider = ({ children }) => {
             }
             
             const data = await response.json();
-            setIssues(prev => [...prev, data]);
+                setIssues(prev => [...prev, data]);
             return data;
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error adding issue:', err);
             setError(err.message);
             throw err;

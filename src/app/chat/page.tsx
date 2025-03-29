@@ -1,43 +1,36 @@
 "use client"
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/context/ThemeProvider";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthProvider";
-import useAuth from "@/lib/useAuth";
 import TokenManager from "@/lib/tokenManager";
 import toast from "react-hot-toast";
 import WelcomeHeader from "@/components/chat-comp/input-components/WelcomeHeader";
-import ModeToggleButtons from "@/components/chat-comp/input-components/ModeToggleButtons";
 import SendButton from "@/components/chat-comp/input-components/SendButton";
 import InfoFooter from "@/components/chat-comp/input-components/InfoFooter";
 import TextAreaInput from "@/components/chat-comp/TextAreaInput";
 import AIProviderSelect from "@/components/chat-comp/input-components/AIProviderSelect";
 import { WordPressIcon, BrainIcon } from "@/components/chat-comp/input-components/EnhancedIcons";
-import { Zap } from "lucide-react";
+import { Database, Globe } from "lucide-react";
 import { getToastStyle } from "@/lib/toastConfig";
-import { useChatService } from '@/lib/hooks/useChatService';
-import { ChatProvider, ChatModel } from '@/lib/services/chatConfig';
-import { useChatNavigation } from '@/lib/hooks/useChatNavigation';
-import { useSidebar } from "./layout"; // Import the sidebar hook
+import { useChatSocket } from "@/context/ChatSocketContext";
 
-// Remove the handleSidebarToggle prop since we'll use the context
 const Page = () => {
   const { theme } = useTheme();
   const router = useRouter();
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const { isLoggedIn } = useAuthContext();
+  const { isAuthenticated, user, loading: authLoading } = useAuthContext();
   const [authChecking, setAuthChecking] = useState(true);
-  const [agentMode, setAgentMode] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const [embeddingEnabled, setEmbeddingEnabled] = useState(false);
-  
-  // Get sidebar functionality from context
-  const { toggleSidebar } = useSidebar();
-  
-  // Initialize chat service and navigation
-  const { updateSettings } = useChatService();
-  const { startNewChat } = useChatNavigation();
-  
+  const [do_web_search, setDoWebSearch] = useState(false);
+  const [do_vector_search, setDoVectorSearch] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<{provider: string; model: string}>({
+    provider: 'openai',
+    model: 'gpt-4o-mini'
+  });
+  const { connect, connected, connecting, connectionStatus, disconnect } = useChatSocket();
+  const [debugInfo, setDebugInfo] = useState<string>('');
+
+
   useEffect(() => {
     const checkAuth = async () => {
       const hasToken = !!TokenManager.getToken();
@@ -50,7 +43,7 @@ const Page = () => {
         return;
       }
 
-      if (isAuthenticated || isLoggedIn || hasToken || hasRefreshToken || hasUserData || hasAuthToken) {
+      if (isAuthenticated || hasToken || hasRefreshToken || hasUserData || hasAuthToken) {
         console.log("Chat page: Authentication confirmed, allowing access");
         setAuthChecking(false);
       } else {
@@ -61,7 +54,26 @@ const Page = () => {
     };
 
     checkAuth();
-  }, [isAuthenticated, isLoggedIn, authLoading, user, router]);
+  }, [isAuthenticated, authLoading, user, router]);
+
+  // Additional debug info for development
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      const token = localStorage.getItem('token');
+      const tokenExists = !!token;
+      const tokenInfo = tokenExists 
+        ? `Token exists (${token?.substring(0, 10)}...)`
+        : 'No token found';
+        
+      setDebugInfo(`
+        Auth: ${isAuthenticated ? 'Yes' : 'No'}
+        Connection: ${connectionStatus}
+        Connected: ${connected ? 'Yes' : 'No'}
+        Connecting: ${connecting ? 'Yes' : 'No'}
+        Token: ${tokenInfo}
+      `);
+    }
+  }, [isAuthenticated, connected, connecting, connectionStatus]);
 
   // Handle text input
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -79,77 +91,126 @@ const Page = () => {
   };
 
   // Toggle embedding mode
-  const toggleEmbedding = () => {
-    setEmbeddingEnabled(!embeddingEnabled);
+  const toggleEmbedding = () => { 
+    let webSearchEnabled = !do_web_search ? 'true' : 'false';
+    setDoWebSearch(!do_web_search);
+    localStorage.setItem('webSearchEnabled', webSearchEnabled);
     toast.success(
-      !embeddingEnabled 
+      !do_web_search 
         ? "WordPress knowledge base activated" 
         : "WordPress knowledge base deactivated",
       {
-        icon: !embeddingEnabled ? '🧠' : '🔍',
-      ...getToastStyle(theme)
-      }
-    );
-  };
-
-  // Toggle agent mode - Now toggles the button state immediately
-  const toggleAgentMode = () => {
-    const newAgentMode = !agentMode;
-    
-    // Set button state immediately
-    setAgentMode(newAgentMode);
-    
-    // Store selection in localStorage
-    localStorage.setItem('selectedAgentMode', newAgentMode ? 'agent' : 'default');
-    
-    toast.success(
-      newAgentMode 
-        ? "Agent mode selected. Send a message to activate." 
-        : "Default mode selected. Send a message to activate.",
-      {
-        icon: newAgentMode ? '∞' : '💬',
+        icon: !do_web_search ? '🧠' : '🔍',
         ...getToastStyle(theme)
       }
     );
   };
 
-
+  // Toggle search mode
+  const toggleSearch = () => {
+    let vectorSearchEnabled = !do_vector_search ? 'true' : 'false';
+    setDoVectorSearch(!do_vector_search);
+    localStorage.setItem('vectorSearchEnabled', vectorSearchEnabled);
+    toast.success(
+      !do_vector_search 
+        ? "Web Search functionality activated" 
+        : "Web Search functionality deactivated",
+      {
+        icon: !do_vector_search ? '🌐' : '💬',
+        ...getToastStyle(theme)
+      }
+    );
+  };
 
   // Handle model change
-  const handleModelChange = useCallback((settings: { provider: string; model: string }) => {
-    updateSettings({
-      provider: settings.provider as ChatProvider,
-      model: settings.model as ChatModel
-    });
-  }, [updateSettings]);
+  const handleModelChange = useCallback((settings : { provider: string; model: string }) => {
+    console.log("Model changed:", settings);
+    setSelectedModel(settings);
+    localStorage.setItem('selectedAIModel', JSON.stringify(settings));
+  }, []);
 
+  // Handle submit - when a user sends a message
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!prompt.trim()) return;
     
     try {
-      // Start a new chat using our store
-      const id = startNewChat(
-        agentMode ? 'agent' : 'default',
-        embeddingEnabled,
-        prompt
-      );
-
-      // toggle sidebar if agent mode is enabled
-      if (agentMode) {
-        toggleSidebar(); // Now using the context function
+      // Store the initial message in localStorage so the chat/:id page can use it
+      localStorage.setItem('pendingChatMessage', prompt);
+      
+      // Store selected model settings for the chat/:id page
+      localStorage.setItem('pendingChatModel', JSON.stringify({
+        provider: selectedModel.provider,
+        model: selectedModel.model,
+        doWebSearch: do_web_search,
+        doVectorSearch: do_vector_search
+      }));
+      
+      // Don't disconnect existing connection if connected, we want to maintain it
+      // We'll create a new conversation context on the server via the message
+      
+      // Ensure we're not reusing an existing conversation ID
+      localStorage.removeItem('currentConversationId');
+      
+      // Show loading state
+      setPrompt('');
+      toast.loading('Creating new conversation...', {
+        id: 'creating-chat',
+        ...getToastStyle(theme)
+      });
+      
+      // If not connected yet, establish connection
+      if (!connected && !connecting) {
+        console.log('Not connected, connecting to WebSocket...');
+        connect();
       }
       
-      // Clear the prompt
-      setPrompt("");
+      // The connection_established message will be handled by ChatSocketContext
+      // which will set the conversation ID in localStorage
+
+      // Wait a brief moment for the connection to process
+      setTimeout(() => {
+        // Get the conversation ID that was stored during connection
+        const newConversationId = localStorage.getItem('currentConversationId');
+        
+        if (newConversationId) {
+          toast.success('Conversation created', {
+            id: 'creating-chat',
+            ...getToastStyle(theme)
+          });
+          
+          // Manually navigate to the conversation page
+          router.push(`/chat/${newConversationId}`);
+        } else {
+          // If no ID was set after timeout, something went wrong
+          toast.error('Failed to create conversation', {
+            id: 'creating-chat',
+            ...getToastStyle(theme)
+          });
+        }
+      }, 500);
+      
     } catch (error) {
-      console.error("Error starting new chat:", error);
-      toast.error("Failed to start new chat", getToastStyle(theme));
+      console.error("Error creating new chat:", error);
+      toast.error("Failed to create new chat", {
+        id: 'creating-chat',
+        ...getToastStyle(theme)
+      });
     }
   };
 
- 
+  useEffect(() => {
+    //update settings variable from local storage
+    const isWebSearchEnabled = localStorage.getItem('webSearchEnabled') === 'true';
+    const isVectorSearchEnabled = localStorage.getItem('vectorSearchEnabled') === 'true';
+    setDoWebSearch(isWebSearchEnabled);
+    setDoVectorSearch(isVectorSearchEnabled);
+    const savedAIModel = localStorage.getItem('selectedAIModel');
+    if (savedAIModel) {
+      setSelectedModel(JSON.parse(savedAIModel));
+    }
+  }, []);
 
   if (authChecking) {
     return (
@@ -160,11 +221,17 @@ const Page = () => {
   }
 
   return (
-    <div className={`h-full flex flex-col items-center justify-center px-2 overflow-hidden`}>
+    <div className={`h-full flex flex-col items-center justify-center px-2 overflow-hidden chat-page`}>
+      {/* Debug info panel - only shown in development */}
+      {process.env.NODE_ENV !== 'production' && debugInfo && (
+        <div className="absolute top-2 right-2 p-2 bg-gray-800 text-white rounded-md text-xs font-mono z-50 opacity-75 hover:opacity-100">
+          <pre>{debugInfo}</pre>
+        </div>
+      )}
+      
       <div className="w-full flex flex-col items-center justify-center max-w-3xl mx-auto px-4">
           <WelcomeHeader 
             username={user?.username || ''}
-            setPrompt={setPrompt}
           />
           
           <form
@@ -175,8 +242,10 @@ const Page = () => {
               : "bg-white border-gray-200 shadow-sm"
             } transition-all duration-300 relative hover:border-blue-300 dark:hover:border-blue-700 focus-within:border-blue-400 dark:focus-within:border-blue-600`}
           >
+        
+          
             {/* Mode Indicators */}
-            {embeddingEnabled && !agentMode && (
+            {do_web_search && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
                 <div className="flex items-center gap-1">
                   <WordPressIcon />
@@ -185,11 +254,11 @@ const Page = () => {
                 <span>WordPress Knowledge Active</span>
               </div>
             )}
-            
-            {agentMode && (
-              <div className="absolute -top-3 right-5 bg-gradient-to-r from-purple-600 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
-                <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
-                <span>Agent Mode Active</span>
+
+            {do_vector_search && (
+              <div className="absolute -top-3 right-5 bg-gradient-to-r from-green-600 to-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                <Globe className="w-4 h-4 text-white" strokeWidth={2} />
+                <span>Web Search Active</span>
               </div>
             )}
             
@@ -203,12 +272,39 @@ const Page = () => {
 
               {/* Mode Toggle Buttons and AI Provider */}
               <div className="left-0 mt-2 px-3 flex justify-between items-center">
-                <ModeToggleButtons
-                  agentMode={agentMode}
-                  embeddingEnabled={embeddingEnabled}
-                  toggleAgentMode={toggleAgentMode}
-                  toggleEmbedding={toggleEmbedding}
-                />
+                <div className="flex gap-3 text-gray-500 text-xs">
+                  {/* Toggle Embedding Button */}
+                  <button 
+                    type="button"
+                    onClick={toggleSearch}
+                    className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
+                      do_vector_search 
+                        ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                    }`}
+                  >
+                   <Globe className={`w-4 h-4 ${do_vector_search ? "text-blue-500" : ""}`} strokeWidth={2} />
+                <span className={`text-[11px] font-medium ${do_vector_search ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                      {do_vector_search ? "Web Search On" : "Web Search Off"}
+                    </span>
+                  </button>
+
+                  {/* Toggle Search Button */}
+                  <button 
+                    type="button"
+                    onClick={toggleEmbedding}
+                    className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
+                      do_web_search 
+                        ? "text-green-500 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                    }`}
+                  >
+                    <Database className={`w-4 h-4 ${do_web_search ? "text-green-500" : ""}`} strokeWidth={2} />
+                    <span className={`text-[11px] font-medium ${do_web_search ? "text-green-600 dark:text-green-400" : ""}`}>
+                      {do_web_search ? "KB On" : "KB Off"}
+                    </span>
+                  </button>
+                </div>
                 
                 {/* AI Provider Selection */}
                 <AIProviderSelect 
@@ -224,11 +320,10 @@ const Page = () => {
 
         {/* Info Footer */}
         <InfoFooter
-          embeddingEnabled={embeddingEnabled}
-          agentMode={agentMode}
+          do_web_search={do_web_search}
+          do_vector_search={do_vector_search}
         />
       </div>
-      
     </div>
   );
 };

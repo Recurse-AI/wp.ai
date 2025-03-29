@@ -8,7 +8,7 @@ import { getToastStyle } from '@/lib/toastConfig';
 import { detectLanguage } from '@/lib/utils/codeHighlightUtils';
 import { useSyntaxHighlighting } from '@/lib/init';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useStreaming } from '@/context/MessageStateContext';
+import { useMessageGroup } from '@/context/MessageGroupContext';
 import { extractCodeBlocks } from '@/lib/utils/codeHighlightUtils';
 import { User2 } from 'lucide-react';
 import { PiRobotFill } from 'react-icons/pi';
@@ -39,7 +39,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
   const { theme } = useTheme();
   const [displayedText, setDisplayedText] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const { isStreaming } = useStreaming();
+  const { currentPhase } = useMessageGroup();
   const messageRef = useRef<HTMLDivElement>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
@@ -53,7 +53,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
   
   // Effect for streaming text animation
   useEffect(() => {
-    if (!isStreaming || !isLatestMessage || isUser) {
+    if (!streamingActive || !isLatestMessage || isUser) {
       setDisplayedText(content);
       return;
     }
@@ -69,18 +69,18 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     }, 5);
     
     return () => clearInterval(timer);
-  }, [content, isStreaming, isLatestMessage, isUser]);
+  }, [content, streamingActive, isLatestMessage, isUser]);
   
   // Scroll into view when streaming new content
   useEffect(() => {
-    if (messageRef.current && isLatestMessage && isStreaming) {
+    if (messageRef.current && isLatestMessage && streamingActive) {
       const scrollOptions: ScrollIntoViewOptions = {
         behavior: 'smooth',
         block: 'end',
       };
       messageRef.current.scrollIntoView(scrollOptions);
     }
-  }, [displayedText, isLatestMessage, isStreaming]);
+  }, [displayedText, isLatestMessage, streamingActive]);
   
   // Process content to extract code blocks when on client
   const processedContent = isClient ? extractCodeBlocks(displayedText || '') : [];

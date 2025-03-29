@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     
     // Call the Django backend API
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/users/resend-verification/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/resend-verification/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
