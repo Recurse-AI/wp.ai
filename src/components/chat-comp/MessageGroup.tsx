@@ -156,12 +156,21 @@ const MessageGroup = ({
   }, [responseWorkflowMaintainState]);
 
   // Smoother scrolling with reduced animation
+  // useEffect(() => {
+  //   // Only scroll into view on initial mount of the message group, not on every update
+  //   const hasScrolled = messageContainerRef.current?.dataset.hasScrolled === 'true';
+  //   if (messageContainerRef.current && !hasScrolled) {
+  //     messageContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  //     // Mark that we've already scrolled this element
+  //     messageContainerRef.current.dataset.hasScrolled = 'true';
+  //   }
+  // }, []);
+
   useEffect(() => {
-    if(messageContainerRef.current) {
+    if (messageContainerRef.current) {
       messageContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, []);
-
+  }, [isCurrentStreaming]);
 
 
   const handleEdit = () => {
@@ -246,6 +255,7 @@ const MessageGroup = ({
       title="Message group"
       aria-label={`Message group with ${hasUserContent ? 'user question' : ''} ${hasVectorResultsSummary ? ', knowledge base results' : ''} ${hasSystemContent ? ', thinking process' : ''} ${hasAIContent ? ', and AI response' : ''}`}
       role="region"
+      style={{ height: isLatestMessage ? '100%' : 'auto' }}
     >
       <div className="block-content">
         {/* User message always comes first */}
@@ -381,7 +391,8 @@ const MessageGroup = ({
         {/* AI Message always comes last */}
         {hasAIContent && 
          !isEditing && (
-          <div key={`ai-wrapper-${messageGroup?.id}`} className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+          <div key={`ai-wrapper-${messageGroup?.id}`} className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700"
+               style={{ minHeight: isLatestMessage ? '30vh' : 'auto', flex: isLatestMessage ? '1 0 auto' : 'none' }}>
             <AIMessage
               key={`ai-${messageGroup?.id}`}
               content={aiContent || ''}
@@ -397,7 +408,8 @@ const MessageGroup = ({
         
         {/* Show loading indicator when waiting for AI response */}
         {isLatestMessage && isCurrentStreaming && !hasAIContent && !isEditing && (
-          <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700"
+               style={{ minHeight: isLatestMessage ? '30vh' : 'auto', flex: isLatestMessage ? '1 0 auto' : 'none' }}>
             <div className="flex items-center">
               <div className={`p-4 rounded-lg ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-50"} w-full`}>
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -416,14 +428,21 @@ const MessageGroup = ({
         .message-block {
           width: 100%;
           margin-bottom: 1rem;
-          transition: opacity 0.3s ease-out;
+          transition: all 0.3s ease-out;
           position: relative;
+          min-height: ${isLatestMessage ? '100%' : 'auto'};
         }
         
         .streaming-block {
           border-left: 2px solid ${theme === "dark" ? "#4B5563" : "#D1D5DB"};
           padding-left: 0.5rem;
           animation: pulse 2s infinite ease-in-out;
+        }
+        
+        .completed-block {
+          border-left: 2px solid transparent;
+          padding-left: 0.5rem;
+          transition: border-color 0.5s ease-out;
         }
         
         .streaming-searching_web {
@@ -445,6 +464,7 @@ const MessageGroup = ({
         
         .latest-message {
           margin-bottom: 4rem;
+          min-height: 100%;
         }
         
         .final-response {
@@ -453,6 +473,9 @@ const MessageGroup = ({
         
         .block-content {
           width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
       `}</style>
     </div>

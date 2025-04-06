@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import axios from 'axios';
 
-interface RouteContext {
+export interface RouteContext {
   params: {
     id: string;
     fileId: string;
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Call external API for file data
     const apiUrl = `${process.env.EXTERNAL_AGENT_API_URL}/projects/${projectId}/files/${fileId}` || 
                    `https://api.example.com/agent/projects/${projectId}/files/${fileId}`;
-    const userId = session.user.id || session.user.email;
+    const userId = (session.user as any).id || session.user.email;
     
     const response = await axios.get(apiUrl, {
       params: { user_id: userId }
@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Call external API to update file
     const apiUrl = `${process.env.EXTERNAL_AGENT_API_URL}/projects/${projectId}/files/${fileId}` || 
                    `https://api.example.com/agent/projects/${projectId}/files/${fileId}`;
-    const userId = session.user.id || session.user.email;
+    const userId = (session.user as any).id || session.user.email;
     
     const requestBody = {
       content,
@@ -187,7 +187,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     // Call external API to delete file
     const apiUrl = `${process.env.EXTERNAL_AGENT_API_URL}/projects/${projectId}/files/${fileId}` || 
                    `https://api.example.com/agent/projects/${projectId}/files/${fileId}`;
-    const userId = session.user.id || session.user.email;
+    const userId = (session.user as any).id || session.user.email;
     
     await axios.delete(apiUrl, {
       params: { user_id: userId }

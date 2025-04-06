@@ -540,6 +540,14 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
             display: flex;
             flex-direction: column;
             background-color: transparent;
+            /* Add transition to prevent abrupt layout shifts */
+            transition: min-height 0.3s ease;
+          }
+          
+          /* Ensure the latest message maintains consistent height */
+          .conversation-container > div:last-child {
+            min-height: 80vh;
+            transition: min-height 0.3s ease;
           }
           
           .streaming-container {
@@ -566,7 +574,11 @@ const DefaultChatInterface: React.FC<DefaultChatInterfaceProps> = ({
           {messageGroups?.map((messageGroup, index) => {
             const isLatest = index === (messageGroups.length - 1) && messageGroup.ai_content === "";            
             return (
-              <div key={`message-group-container-${messageGroup.id || index}`} className={isLatest ? "latest-message-container" : ""}>
+              <div 
+                key={`message-group-container-${messageGroup.id || index}`} 
+                className={`message-group-outer ${isLatest || index === messageGroups.length - 1 ? "latest-message-container" : ""}`}
+                style={{ minHeight: index === messageGroups.length - 1 ? '80vh' : 'auto' }}
+              >
                 <MessageGroup
                   key={`message-group-${messageGroup.id || index}`}
                   messageGroup={messageGroup}

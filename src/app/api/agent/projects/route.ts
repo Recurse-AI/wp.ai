@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import axios from 'axios';
-import { CodeFile } from '@/lib/services/agentService';
 
 /**
  * GET /api/agent/projects - List all projects
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Call projects API
     const apiUrl = process.env.EXTERNAL_AGENT_API_URL || 'https://api.example.com/agent/projects';
-    const userId = session.user.id || session.user.email;
+    const userId = (session.user as any).id || session.user.email;
     
     // In a real implementation, this would call an external API
     const response = await axios.get(apiUrl, {
@@ -110,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Call projects API
     const apiUrl = process.env.EXTERNAL_AGENT_API_URL || 'https://api.example.com/agent/projects';
-    const userId = session.user.id || session.user.email;
+    const userId = (session.user as any).id || session.user.email;
     
     const requestBody = {
       name,

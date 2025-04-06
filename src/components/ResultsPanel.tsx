@@ -366,7 +366,8 @@ const ResultsPanel: React.FC<{
   }
   
   return (
-    <div className={`results-panel ${theme === "dark" ? "dark-mode" : "light-mode"}`}>
+    <div className={`results-panel ${theme === "dark" ? "dark-mode" : "light-mode"}`}
+         style={{ minHeight: isLatestMessage ? 'fit-content' : 'auto', transition: 'height 0.3s ease' }}>
       {/* Web Search Results - Show First */}
       {hasSearchResults && (
         <div 
@@ -375,6 +376,7 @@ const ResultsPanel: React.FC<{
           aria-label={`Web Search Results, ${displaySearchResults.length} items. Press Tab to navigate sections, Ctrl+C to copy all.`}
           className={`mb-6 p-4 rounded-lg border ${theme === "dark" ? "bg-gray-900/50 border-gray-700 text-gray-300" : "bg-blue-50/30 border-blue-100 text-gray-700"} focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:bg-blue-50/50 dark:focus:bg-blue-900/30 transition-all duration-150`}
           title="Press Tab to navigate sections, Ctrl+C to copy all search results"
+          style={{ minHeight: hasSearchResults ? '50px' : 'auto', transition: 'all 0.3s ease' }}
         >
           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
             <Search className="h-5 w-5 text-blue-500" />

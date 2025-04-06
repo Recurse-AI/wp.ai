@@ -1157,29 +1157,18 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
     
     try {
-      // Find the currently active message group
-      const activeGroup = messageGroups.find(group => 
-        group.status === 'processing' || group.status === 'generating'
-      );
-      
-      if (activeGroup) {
+   
         socket.send(JSON.stringify({
-          type: 'command',
-          command: 'cancel',
-          message_group_id: activeGroup.id
+          command: 'cancel'
         }));
         
         // Update local state to reflect cancellation
         setIsLoading(false);
-        setResponseWorkflowMaintainState(prevState => ({
-          ...prevState,
-          status: 'cancelled'
-        }));
-      }
+        resetWorkflow();
     } catch (error) {
-      console.error('Error cancelling response:', error);
+      console.error('Error canceling response:', error);
     }
-  }, [socket, messageGroups]);
+  }, [socket, conversationId, resetWorkflow]);
   
   /**
    * Retrieve conversation history
