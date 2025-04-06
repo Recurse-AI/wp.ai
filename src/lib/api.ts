@@ -1,5 +1,5 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import TokenManager from './tokenManager';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
+import TokenManager from "./tokenManager";
 
 // Base API URLs - these should match your environment variables
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://192.168.93.41:8000';
@@ -10,14 +10,18 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
   data?: any;
-  tokenError?: 'expired_access' | 'expired_refresh' | 'invalid_token' | 'missing_token';
+  tokenError?:
+    | "expired_access"
+    | "expired_refresh"
+    | "invalid_token"
+    | "missing_token";
 }
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   withCredentials: true, // Include cookies in requests
 });
@@ -34,23 +38,34 @@ const apiClientNoAuth = axios.create({
 // Add request interceptor for auth token
 apiClient.interceptors.request.use(
   async (config) => {
+    // Skip token handling if _skipAuth flag is set
+    if ((config as any)._skipAuth) {
+      console.log("⏩ Skipping auth for this renwal of access token");
+      return config;
+    }
+
     // Only in browser environment
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         // Get valid token from TokenManager
         const token = await TokenManager.getValidToken();
-        console.log('🔍 API Request - Token retrieved:', token ? 'Token exists' : 'No token found');
-        
+        console.log(
+          "🔍 API Request - Token retrieved:",
+          token ? "Token exists" : "No token found"
+        );
+
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
       } catch (error) {
-        console.error('❌ Error getting valid token for request:', error);
+        console.error("❌ Error getting valid token for request:", error);
         // If we're not on the login page, redirect if token refresh fails
-        if (typeof window !== 'undefined' && 
-            !window.location.pathname.includes('/signin') && 
-            !window.location.pathname.includes('/signup')) {
-          window.location.href = '/signin?reason=session_expired';
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/signin") &&
+          !window.location.pathname.includes("/signup")
+        ) {
+          window.location.href = "/signin?reason=session_expired";
         }
       }
     }
@@ -64,32 +79,36 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // If error is 401 and we haven't tried to refresh the token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
         // Check if refresh token exists and is not expired
         const refreshToken = TokenManager.getRefreshToken();
         if (!refreshToken || TokenManager.isRefreshTokenExpired(refreshToken)) {
           // If refresh token is missing or expired (1 month validity), force login
-          console.error('❌ No valid refresh token available (1 month validity)');
+          console.error(
+            "❌ No valid refresh token available (1 month validity)"
+          );
           TokenManager.clearTokens();
-          
+
           // Avoid redirect loops - only redirect if we're not already on the signin page
-          if (typeof window !== 'undefined' && 
-              !window.location.pathname.includes('/signin') && 
-              !window.location.pathname.includes('/signup')) {
-            window.location.href = '/signin?reason=login_required';
+          if (
+            typeof window !== "undefined" &&
+            !window.location.pathname.includes("/signin") &&
+            !window.location.pathname.includes("/signup")
+          ) {
+            window.location.href = "/signin?reason=login_required";
           }
-          
+
           return Promise.reject(error);
         }
-        
+
         // Try to refresh the token
         await TokenManager.refreshAccessToken();
-        
+
         // Get the new token
         const token = TokenManager.getToken();
         if (token) {
@@ -101,33 +120,36 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // If refresh fails, clear tokens and let the error pass through
         TokenManager.clearTokens();
-        
-        console.error('❌ Token refresh failed:', refreshError);
-        
+
+        console.error("❌ Token refresh failed:", refreshError);
+
         // Avoid redirect loops - only redirect if we're not already on the signin page
         // and not in the middle of a login request
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
-          const isLoginRequest = originalRequest.url?.includes('/login') || 
-                               originalRequest.url?.includes('/auth');
-          
-          console.log('🔄 Auth Redirect Check:', { 
-            currentPath, 
+          const isLoginRequest =
+            originalRequest.url?.includes("/login") ||
+            originalRequest.url?.includes("/auth");
+
+          console.log("🔄 Auth Redirect Check:", {
+            currentPath,
             isLoginRequest,
-            originalUrl: originalRequest.url
+            originalUrl: originalRequest.url,
           });
-          
+
           // Only redirect if not already on signin page and not in login process
-          if (currentPath !== '/signin' && !isLoginRequest) {
-            console.log('⚠️ Redirecting to signin page due to auth failure');
-            window.location.href = '/signin?reason=auth_failed';
+          if (currentPath !== "/signin" && !isLoginRequest) {
+            console.log("⚠️ Redirecting to signin page due to auth failure");
+            window.location.href = "/signin?reason=auth_failed";
           } else {
-            console.log('🛑 Prevented redirect loop - already on signin page or in login process');
+            console.log(
+              "🛑 Prevented redirect loop - already on signin page or in login process"
+            );
           }
         }
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -147,33 +169,46 @@ export const apiRequest = async <T>(
       data,
       ...config,
     });
-    console.log(`✅ API Response: ${method} ${url}`, { status: response.status, data: response.data });
+    console.log(`✅ API Response: ${method} ${url}`, {
+      status: response.status,
+      data: response.data,
+    });
     return response.data;
   } catch (error) {
     console.error(`❌ API Error: ${method} ${url}`, error);
     const axiosError = error as AxiosError<any>;
     const apiError: ApiError = {
       status: axiosError.response?.status || 500,
-      message: axiosError.response?.data?.message || 'Something went wrong',
+      message: axiosError.response?.data?.message || "Something went wrong",
       errors: axiosError.response?.data?.errors,
       data: axiosError.response?.data,
     };
-    
+
     // Add token-specific error information
     if (axiosError.response?.status === 401) {
-      const errorDetail = axiosError.response?.data?.detail || '';
-      const errorCode = axiosError.response?.data?.code || '';
-      
-      if (errorDetail.includes('refresh') || errorCode === 'token_not_valid' || errorCode === 'refresh_expired') {
-        apiError.tokenError = 'expired_refresh';
-      } else if (errorDetail.includes('access') || errorCode === 'token_expired') {
-        apiError.tokenError = 'expired_access';
-      } else if (errorDetail.includes('invalid') || errorCode === 'invalid_token') {
-        apiError.tokenError = 'invalid_token';
+      const errorDetail = axiosError.response?.data?.detail || "";
+      const errorCode = axiosError.response?.data?.code || "";
+
+      if (
+        errorDetail.includes("refresh") ||
+        errorCode === "token_not_valid" ||
+        errorCode === "refresh_expired"
+      ) {
+        apiError.tokenError = "expired_refresh";
+      } else if (
+        errorDetail.includes("access") ||
+        errorCode === "token_expired"
+      ) {
+        apiError.tokenError = "expired_access";
+      } else if (
+        errorDetail.includes("invalid") ||
+        errorCode === "invalid_token"
+      ) {
+        apiError.tokenError = "invalid_token";
       } else {
-        apiError.tokenError = 'missing_token';
+        apiError.tokenError = "missing_token";
       }
-      
+
       console.error(`🔑 Token error detected: ${apiError.tokenError}`, {
         status: apiError.status,
         message: apiError.message,
@@ -181,7 +216,7 @@ export const apiRequest = async <T>(
         errorCode,
       });
     }
-    
+
     throw apiError;
   }
 };
@@ -241,17 +276,26 @@ export const apiRequestWithoutAuth = async <T = any>(
 };
 
 // Helper methods for common HTTP methods
-export const apiGet = <T>(url: string, config?: AxiosRequestConfig) => 
-  apiRequest<T>('GET', url, undefined, config);
+export const apiGet = <T>(url: string, config?: AxiosRequestConfig) =>
+  apiRequest<T>("GET", url, undefined, config);
 
-export const apiPost = <T>(url: string, data?: any, config?: AxiosRequestConfig) => 
-  apiRequest<T>('POST', url, data, config);
+export const apiPost = <T>(
+  url: string,
+  data?: any,
+  config?: AxiosRequestConfig
+) => apiRequest<T>("POST", url, data, config);
 
-export const apiPut = <T>(url: string, data?: any, config?: AxiosRequestConfig) => 
-  apiRequest<T>('PUT', url, data, config);
+export const apiPut = <T>(
+  url: string,
+  data?: any,
+  config?: AxiosRequestConfig
+) => apiRequest<T>("PUT", url, data, config);
 
-export const apiPatch = <T>(url: string, data?: any, config?: AxiosRequestConfig) => 
-  apiRequest<T>('PATCH', url, data, config);
+export const apiPatch = <T>(
+  url: string,
+  data?: any,
+  config?: AxiosRequestConfig
+) => apiRequest<T>("PATCH", url, data, config);
 
 export const apiDelete = <T>(url: string, config?: AxiosRequestConfig) => 
   apiRequest<T>('DELETE', url, undefined, config);

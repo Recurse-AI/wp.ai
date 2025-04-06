@@ -1,5 +1,5 @@
-import AuthService from './authService';
-import { jwtDecode } from 'jwt-decode';
+import AuthService from "./authService";
+import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
   exp: number;
@@ -10,8 +10,8 @@ interface DecodedToken {
 }
 
 class TokenManager {
-  private static TOKEN_KEY = 'token';
-  private static REFRESH_TOKEN_KEY = 'refreshToken';
+  private static TOKEN_KEY = "token";
+  private static REFRESH_TOKEN_KEY = "refreshToken";
   private static isRefreshing = false;
   private static refreshPromise: Promise<string> | null = null;
 
@@ -19,7 +19,7 @@ class TokenManager {
    * Save access token to localStorage
    */
   static setToken(token: string): void {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(this.TOKEN_KEY, token);
     }
   }
@@ -28,9 +28,12 @@ class TokenManager {
    * Get access token from localStorage
    */
   static getToken(): string | null {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const token = localStorage.getItem(this.TOKEN_KEY);
-      console.log('🔑 TokenManager: Getting access token from localStorage', token ? 'exists' : 'not found');
+      console.log(
+        "🔑 TokenManager: Getting access token from localStorage",
+        token ? "exists" : "not found"
+      );
       return token;
     }
     return null;
@@ -40,13 +43,16 @@ class TokenManager {
    * Save refresh token to localStorage
    */
   static setRefreshToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      console.log('💾 TokenManager: Saving refresh token to localStorage');
+    if (typeof window !== "undefined") {
+      console.log("💾 TokenManager: Saving refresh token to localStorage");
       localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
-      
+
       // Verify token was set
       const savedToken = localStorage.getItem(this.REFRESH_TOKEN_KEY);
-      console.log('✅ TokenManager: Refresh token saved correctly?', savedToken === token);
+      console.log(
+        "✅ TokenManager: Refresh token saved correctly?",
+        savedToken === token
+      );
     }
   }
 
@@ -54,9 +60,12 @@ class TokenManager {
    * Get refresh token from localStorage
    */
   static getRefreshToken(): string | null {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const token = localStorage.getItem(this.REFRESH_TOKEN_KEY);
-      console.log('🔄 TokenManager: Getting refresh token from localStorage', token ? 'exists' : 'not found');
+      console.log(
+        "🔄 TokenManager: Getting refresh token from localStorage",
+        token ? "exists" : "not found"
+      );
       return token;
     }
     return null;
@@ -66,7 +75,7 @@ class TokenManager {
    * Clear all tokens from localStorage
    */
   static clearTokens(): void {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     }
@@ -78,35 +87,35 @@ class TokenManager {
   static isTokenExpired(token: string): boolean {
     try {
       // Handle empty or invalid tokens
-      if (!token || token === 'undefined' || token === 'null') {
-        console.error('❌ Invalid token provided to isTokenExpired');
+      if (!token || token === "undefined" || token === "null") {
+        console.error("❌ Invalid token provided to isTokenExpired");
         return true;
       }
 
       const decoded = jwtDecode<DecodedToken>(token);
-      
+
       // Handle malformed tokens that decode but don't have expiration
-      if (!decoded || typeof decoded.exp !== 'number') {
-        console.error('❌ Token missing expiration data:', decoded);
+      if (!decoded || typeof decoded.exp !== "number") {
+        console.error("❌ Token missing expiration data:", decoded);
         return true;
       }
-      
+
       const currentTime = Date.now() / 1000;
       
       // Add a 60-second buffer to ensure refresh happens before expiration
       const isExpired = decoded.exp < currentTime + 60;
       
       // Log expiration details
-      console.log('🕒 Token expiration check:', {
+      console.log("🕒 Token expiration check:", {
         expiresAt: new Date(decoded.exp * 1000).toISOString(),
         currentTime: new Date(currentTime * 1000).toISOString(),
         timeLeft: Math.round(decoded.exp - currentTime),
-        isExpired
+        isExpired,
       });
-      
+
       return isExpired;
     } catch (error) {
-      console.error('❌ Error checking token expiration:', error);
+      console.error("❌ Error checking token expiration:", error);
       return true;
     }
   }
@@ -117,19 +126,25 @@ class TokenManager {
   static isRefreshTokenExpired(refreshToken: string): boolean {
     try {
       // Handle empty or invalid tokens
-      if (!refreshToken || refreshToken === 'undefined' || refreshToken === 'null') {
-        console.error('❌ Invalid refresh token provided to isRefreshTokenExpired');
+      if (
+        !refreshToken ||
+        refreshToken === "undefined" ||
+        refreshToken === "null"
+      ) {
+        console.error(
+          "❌ Invalid refresh token provided to isRefreshTokenExpired"
+        );
         return true;
       }
 
       const decoded = jwtDecode<DecodedToken>(refreshToken);
-      
+
       // Handle malformed tokens that decode but don't have expiration
-      if (!decoded || typeof decoded.exp !== 'number') {
-        console.error('❌ Refresh token missing expiration data:', decoded);
+      if (!decoded || typeof decoded.exp !== "number") {
+        console.error("❌ Refresh token missing expiration data:", decoded);
         return true;
       }
-      
+
       const currentTime = Date.now() / 1000;
       
       // Add a small buffer to ensure we don't cut it too close
@@ -139,12 +154,12 @@ class TokenManager {
         expiresAt: new Date(decoded.exp * 1000).toISOString(),
         currentTime: new Date(currentTime * 1000).toISOString(),
         timeLeft: Math.round(decoded.exp - currentTime),
-        isExpired
+        isExpired,
       });
-      
+
       return isExpired;
     } catch (error) {
-      console.error('❌ Error checking refresh token expiration:', error);
+      console.error("❌ Error checking refresh token expiration:", error);
       return true;
     }
   }
@@ -163,7 +178,7 @@ class TokenManager {
   static getDecodedToken(): DecodedToken | null {
     const token = this.getToken();
     if (!token) return null;
-    
+
     try {
       return jwtDecode<DecodedToken>(token);
     } catch (error) {
@@ -199,10 +214,11 @@ class TokenManager {
       }
       throw new Error('No refresh token available');
     }
-    
+
     // Check if refresh token is expired (1 month validity)
     if (this.isRefreshTokenExpired(refreshToken)) {
-      console.error('❌ Refresh token expired. User needs to log in again.');
+      console.error("❌ Refresh token expired. User needs to log in again.");
+      localStorage.removeItem("userData");
       this.clearTokens();
       // If in browser environment, redirect to login
       if (typeof window !== 'undefined' && 
@@ -210,7 +226,7 @@ class TokenManager {
           !window.location.pathname.includes('/signup')) {
         window.location.href = '/signin?reason=expired';
       }
-      throw new Error('Refresh token expired');
+      throw new Error("Refresh token expired");
     }
 
     this.isRefreshing = true;
@@ -290,14 +306,16 @@ class TokenManager {
   static async getValidToken(): Promise<string | null> {
     // Get the current token
     const token = this.getToken();
-    
-    console.log('🔄 TokenManager.getValidToken called, token exists:', !!token);
-    
+
+    console.log("🔄 TokenManager.getValidToken called, token exists:", !!token);
+
     // If no token, check if there's a refresh token we can use
     if (!token) {
       const refreshToken = this.getRefreshToken();
       if (refreshToken && !this.isRefreshTokenExpired(refreshToken)) {
-        console.log('🔄 No access token, but refresh token exists. Attempting refresh...');
+        console.log(
+          "🔄 No access token, but refresh token exists. Attempting refresh..."
+        );
         try {
           return await this.refreshAccessToken();
         } catch (refreshError) {
@@ -316,12 +334,12 @@ class TokenManager {
       console.error('❌ No valid tokens available');
       return null;
     }
-    
+
     // Check if the current token is expired
     try {
       const isExpired = this.isTokenExpired(token);
       if (isExpired) {
-        console.log('🔄 Access token expired, attempting refresh...');
+        console.log("🔄 Access token expired, attempting refresh...");
         try {
           const newToken = await this.refreshAccessToken();
           console.log('✅ Successfully refreshed access token:', !!newToken);
@@ -332,14 +350,14 @@ class TokenManager {
           return null;
         }
       } else {
-        console.log('✅ Access token is valid, no refresh needed');
+        console.log("✅ Access token is valid, no refresh needed");
         return token;
       }
     } catch (error) {
-      console.error('❌ Error validating token:', error);
+      console.error("❌ Error validating token:", error);
       // Try to refresh if token validation fails
       try {
-        console.log('🔄 Token validation failed, attempting refresh...');
+        console.log("🔄 Token validation failed, attempting refresh...");
         return await this.refreshAccessToken();
       } catch (refreshError) {
         console.error('❌ Failed to refresh after validation error:', refreshError);
@@ -353,12 +371,12 @@ class TokenManager {
    * Store both access and refresh tokens
    */
   static storeTokens(accessToken: string, refreshToken: string): void {
-    console.log('🔐 TokenManager: Storing both tokens...');
-    
+    console.log("🔐 TokenManager: Storing both tokens...");
+
     if (!accessToken || !refreshToken) {
-      console.error('❌ TokenManager: Invalid tokens provided', {
+      console.error("❌ TokenManager: Invalid tokens provided", {
         accessToken: !!accessToken,
-        refreshToken: !!refreshToken
+        refreshToken: !!refreshToken,
       });
       return;
     }
@@ -410,4 +428,4 @@ class TokenManager {
   }
 }
 
-export default TokenManager; 
+export default TokenManager;

@@ -1,4 +1,6 @@
-import React, { useState, useContext } from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from './comment.module.css';
@@ -7,13 +9,19 @@ import { FaEllipsisH, FaQuoteRight, FaEdit, FaTimes } from 'react-icons/fa';
 import MarkdownRenderer from '@/components/community/markdownRenderer/MarkdownRenderer';
 import TextEditor from '@/components/community/textEditor/TextEditor';
 import { formatDate } from '@/utils/dateUtils';
-import { IssueContext } from '@/context/IssueContext';
+import { useIssue } from '@/context/IssueContext';
+import { communityApi, type Comment as CommentType } from '@/lib/services/communityApi';
 
-const Comment = ({ comment, onQuoteReply, onCommentUpdate }: { comment: any, onQuoteReply: (replyText: string) => void, onCommentUpdate: (updatedComment: any) => void }) => {
+interface CommentProps {
+    comment: CommentType;
+    onQuoteReply: (replyText: string) => void;
+    onCommentUpdate: (updatedComment: CommentType) => void;
+}
+
+const Comment: React.FC<CommentProps> = ({ comment, onQuoteReply, onCommentUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(comment.content);
     const [isEdited, setIsEdited] = useState(false);
-    const { API_BASE_URL, getAuthHeaders } = useContext(IssueContext);
 
     const handleQuoteReply = () => {
         // Format the comment content as a quote
@@ -28,23 +36,14 @@ const Comment = ({ comment, onQuoteReply, onCommentUpdate }: { comment: any, onQ
 
     const handleEditToggle = () => {
         setIsEditing(!isEditing);
+        if (!isEditing) {
+            setEditedContent(comment.content);
+        }
     };
 
     const handleSave = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/community/comments/${comment.id}/`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    content: editedContent
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update comment');
-            }
-
-            const updatedComment = await response.json();
+            const updatedComment = await communityApi.updateComment(comment.id, editedContent);
             onCommentUpdate(updatedComment);
             setIsEditing(false);
             setIsEdited(true);
@@ -77,7 +76,7 @@ const Comment = ({ comment, onQuoteReply, onCommentUpdate }: { comment: any, onQ
                             </button>
                             <button 
                                 onClick={handleEditToggle}
-                                className={styles.quoteButton}
+                                className={styles.editButton}
                                 title={isEditing ? "Cancel" : "Edit"}
                             >
                                 {isEditing ? <FaTimes /> : <FaEdit />}
@@ -86,20 +85,23 @@ const Comment = ({ comment, onQuoteReply, onCommentUpdate }: { comment: any, onQ
                     </div>
                     <div className={styles.commentText}>
                         {isEditing ? (
-                            <TextEditor
-                                value={editedContent}
-                                onChange={setEditedContent}
-                                placeholder="Edit your comment"
-                            />
+                            <div className={styles.editDescriptionSection}>
+                                <TextEditor
+                                    value={editedContent}
+                                    onChange={setEditedContent}
+                                    placeholder="Edit your comment"
+                                />
+                                <button 
+                                    onClick={handleSave} 
+                                    className={styles.saveButton}
+                                >
+                                    Save changes
+                                </button>
+                            </div>
                         ) : (
-                            <MarkdownRenderer content={editedContent} />
+                            <MarkdownRenderer content={comment.content} />
                         )}
                     </div>
-                    {isEditing && (
-                        <button onClick={handleSave} className={styles.saveButton}>
-                            Save
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

@@ -1,18 +1,34 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import { useTheme } from '@/context/ThemeProvider';
-import { usePathname, useRouter } from 'next/navigation';
-import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { useAuthContext } from '@/context/AuthProvider';
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useTheme } from "@/context/ThemeProvider";
+import { usePathname, useRouter } from "next/navigation";
+import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles } from "lucide-react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
+import { useAuthContext } from "@/context/AuthProvider";
+import SettingsDialog from "@/myUi/SettingsDialog";
+import MySettings from "@/myUi/MySettings";
 
 interface HeaderProps {
   excludedPaths?: string[];
 }
 
-const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '/signup', '/register', '/reset-password', '/forgot-password'] }) => {
+const Header: React.FC<HeaderProps> = ({
+  excludedPaths = [
+    "/signin",
+    "/login",
+    "/signup",
+    "/register",
+    "/reset-password",
+    "/forgot-password",
+  ],
+}) => {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
@@ -22,7 +38,8 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   // Animation values for hover effects
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -38,16 +55,18 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
       } else {
         setScrolled(false);
       }
-      
+
       // Calculate scroll progress
-      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const height =
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight;
       const progress = Math.min(offset / height, 1);
       setScrollProgress(progress);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -61,14 +80,14 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMobileMenuOpen, isUserMenuOpen]);
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const toggleMobileMenu = (e: React.MouseEvent) => {
@@ -83,8 +102,8 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
 
   // Check if a nav link is active
   const isActiveLink = (path: string) => {
-    if (path === '/' && pathname === '/') return true;
-    if (path !== '/' && pathname?.startsWith(path)) return true;
+    if (path === "/" && pathname === "/") return true;
+    if (path !== "/" && pathname?.startsWith(path)) return true;
     return false;
   };
 
@@ -103,10 +122,13 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
 
   // Helper function to get display name from user object
   const getDisplayName = () => {
-    if (!user) return '';
-    return user.username || 
-           `${user.first_name || ''} ${user.last_name || ''}`.trim() || 
-           user.email.split('@')[0] || '';
+    if (!user) return "";
+    return (
+      user.username ||
+      `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+      user.email.split("@")[0] ||
+      ""
+    );
   };
 
   // Handle sign out
@@ -116,23 +138,23 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
       await logout();
       // The router navigation will be handled by the logout function
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       // Fallback navigation if needed
-      router.push('/signin');
+      router.push("/signin");
     }
   };
 
   // Check if current path should hide header
-  if (excludedPaths.some(path => pathname?.startsWith(path))) {
+  if (excludedPaths.some((path) => pathname?.startsWith(path))) {
     return null;
   }
 
   return (
-    <header 
+    <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg' 
-          : 'bg-white dark:bg-gray-900'
+        scrolled
+          ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg"
+          : "bg-white dark:bg-gray-900"
       }`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -140,7 +162,7 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
           {/* Logo and main navigation */}
           <div className="flex items-center">
             <motion.div
-              style={{ rotateX, rotateY, transformPerspective: '500px' }}
+              style={{ rotateX, rotateY, transformPerspective: "500px" }}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
               className="flex-shrink-0"
@@ -149,58 +171,68 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
                 {/* Enhanced Logo with animated gradient and effects */}
                 <div className="relative flex items-center py-2.5 px-3">
                   {/* Background glow effect */}
-                  <div 
+                  <div
                     className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 via-fuchsia-500/20 to-blue-500/20 rounded-xl blur-xl group-hover:blur-2xl opacity-70 group-hover:opacity-100 transition-all duration-700"
-                    style={{ 
-                      transform: 'translateZ(0)',
-                      backfaceVisibility: 'hidden'
+                    style={{
+                      transform: "translateZ(0)",
+                      backfaceVisibility: "hidden",
                     }}
                   ></div>
-                  
+
                   {/* Animated background shimmer effect */}
-                  <motion.div 
+                  <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-cyan-600/40 via-fuchsia-500/40 to-blue-600/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     animate={{
-                      backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                     }}
-                    transition={{ 
-                      duration: 5, 
+                    transition={{
+                      duration: 5,
                       repeat: Infinity,
                       repeatType: "reverse",
-                      ease: "linear"
+                      ease: "linear",
                     }}
-                    style={{ 
-                      backgroundSize: '200% 200%',
-                      transform: 'translateZ(0)',
+                    style={{
+                      backgroundSize: "200% 200%",
+                      transform: "translateZ(0)",
                     }}
                   ></motion.div>
-                  
+
                   {/* Floating particles effect */}
                   <div className="absolute inset-0 overflow-hidden rounded-lg opacity-70">
                     <div className="absolute top-1 right-6 w-0.5 h-0.5 bg-cyan-400 rounded-full animate-pulse"></div>
-                    <div className="absolute top-3 left-1 w-0.5 h-0.5 bg-fuchsia-400 rounded-full animate-ping" 
-                         style={{ animationDuration: '3s', animationDelay: '0.2s' }}></div>
-                    <div className="absolute bottom-2 right-2 w-1 h-1 bg-blue-400 rounded-full animate-ping" 
-                         style={{ animationDuration: '2.5s', animationDelay: '0.5s' }}></div>
+                    <div
+                      className="absolute top-3 left-1 w-0.5 h-0.5 bg-fuchsia-400 rounded-full animate-ping"
+                      style={{
+                        animationDuration: "3s",
+                        animationDelay: "0.2s",
+                      }}
+                    ></div>
+                    <div
+                      className="absolute bottom-2 right-2 w-1 h-1 bg-blue-400 rounded-full animate-ping"
+                      style={{
+                        animationDuration: "2.5s",
+                        animationDelay: "0.5s",
+                      }}
+                    ></div>
                   </div>
 
                   {/* Main text with enhanced gradient */}
                   <div className="relative z-10 flex items-center px-1">
-                    <motion.span 
+                    <motion.span
                       className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-blue-500 leading-none"
                       animate={{
-                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                       }}
-                      transition={{ 
-                        duration: 8, 
+                      transition={{
+                        duration: 8,
                         repeat: Infinity,
                         repeatType: "reverse",
-                        ease: "linear"
+                        ease: "linear",
                       }}
-                      style={{ 
-                        backgroundSize: '200% 200%',
-                        transform: 'translateZ(0)',
-                        letterSpacing: '-0.02em'
+                      style={{
+                        backgroundSize: "200% 200%",
+                        transform: "translateZ(0)",
+                        letterSpacing: "-0.02em",
                       }}
                     >
                       WP
@@ -211,35 +243,35 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
                       </span>
                       AI
                     </motion.span>
-                    
+
                     {/* Tech decoration for AI emphasis */}
-                    <motion.div 
+                    <motion.div
                       className="ml-1.5 w-1.5 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-sm"
-                      initial={{ height: '0%' }}
-                      animate={{ height: ['0%', '100%', '0%'] }}
-                      transition={{ 
+                      initial={{ height: "0%" }}
+                      animate={{ height: ["0%", "100%", "0%"] }}
+                      transition={{
                         duration: 2,
                         repeat: Infinity,
                         repeatDelay: 6,
-                        ease: "easeInOut"
+                        ease: "easeInOut",
                       }}
                     ></motion.div>
-                    
+
                     {/* Sparkle icon */}
                     <motion.div
                       className="ml-2 text-yellow-300 dark:text-yellow-200 opacity-0 group-hover:opacity-100 transition-opacity"
                       initial={{ rotate: 0 }}
                       animate={{ rotate: 360 }}
-                      transition={{ 
-                        duration: 5, 
+                      transition={{
+                        duration: 5,
                         repeat: Infinity,
-                        ease: "linear"
+                        ease: "linear",
                       }}
                     >
                       <Sparkles size={16} />
                     </motion.div>
                   </div>
-                  
+
                   {/* Circuit-like decoration in background */}
                   <div className="absolute -bottom-1 -right-1 w-8 h-8 opacity-30 group-hover:opacity-70 transition-opacity">
                     <div className="absolute top-2 right-2 w-3 h-[1px] bg-cyan-400"></div>
@@ -250,24 +282,24 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
                 </div>
               </Link>
             </motion.div>
-            
+
             <nav className="hidden md:ml-10 md:flex md:space-x-2">
               {[
-                { name: 'Chat', href: '/chat' },
-                { name: 'Agent', href: '/agent' },
-                { name: 'Docs', href: '/docs' }
+                { name: "Chat", href: "/chat" },
+                { name: "Agent", href: "/agent" },
+                { name: "Docs", href: "/docs" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Link 
-                    href={item.href} 
+                  <Link
+                    href={item.href}
                     className={`px-4 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
                       isActiveLink(item.href)
-                        ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 font-semibold'
-                        : 'text-gray-700 dark:text-gray-200 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 font-semibold"
+                        : "text-gray-700 dark:text-gray-200 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                   >
                     {item.name}
@@ -287,7 +319,7 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
               className="p-2.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
+              {theme === "dark" ? (
                 <Sun size={20} className="text-yellow-300" />
               ) : (
                 <Moon size={20} className="text-cyan-600" />
@@ -297,7 +329,7 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
             {/* User profile or sign in button */}
             {user && isAuthenticated ? (
               <div className="relative">
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleUserMenu}
@@ -306,15 +338,24 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
                   <div className="flex items-center space-x-2.5 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 px-3.5 py-2 rounded-full">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
                       {user.profile_picture ? (
-                        <img src={user.profile_picture} className="w-8 h-8 rounded-full object-cover" alt={getDisplayName()} />
+                        <img
+                          src={user.profile_picture}
+                          className="w-8 h-8 rounded-full object-cover"
+                          alt={getDisplayName()}
+                        />
                       ) : (
                         <User size={16} />
                       )}
                     </div>
                     <span className="hidden md:inline-block text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
-                      {getDisplayName().split(' ')[0]}
+                      {getDisplayName().split(" ")[0]}
                     </span>
-                    <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      size={16}
+                      className={`text-gray-500 transition-transform duration-200 ${
+                        isUserMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </div>
                 </motion.div>
 
@@ -329,27 +370,41 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
                       className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
                     >
                       <div className="p-4 border-b border-gray-100/50 dark:border-gray-700/50">
-                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{getDisplayName()}</p>
+                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                          {getDisplayName()}
+                        </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
                           {user.email}
                         </p>
                       </div>
                       <div className="py-1.5">
-                        <Link 
-                          href="/profile" 
+                        <Link
+                          href="/profile"
                           className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           Profile
                         </Link>
-                        <Link 
+                        {/* <Link 
                           href="/settings" 
                           className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           Settings
-                        </Link>
-                        <button 
+                        </Link> */}
+                        <button
+                          onClick={() => {
+                            setIsSettingsOpen(true);
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                        >
+                          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
+                            {/* <FaCogs className="w-4 h-4" /> */}
+                          </div>
+                          <span className="font-medium">Settings</span>
+                        </button>
+                        <button
                           className="block w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100/50 dark:border-gray-700/50 transition-colors duration-150"
                           onClick={handleSignOut}
                         >
@@ -363,7 +418,10 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
             ) : (
               <Link href="/signin">
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)" }}
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
+                  }}
                   whileTap={{ scale: 0.95 }}
                   className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
                 >
@@ -388,25 +446,25 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
       </div>
 
       {/* Scroll Progress Bar - Maintained and enhanced */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-100 dark:bg-gray-800"
         ref={progressBarRef}
       >
-        <motion.div 
+        <motion.div
           className="h-full bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-blue-500"
-          style={{ 
+          style={{
             width: `${scrollProgress * 100}%`,
-            backgroundSize: '200% 200%',
-            backgroundPosition: '0% 50%',
+            backgroundSize: "200% 200%",
+            backgroundPosition: "0% 50%",
           }}
           animate={{
-            backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
           }}
-          transition={{ 
-            duration: 8, 
+          transition={{
+            duration: 8,
             repeat: Infinity,
             repeatType: "reverse",
-            ease: "linear"
+            ease: "linear",
           }}
         />
       </div>
@@ -416,28 +474,28 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
             className="md:hidden"
           >
             <div className="px-3 pt-3 pb-4 space-y-2">
               {[
-                { name: 'Chat', href: '/chat' },
-                { name: 'Agent', href: '/agent' },
-                { name: 'Docs', href: '/docs' }
+                { name: "Chat", href: "/chat" },
+                { name: "Agent", href: "/agent" },
+                { name: "Docs", href: "/docs" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
                   whileHover={{ x: 4 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Link 
-                    href={item.href} 
+                  <Link
+                    href={item.href}
                     className={`block px-4 py-3 rounded-md text-base font-medium ${
                       isActiveLink(item.href)
-                        ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20'
-                        : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -449,8 +507,30 @@ const Header: React.FC<HeaderProps> = ({ excludedPaths = ['/signin', '/login', '
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Settings Dialog */}
+      {isSettingsOpen && user && (
+        <SettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          content={
+            <MySettings
+              user={{
+                email: user?.email || "",
+                image: user?.profile_picture || "",
+                profile_picture: user?.profile_picture,
+                username: user?.username,
+                accountType: "none",
+                joinDate: user?.joinDate,
+                subscriptionPlan: user?.subscriptionPlan,
+                subscriptionEndDate: user?.subscriptionEndDate,
+              }}
+              onClose={() => setIsSettingsOpen(false)}
+            />
+          }
+        />
+      )}
     </header>
   );
 };
 
-export default Header; 
+export default Header;

@@ -24,6 +24,7 @@ import java from 'react-syntax-highlighter/dist/cjs/languages/prism/java';
 import csharp from 'react-syntax-highlighter/dist/cjs/languages/prism/csharp';
 import go from 'react-syntax-highlighter/dist/cjs/languages/prism/go';
 import rust from 'react-syntax-highlighter/dist/cjs/languages/prism/rust';
+import php from 'react-syntax-highlighter/dist/cjs/languages/prism/php'
 
 // Register languages with PrismLight
 SyntaxHighlighter.registerLanguage('jsx', jsx);
@@ -51,6 +52,7 @@ SyntaxHighlighter.registerLanguage('cs', csharp); // alias
 SyntaxHighlighter.registerLanguage('go', go);
 SyntaxHighlighter.registerLanguage('rust', rust);
 SyntaxHighlighter.registerLanguage('rs', rust); // alias
+SyntaxHighlighter.registerLanguage('php', php)
 
 // Export the configured component
 export { SyntaxHighlighter };

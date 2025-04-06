@@ -7,11 +7,16 @@
     border-radius: 6px;
     padding: 16px;
     margin-left: 50px;
+    background-color: var(--bg);
+    color: var(--textColor);
+    border: 1px solid var(--borderColor);
 }
 
 .commentContainer {
     display: flex;
     gap: 16px;
+    padding: 10px;
+    margin: 10px 0;
 }
 
 .avatar {
@@ -20,12 +25,12 @@
     border-radius: 50%;
     flex-shrink: 0;
 }
-
 .commentContent {
     flex: 1;
-    background-color: #ffffff;
-    border: 1px solid #d0d7de;
+    /* background-color: #ffffff; */
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
+    background-color: var(--bg);
 }
 
 .commentHeader {
@@ -33,8 +38,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 16px;
-    background: #f6f8fa;
-    border-bottom: 1px solid #d0d7de;
+    background: var(--softBg);
+    border-bottom: 1px solid var(--borderColor);
     border-radius: 6px 6px 0 0;
 }
 
@@ -46,11 +51,11 @@
 
 .author {
     font-weight: 600;
-    color: #24292f;
+    color: var(--textColor);
 }
 
 .date {
-    color: #57606a;
+    color: var(--softTextColor);
     font-size: 14px;
 }
 
@@ -64,7 +69,7 @@
     background: none;
     border: none;
     padding: 4px 8px;
-    color: #57606a;
+    color: var(--softTextColor);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -75,8 +80,8 @@
 }
 
 .quoteButton:hover {
-    color: #24292f;
-    background-color: rgba(175, 184, 193, 0.2);
+    color: var(--textColor);
+    background-color: var(--softBg);
 }
 
 .moreOptions {
@@ -85,12 +90,12 @@
 }
 
 .moreOptions:hover {
-    color: #24292f;
+    color: var(--textColor);
 }
 
 .commentText {
     padding: 16px;
-    color: #24292f;
+    color: var(--textColor);
     font-size: 14px;
     line-height: 1.5;
     user-select: text;
@@ -112,7 +117,7 @@
 }
 
 .code {
-    background-color: #f6f8fa;
+    background-color: var(--softBg);
     padding: 2px 4px;
     border-radius: 3px;
     font-family: monospace;
@@ -121,8 +126,8 @@
 
 .blockquote {
     padding: 0 16px;
-    color: #57606a;
-    border-left: 4px solid #d0d7de;
+    color: var(--softTextColor);
+    border-left: 4px solid var(--borderColor);
     margin: 16px 0;
 }
 
@@ -148,20 +153,20 @@
 }
 
 .listItem::marker {
-    color: #57606a;
+    color: var(--softTextColor);
 }
 
 .replyButton {
     background: none;
     border: none;
-    color: #6a737d;
+    color: var(--softTextColor);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
 }
 
 .replyButton:hover {
-    color: #0366d6;
+    color: var(--textColor);
     text-decoration: underline;
 }
 
@@ -189,7 +194,7 @@
 
 /* Add these to your existing styles */
 .commentText pre {
-    background-color: #f6f8fa;
+    background-color: var(--softBg);
     border-radius: 6px;
     padding: 16px;
     overflow: auto;
@@ -207,7 +212,7 @@
 }
 
 .commentText a {
-    color: #0366d6;
+    color: var(--textColor);
     text-decoration: none;
 }
 
@@ -216,45 +221,46 @@
 }
 
 .link {
-    color: #0969da;
+    color: var(--textColor);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
 .link:hover {
-    color: #0969da;
+    color: var(--textColor);
     text-decoration: underline;
 }
 
 .link:visited {
-    color: #8250df;
+    color: var(--softTextColor);
 }
 
 .link:active {
-    color: #0969da;
+    color: var(--textColor);
 }
 
 .highlightedAuthor {
     font-size: 1em;
-    color: #9571d8;
+    color: var(--textColor);
     padding: 2px 4px;
     border-radius: 3px;
 }
 
 .editedLabel {
+    color: var(--softTextColor);
     font-size: 12px;
-    color: #57606a;
     margin-left: 8px;
+    font-style: italic;
 }
 
 .editTextarea {
     width: 100%;
     height: 100px;
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--borderColor);
     border-radius: 6px;
     padding: 8px;
     font-size: 14px;
-    color: #24292f;
+    /* color: #24292f; */
     margin-top: 8px;
 }
 
@@ -275,29 +281,29 @@
 
 .editButton {
     background: none;
-    border: 1px solid #d0d7de;
-    color: #57606a;
+    border: 1px solid var(--borderColor);
+    color: var(--softTextColor);
 }
 
 .editButton:hover {
-    background-color: #f6f8fa;
-    border-color: #bdc4cc;
+    background-color: var(--softBg);
+    border-color: var(--softTextColor);
 }
 
 .cancelButton {
     background: none;
-    border: 1px solid #d0d7de;
-    color: #57606a;
+    border: 1px solid var(--borderColor);
+    color: var(--softTextColor);
 }
 
 .cancelButton:hover {
-    background-color: #f6f8fa;
-    border-color: #bdc4cc;
+    background-color: var(--softBg);
+    border-color: var(--borderColor);
 }
 
 .saveButton {
     background-color: #2da44e;
-    border: 1px solid rgba(27, 31, 36, 0.15);
+    /* border: 1px solid rgba(27, 31, 36, 0.15); */
     color: #ffffff;
 }
 

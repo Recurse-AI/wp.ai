@@ -1,16 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from "./commentForm.module.css";
 import TextEditor from "../textEditor/TextEditor";
-import { getRandomAvatar } from '@/utils/avatarUtils';
 
-const CommentForm = ({ 
+interface CommentFormProps {
+    onSubmit: (comment: string) => void;
+    placeholder?: string;
+    buttonText?: string;
+    value: string;
+    onChange: (value: string) => void;
+}
+
+const CommentForm: React.FC<CommentFormProps> = ({ 
     onSubmit, 
     placeholder = "Leave a comment", 
     buttonText = "Comment",
     value,
     onChange 
 }) => {
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (value.trim()) {
             onSubmit(value);
@@ -40,4 +47,4 @@ const CommentForm = ({
     );
 };
 
-export default CommentForm;
+export default CommentForm; 

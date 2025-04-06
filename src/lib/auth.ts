@@ -8,37 +8,40 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-        
+
         try {
           // Replace with your actual authentication logic
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password
-            }),
-          });
-          
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+              }),
+            }
+          );
+
           const user = await response.json();
-          
+
           if (!response.ok) {
             return null;
           }
-          
+
           return user;
         } catch (error) {
           console.error("Auth error:", error);
           return null;
         }
-      }
-    })
+      },
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -72,4 +75,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-export default authOptions; 
+export default authOptions;
