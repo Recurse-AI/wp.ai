@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import { formatText } from "@/utils/textUtils";
 
 interface IssueContextType {
@@ -29,6 +29,15 @@ export const getAuthHeaders = () => {
     return {
         'Content-Type': 'application/json'
     };
+};
+
+// Custom hook to use the Issue context
+export const useIssue = () => {
+    const context = useContext(IssueContext);
+    if (context === undefined) {
+        throw new Error('useIssue must be used within an IssueProvider');
+    }
+    return context;
 };
 
 export const IssueProvider = ({ children }: { children: React.ReactNode }) => {

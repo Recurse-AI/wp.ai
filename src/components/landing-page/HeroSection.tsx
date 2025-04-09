@@ -152,6 +152,49 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
               </Button>
             </Link>
           </motion.div>
+
+          {/* Added Feature Navigation Cards */}
+          <motion.div
+            variants={buttonVariants}
+            className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto"
+          >
+            {/* Agent Card */}
+            <Link href="/agent" passHref>
+              <div className="group p-6 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800/50 dark:to-gray-900/50 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/50 transition-colors">
+                    <Zap size={24} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">WordPress Agent</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">AI-powered site optimization</p>
+                  </div>
+                  <ArrowRight size={20} className="ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+            </Link>
+
+            {/* Community Card */}
+            <Link href="/community" passHref>
+              <div className="group p-6 rounded-xl bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-gray-800/50 dark:to-gray-900/50 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Community</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Join discussions & share ideas</p>
+                  </div>
+                  <ArrowRight size={20} className="ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         </motion.div>
       </Container>
 

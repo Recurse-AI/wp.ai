@@ -44,6 +44,21 @@ apiClient.interceptors.request.use(
       return config;
     }
 
+    // Skip token validation for auth-related endpoints
+    const isAuthEndpoint = config.url && (
+      config.url.includes('/auth/') || 
+      config.url.includes('/register/') || 
+      config.url.includes('/login') || 
+      config.url.includes('/signup') ||
+      config.url.includes('/password-reset') ||
+      config.url.includes('/refresh-token')
+    );
+
+    if (isAuthEndpoint) {
+      console.log("⏩ Skipping auth for auth endpoint:", config.url);
+      return config;
+    }
+
     // Only in browser environment
     if (typeof window !== "undefined") {
       try {

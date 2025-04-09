@@ -520,9 +520,9 @@ const Header: React.FC<HeaderProps> = ({
                 profile_picture: user?.profile_picture,
                 username: user?.username,
                 accountType: "none",
-                joinDate: user?.joinDate,
-                subscriptionPlan: user?.subscriptionPlan,
-                subscriptionEndDate: user?.subscriptionEndDate,
+                joinDate: user?.date_joined || "",
+                subscriptionPlan: "none",
+                subscriptionEndDate: "",
               }}
               onClose={() => setIsSettingsOpen(false)}
             />

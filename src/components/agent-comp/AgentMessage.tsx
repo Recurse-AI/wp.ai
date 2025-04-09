@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { useTheme } from '@/context/ThemeProvider';
 import { FaUser, FaRobot } from 'react-icons/fa';
 import { Copy, Check } from 'lucide-react';
@@ -22,7 +22,7 @@ import "@/lib/utils/syntaxRegistration";
  * Create a WordPress plugin named `admin-welcome-message` that:
 
 - Shows a message at the top of the WordPress admin dashboard saying:
-  **“👋 Welcome from Admin!”**
+  **"👋 Welcome from Admin!"**
 - The message should be styled using CSS (e.g., blue background, white text).
 - JavaScript should be loaded as well (e.g., log to console or support future interactivity).
 - Use `admin_notices` to output the message HTML.
@@ -112,23 +112,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     }
   }, [displayedText, isLatestMessage]);
   
-  // Process content to extract code blocks when on client
-  const processedContent = isClient ? extractCodeBlocks(displayedText || '') : [];
-  
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    toast.success(
-      'Code copied to clipboard!',
-      { style: getToastStyle(theme) as React.CSSProperties }
-    );
-    
-    // Reset the copied state after 2 seconds
-    setTimeout(() => {
-      setCopiedCode(null);
-    }, 2000);
-  };
-  
   // Function to check if code is React/JSX 
   const isReactCode = (code: string): boolean => {
     // Check for React imports
@@ -156,6 +139,21 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     }
     
     return false;
+  };
+  
+  // Handle code copying
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(
+      'Code copied to clipboard!',
+      { style: getToastStyle(theme) as React.CSSProperties }
+    );
+    
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopiedCode(null);
+    }, 2000);
   };
   
   // Improved file extension detection
@@ -287,41 +285,10 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     previousContentRef.current = content;
   }, [content, onCodeBlocksChange]);
 
-  const isReactCode = (code: string): boolean => {
-    if (
-      code.includes("import React") ||
-      code.includes('from "react"') ||
-      code.includes("from 'react'") ||
-      code.includes("extends React.Component") ||
-      code.includes("extends Component")
-    )
-      return true;
-
-    if (
-      code.includes("<") &&
-      code.includes(">") &&
-      (code.includes("</") || code.includes("/>")) &&
-      (code.includes("className=") ||
-        code.includes("onClick=") ||
-        code.includes("props") ||
-        code.includes("style=") ||
-        code.includes("children"))
-    )
-      return true;
-
-    if (
-      /function\s+[A-Z][a-zA-Z]*\s*\(/g.test(code) ||
-      /const\s+[A-Z][a-zA-Z]*\s*=\s*(\(\)|React\.memo|\(props)/g.test(code)
-    )
-      return true;
-
-    return false;
-  };
-
   // Function to render code blocks with VS Code-like syntax highlighting
-  const renderContentWithCodeBlocks = (text: string) => {
+  const renderContentWithCodeBlocks = (text: string): ReactNode[] => {
     const codeBlockRegex = /```(\w+)\s*:\s*([\w-/]+\.\w+)\s*\n([\s\S]*?)```/g;
-    const parts = [];
+    const parts: ReactNode[] = [];
     let lastIndex = 0;
     let match;
 
@@ -484,19 +451,6 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
     ? renderContentWithCodeBlocks(displayedText || "")
     : [];
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    toast.success("Code copied to clipboard!", {
-      style: getToastStyle(theme) as React.CSSProperties,
-    });
-
-    // Reset the copied state after 2 seconds
-    setTimeout(() => {
-      setCopiedCode(null);
-    }, 2000);
-  };
-
   return (
     <div
       ref={messageRef}
@@ -528,7 +482,7 @@ const AgentMessage: React.FC<AgentMessageProps> = ({
           }}
         >
           {isClient ? (
-            processedContent
+            <>{processedContent}</>
           ) : (
             <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">
               {content}

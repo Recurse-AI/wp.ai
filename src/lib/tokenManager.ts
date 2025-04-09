@@ -309,6 +309,20 @@ class TokenManager {
 
     console.log("🔄 TokenManager.getValidToken called, token exists:", !!token);
 
+    // If we're on the signup or signin page, we shouldn't show the "no valid tokens" error
+    // since users are expected to not have tokens yet
+    if (typeof window !== 'undefined') {
+      const isAuthPage = window.location.pathname.includes('/signin') || 
+                        window.location.pathname.includes('/signup') ||
+                        window.location.pathname.includes('/forgot-password') ||
+                        window.location.pathname.includes('/reset-password');
+      
+      if (isAuthPage && !token) {
+        console.log("🔒 On auth page with no token - expected behavior");
+        return null;
+      }
+    }
+
     // If no token, check if there's a refresh token we can use
     if (!token) {
       const refreshToken = this.getRefreshToken();
