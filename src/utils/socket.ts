@@ -3,7 +3,7 @@
 import { SearchResult } from "@/lib/types/chat";
 
 // WebSocket connection status
-export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'disconnecting' | 'error';
 
 // AI generation status
 export type AIStatus = 'idle' | 'thinking' | 'searching_web' | 'searching_context' | 'generating' | 'complete' | 'error' | 'cancelled';

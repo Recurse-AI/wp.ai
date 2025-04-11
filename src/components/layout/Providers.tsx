@@ -19,6 +19,7 @@ const excludedPaths = [
   '/verify-email/:uidb64',
   '/verify-email/:uidb64/:token',
   '/community',
+  '/agent-workspace',
 ];
 
 export default function Providers({ children }: { children: React.ReactNode }) {

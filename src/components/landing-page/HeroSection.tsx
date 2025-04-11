@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, MessageCircle, Zap } from "lucide-react";
+import { ArrowRight, MessageCircle, Zap, Code } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -110,16 +110,18 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
 
           <motion.div 
             variants={buttonVariants}
-            className="mt-10 flex flex-col sm:flex-row gap-5 justify-center items-center"
+            className="mt-10 flex justify-center items-center"
           >
-            {/* Try it Now button with Link component for better performance */}
+            {/* Combined button for chat functionality */}
             <Link href="/chat" passHref className="w-full sm:w-auto">
               <Button 
                 size="lg"
                 className="group relative text-lg px-8 py-6 text-white rounded-xl font-semibold overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300 w-full"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                  Try it Now <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                  <MessageCircle size={20} />
+                  Chat with AI Assistant
+                  <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
                 </span>
                 {!prefersReducedMotion && (
                   <motion.div
@@ -137,20 +139,6 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
                 )}
               </Button>
             </Link>
-
-            {/* Enhanced Chat with AI button */}
-            <Link href="/chat" passHref className="w-full sm:w-auto">
-              <Button 
-                variant="outline"
-                size="lg"
-                className="text-lg px-8 py-6 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-xl font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 w-full"
-              >
-                <span className="flex items-center gap-2">
-                  <MessageCircle className="text-blue-600 dark:text-blue-400" size={20} />
-                  <span>Chat with AI</span>
-                </span>
-              </Button>
-            </Link>
           </motion.div>
 
           {/* Added Feature Navigation Cards */}
@@ -158,16 +146,16 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             variants={buttonVariants}
             className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto"
           >
-            {/* Agent Card */}
-            <Link href="/agent" passHref>
+            {/* WordPress Agent Card - Updated to point to agent-workspace */}
+            <Link href="/agent-workspace" passHref>
               <div className="group p-6 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800/50 dark:to-gray-900/50 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/50 transition-colors">
-                    <Zap size={24} />
+                    <Code className="w-6 h-6" />
                   </div>
                   <div className="text-left">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">WordPress Agent</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">AI-powered site optimization</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Build plugins & themes with AI</p>
                   </div>
                   <ArrowRight size={20} className="ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>

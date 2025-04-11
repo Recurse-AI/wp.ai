@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "@/context/ThemeProvider";
 import { usePathname, useRouter } from "next/navigation";
-import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles } from "lucide-react";
+import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles, MessageCircle, Code } from "lucide-react";
 import {
   motion,
   AnimatePresence,
@@ -144,6 +144,37 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  // Helper function to get icon based on menu name
+  const getMenuIcon = (name: string) => {
+    switch (name) {
+      case "Chat":
+        return <MessageCircle size={18} className="text-blue-500 dark:text-blue-400" />;
+      case "Agent":
+        return <Code size={18} className="text-purple-500 dark:text-purple-400" />;
+      case "Docs":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500 dark:text-cyan-400">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        );
+      case "Community":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fuchsia-500 dark:text-fuchsia-400">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   // Check if current path should hide header
   if (excludedPaths.some((path) => pathname?.startsWith(path))) {
     return null;
@@ -172,7 +203,7 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="relative flex items-center py-2.5 px-3">
                   {/* Background glow effect */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 via-fuchsia-500/20 to-blue-500/20 rounded-xl blur-xl group-hover:blur-2xl opacity-70 group-hover:opacity-100 transition-all duration-700"
+                    className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-500/20 to-cyan-500/20 rounded-xl blur-xl group-hover:blur-2xl opacity-70 group-hover:opacity-100 transition-all duration-700"
                     style={{
                       transform: "translateZ(0)",
                       backfaceVisibility: "hidden",
@@ -181,7 +212,7 @@ const Header: React.FC<HeaderProps> = ({
 
                   {/* Animated background shimmer effect */}
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-cyan-600/40 via-fuchsia-500/40 to-blue-600/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    className="absolute inset-0 bg-gradient-to-r from-blue-600/40 via-purple-500/40 to-cyan-600/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     animate={{
                       backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                     }}
@@ -197,29 +228,10 @@ const Header: React.FC<HeaderProps> = ({
                     }}
                   ></motion.div>
 
-                  {/* Floating particles effect */}
-                  <div className="absolute inset-0 overflow-hidden rounded-lg opacity-70">
-                    <div className="absolute top-1 right-6 w-0.5 h-0.5 bg-cyan-400 rounded-full animate-pulse"></div>
-                    <div
-                      className="absolute top-3 left-1 w-0.5 h-0.5 bg-fuchsia-400 rounded-full animate-ping"
-                      style={{
-                        animationDuration: "3s",
-                        animationDelay: "0.2s",
-                      }}
-                    ></div>
-                    <div
-                      className="absolute bottom-2 right-2 w-1 h-1 bg-blue-400 rounded-full animate-ping"
-                      style={{
-                        animationDuration: "2.5s",
-                        animationDelay: "0.5s",
-                      }}
-                    ></div>
-                  </div>
-
                   {/* Main text with enhanced gradient */}
                   <div className="relative z-10 flex items-center px-1">
                     <motion.span
-                      className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-blue-500 leading-none"
+                      className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 leading-none"
                       animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                       }}
@@ -238,7 +250,7 @@ const Header: React.FC<HeaderProps> = ({
                       WP
                       <span className="relative">
                         {/* Small dot accent */}
-                        <span className="absolute -top-0.5 right-0 w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span className="absolute -top-0.5 right-0 w-1 h-1 rounded-full bg-blue-400 animate-pulse"></span>
                         .
                       </span>
                       AI
@@ -246,7 +258,7 @@ const Header: React.FC<HeaderProps> = ({
 
                     {/* Tech decoration for AI emphasis */}
                     <motion.div
-                      className="ml-1.5 w-1.5 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-sm"
+                      className="ml-1.5 w-1.5 h-6 bg-gradient-to-b from-blue-400 to-purple-500 rounded-sm"
                       initial={{ height: "0%" }}
                       animate={{ height: ["0%", "100%", "0%"] }}
                       transition={{
@@ -271,14 +283,6 @@ const Header: React.FC<HeaderProps> = ({
                       <Sparkles size={16} />
                     </motion.div>
                   </div>
-
-                  {/* Circuit-like decoration in background */}
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 opacity-30 group-hover:opacity-70 transition-opacity">
-                    <div className="absolute top-2 right-2 w-3 h-[1px] bg-cyan-400"></div>
-                    <div className="absolute top-2 right-2 w-[1px] h-3 bg-cyan-400"></div>
-                    <div className="absolute top-4 right-0 w-1 h-1 rounded-full bg-blue-400"></div>
-                    <div className="absolute top-0 right-4 w-1 h-1 rounded-full bg-fuchsia-400"></div>
-                  </div>
                 </div>
               </Link>
             </motion.div>
@@ -286,8 +290,9 @@ const Header: React.FC<HeaderProps> = ({
             <nav className="hidden md:ml-10 md:flex md:space-x-2">
               {[
                 { name: "Chat", href: "/chat" },
-                { name: "Agent", href: "/agent" },
+                { name: "Agent", href: "/agent-workspace" },
                 { name: "Docs", href: "/docs" },
+                { name: "Community", href: "/community" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
@@ -298,8 +303,8 @@ const Header: React.FC<HeaderProps> = ({
                     href={item.href}
                     className={`px-4 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
                       isActiveLink(item.href)
-                        ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 font-semibold"
-                        : "text-gray-700 dark:text-gray-200 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 font-semibold"
+                        : "text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                   >
                     {item.name}
@@ -322,7 +327,7 @@ const Header: React.FC<HeaderProps> = ({
               {theme === "dark" ? (
                 <Sun size={20} className="text-yellow-300" />
               ) : (
-                <Moon size={20} className="text-cyan-600" />
+                <Moon size={20} className="text-blue-600" />
               )}
             </motion.button>
 
@@ -335,8 +340,8 @@ const Header: React.FC<HeaderProps> = ({
                   onClick={toggleUserMenu}
                   className="flex items-center space-x-2 cursor-pointer"
                 >
-                  <div className="flex items-center space-x-2.5 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 px-3.5 py-2 rounded-full">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
+                  <div className="flex items-center space-x-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 px-3.5 py-2 rounded-full border border-gray-200 dark:border-gray-700">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
                       {user.profile_picture ? (
                         <img
                           src={user.profile_picture}
@@ -359,7 +364,7 @@ const Header: React.FC<HeaderProps> = ({
                   </div>
                 </motion.div>
 
-                {/* Animated dropdown menu */}
+                {/* Animated dropdown menu - enhanced styling */}
                 <AnimatePresence>
                   {isUserMenuOpen && (
                     <motion.div
@@ -367,7 +372,7 @@ const Header: React.FC<HeaderProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
+                      className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700"
                     >
                       <div className="p-4 border-b border-gray-100/50 dark:border-gray-700/50">
                         <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
@@ -383,32 +388,37 @@ const Header: React.FC<HeaderProps> = ({
                           className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
-                          Profile
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                              <User size={14} />
+                            </div>
+                            <span>Profile</span>
+                          </div>
                         </Link>
-                        {/* <Link 
-                          href="/settings" 
-                          className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Settings
-                        </Link> */}
                         <button
                           onClick={() => {
                             setIsSettingsOpen(true);
                             setIsUserMenuOpen(false);
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 group"
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                         >
-                          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-all duration-200">
-                            {/* <FaCogs className="w-4 h-4" /> */}
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                            <span>Settings</span>
                           </div>
-                          <span className="font-medium">Settings</span>
                         </button>
                         <button
                           className="block w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100/50 dark:border-gray-700/50 transition-colors duration-150"
                           onClick={handleSignOut}
                         >
-                          Sign out
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            </div>
+                            <span>Sign out</span>
+                          </div>
                         </button>
                       </div>
                     </motion.div>
@@ -423,7 +433,7 @@ const Header: React.FC<HeaderProps> = ({
                     boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
                   }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
                 >
                   Sign In
                 </motion.button>
@@ -451,7 +461,7 @@ const Header: React.FC<HeaderProps> = ({
         ref={progressBarRef}
       >
         <motion.div
-          className="h-full bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-blue-500"
+          className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500"
           style={{
             width: `${scrollProgress * 100}%`,
             backgroundSize: "200% 200%",
@@ -479,11 +489,12 @@ const Header: React.FC<HeaderProps> = ({
             transition={{ duration: 0.3 }}
             className="md:hidden"
           >
-            <div className="px-3 pt-3 pb-4 space-y-2">
+            <div className="px-3 pt-3 pb-4 space-y-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
               {[
                 { name: "Chat", href: "/chat" },
-                { name: "Agent", href: "/agent" },
+                { name: "Agent", href: "/agent-workspace" },
                 { name: "Docs", href: "/docs" },
+                { name: "Community", href: "/community" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
@@ -492,13 +503,14 @@ const Header: React.FC<HeaderProps> = ({
                 >
                   <Link
                     href={item.href}
-                    className={`block px-4 py-3 rounded-md text-base font-medium ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium ${
                       isActiveLink(item.href)
-                        ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20"
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
                         : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
+                    {getMenuIcon(item.name)}
                     {item.name}
                   </Link>
                 </motion.div>

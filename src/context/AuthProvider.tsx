@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import useAuth, { UserProfile } from '@/lib/useAuth';
 
 // Define the context with all the values from useAuth
@@ -56,8 +56,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Use the useAuth hook directly
   const auth = useAuth();
   
+  // Memoize the auth value to prevent unnecessary rerenders
+  const memoizedAuth = useMemo(() => auth, [
+    auth.user,
+    auth.loading,
+    auth.isAuthenticated,
+    auth.error
+  ]);
+  
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={memoizedAuth}>
       {children}
     </AuthContext.Provider>
   );

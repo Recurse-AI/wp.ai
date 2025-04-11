@@ -410,37 +410,17 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setConnecting(false);
         reconnectAttemptRef.current = 0;
         
-        // Start ping interval to keep connection alive
+        // Start ping interval and store the socket
         startPingInterval(ws);
-        
-        // Store the WebSocket instance for later use
         setSocket(ws);
         
-        // If connecting to an existing conversation, request its data
-        if (targetConversationId) {
-          try {
-            console.log('Requesting initial data for conversation:', targetConversationId);
-            ws.send(JSON.stringify({
-              type: WS_MESSAGES.GET_CONVERSATION,
-              conversation_id: targetConversationId
-            }));
-          } catch (error) {
-            console.error('Error requesting initial conversation data:', error);
-          }
-        }
-        
-        // Process any pending messages that were queued while connecting
+        // Process any pending messages in a single operation
         if (pendingMessages.length > 0) {
           console.log(`Processing ${pendingMessages.length} pending messages`);
-          
-          // Create a local copy of the pending messages to process
-          const messagesToProcess = [...pendingMessages];
-          
-          // Clear pending messages list first to prevent re-processing
+          const messages = [...pendingMessages];
           setPendingMessages([]);
           
-          // Now process each message
-          messagesToProcess.forEach(payload => {
+          messages.forEach(payload => {
             try {
               ws.send(JSON.stringify(payload));
             } catch (error) {
@@ -496,7 +476,7 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'ping' }));
       }
-    }, 30000);
+    }, 60000);
   }, []);
 
   /**
@@ -547,7 +527,7 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Process message based on type
       switch (data.type) {
         case WS_MESSAGES.CONNECTION_ESTABLISHED:
-          handleConnectionEstablishedMessage(data);
+          handleConnectionEstablishedMessage(data, event.target as WebSocket);
           break;
           
         case WS_MESSAGES.USER_MESSAGE:
@@ -628,39 +608,31 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   /**
    * Handle WebSocket message for connection established
    */
-  const handleConnectionEstablishedMessage = useCallback((data: any) => {
-    // Process the connection established message
+  const handleConnectionEstablishedMessage = useCallback((data: any, ws?: WebSocket) => {
     console.log('Connection established message received:', data);
     setConversationId(data.conversation_id);
     
-    // Store conversation ID in localStorage for persistence across refreshes
+    // Store conversation ID in localStorage for persistence
     if (data.conversation_id) {
       localStorage.setItem('currentConversationId', data.conversation_id);
-    }
-
-    // Check if we're on the main chat page - we shouldn't redirect if we are
-    const currentPath = window.location.pathname;
-    const isMainChatPage = currentPath === '/chat' || currentPath === '/chat/';
-    
-    // Only redirect if:
-    // 1. Not on the main chat page
-    // 2. Not already on a specific chat page
-    // 3. Not already has an ID in the URL params
-    if (!isMainChatPage && !currentPath.match(/^\/chat\/[^\/]+\/?$/) && !searchParams.get('id')) {
-      console.log(`Redirecting to conversation page: /chat/${data.conversation_id}`);
+      
+      // Always redirect to the specific chat URL with the conversation ID
       router.push(`/chat/${data.conversation_id}`);
-    } else {
-      console.log(`Not redirecting - current path: ${currentPath}, is main chat page: ${isMainChatPage}`);
+      
+      // Request conversation data if needed - use the provided WebSocket instance
+      if (!data.is_new_conversation && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: WS_MESSAGES.GET_CONVERSATION,
+          conversation_id: data.conversation_id
+        }));
+      }
     }
     
-    // If this is a brand new conversation, initialize empty message groups
+    // Initialize empty message groups for new conversations
     if (data.is_new_conversation) {
       setMessageGroups([]);
     }
-    
-    // Important: Don't try to use the socket here - it will be handled by the onopen handler
-    // This message handler runs after the message is received, but the socket ref might not be updated yet
-  }, [searchParams, router]);
+  }, [router]);
   
   /**
    * Handle processing started message

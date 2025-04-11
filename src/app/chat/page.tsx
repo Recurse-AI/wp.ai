@@ -90,8 +90,8 @@ const Page = () => {
     }
   };
 
-  // Toggle embedding mode
-  const toggleEmbedding = () => { 
+  // Toggle search mode
+  const toggleSearch = () => { 
     let webSearchEnabled = !do_web_search ? 'true' : 'false';
     setDoWebSearch(!do_web_search);
     localStorage.setItem('webSearchEnabled', webSearchEnabled);
@@ -105,9 +105,8 @@ const Page = () => {
       }
     );
   };
-
-  // Toggle search mode
-  const toggleSearch = () => {
+  // Toggle embedding mode
+  const toggleEmbedding = () => {
     let vectorSearchEnabled = !do_vector_search ? 'true' : 'false';
     setDoVectorSearch(!do_vector_search);
     localStorage.setItem('vectorSearchEnabled', vectorSearchEnabled);
@@ -147,49 +146,10 @@ const Page = () => {
         doVectorSearch: do_vector_search
       }));
       
-      // Don't disconnect existing connection if connected, we want to maintain it
-      // We'll create a new conversation context on the server via the message
-      
-      // Ensure we're not reusing an existing conversation ID
-      localStorage.removeItem('currentConversationId');
-      
+     
       // Show loading state
       setPrompt('');
-      toast.loading('Creating new conversation...', {
-        id: 'creating-chat',
-        ...getToastStyle(theme)
-      });
-      
-      // If not connected yet, establish connection
-      if (!connected && !connecting) {
-        console.log('Not connected, connecting to WebSocket...');
-        connect();
-      }
-      
-      // The connection_established message will be handled by ChatSocketContext
-      // which will set the conversation ID in localStorage
-
-      // Wait a brief moment for the connection to process
-      setTimeout(() => {
-        // Get the conversation ID that was stored during connection
-        const newConversationId = localStorage.getItem('currentConversationId');
-        
-        if (newConversationId) {
-          toast.success('Conversation created', {
-            id: 'creating-chat',
-            ...getToastStyle(theme)
-          });
-          
-          // Manually navigate to the conversation page
-          router.push(`/chat/${newConversationId}`);
-        } else {
-          // If no ID was set after timeout, something went wrong
-          toast.error('Failed to create conversation', {
-            id: 'creating-chat',
-            ...getToastStyle(theme)
-          });
-        }
-      }, 500);
+      connect();
       
     } catch (error) {
       console.error("Error creating new chat:", error);
@@ -245,7 +205,7 @@ const Page = () => {
         
           
             {/* Mode Indicators */}
-            {do_web_search && (
+            {do_vector_search && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
                 <div className="flex items-center gap-1">
                   <WordPressIcon />
@@ -255,7 +215,7 @@ const Page = () => {
               </div>
             )}
 
-            {do_vector_search && (
+            {do_web_search && (
               <div className="absolute -top-3 right-5 bg-gradient-to-r from-green-600 to-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm">
                 <Globe className="w-4 h-4 text-white" strokeWidth={2} />
                 <span>Web Search Active</span>
@@ -278,14 +238,14 @@ const Page = () => {
                     type="button"
                     onClick={toggleSearch}
                     className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
-                      do_vector_search 
+                      do_web_search 
                         ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
                         : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
                     }`}
                   >
-                   <Globe className={`w-4 h-4 ${do_vector_search ? "text-blue-500" : ""}`} strokeWidth={2} />
-                <span className={`text-[11px] font-medium ${do_vector_search ? "text-blue-600 dark:text-blue-400" : ""}`}>
-                      {do_vector_search ? "Web Search On" : "Web Search Off"}
+                   <Globe className={`w-4 h-4 ${do_web_search ? "text-blue-500" : ""}`} strokeWidth={2} />
+                <span className={`text-[11px] font-medium ${do_web_search ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                      {do_web_search ? "Web Search On" : "Web Search Off"}
                     </span>
                   </button>
 
@@ -294,14 +254,14 @@ const Page = () => {
                     type="button"
                     onClick={toggleEmbedding}
                     className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
-                      do_web_search 
+                      do_vector_search
                         ? "text-green-500 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800" 
                         : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
                     }`}
                   >
-                    <Database className={`w-4 h-4 ${do_web_search ? "text-green-500" : ""}`} strokeWidth={2} />
-                    <span className={`text-[11px] font-medium ${do_web_search ? "text-green-600 dark:text-green-400" : ""}`}>
-                      {do_web_search ? "KB On" : "KB Off"}
+                    <Database className={`w-4 h-4 ${do_vector_search ? "text-green-500" : ""}`} strokeWidth={2} />
+                    <span className={`text-[11px] font-medium ${do_vector_search ? "text-green-600 dark:text-green-400" : ""}`}>
+                      {do_vector_search ? "KB On" : "KB Off"}
                     </span>
                   </button>
                 </div>

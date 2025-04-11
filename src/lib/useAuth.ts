@@ -116,45 +116,6 @@ export default function useAuth() {
               isAuthenticated: true,
               error: null,
             });
-
-            try {
-              // Only fetch user profile if we don't have it in localStorage
-              const userDataString = safeLocalStorage.getItem("userData");
-              if (!userDataString) {
-                const user = await AuthService.getUserProfile();
-                if (user) {
-                  setAuthState({
-                    user,
-                    loading: false,
-                    isAuthenticated: true,
-                    error: null,
-                  });
-                  safeLocalStorage.setItem("userData", JSON.stringify(user));
-                }
-              }
-            } catch (fetchError) {
-              const apiError = fetchError as any;
-
-              if (apiError.tokenError === "expired_refresh") {
-                TokenManager.clearTokens();
-                safeLocalStorage.removeItem("userData");
-                router.push("/signin?reason=expired");
-              } else if (apiError.tokenError === "expired_access") {
-                try {
-                  await TokenManager.refreshAccessToken();
-                  const user = await AuthService.getUserProfile();
-                  if (user) {
-                    setAuthState({
-                      user,
-                      loading: false,
-                      isAuthenticated: true,
-                      error: null,
-                    });
-                    safeLocalStorage.setItem("userData", JSON.stringify(user));
-                  }
-                } catch (refreshError) {}
-              }
-            }
             return;
           }
 
@@ -191,6 +152,17 @@ export default function useAuth() {
             // If parsing fails, continue to fetch from API
           }
         }
+
+        // Add a debounce to prevent multiple API calls in quick succession
+        const lastApiFetchTime = safeLocalStorage.getItem("lastProfileApiFetch");
+        const currentTime = Date.now();
+        if (lastApiFetchTime && currentTime - parseInt(lastApiFetchTime) < 2000) {
+          // If last API call was less than 2 seconds ago, don't fetch again
+          return;
+        }
+        
+        // Set the last fetch time before making the API call
+        safeLocalStorage.setItem("lastProfileApiFetch", currentTime.toString());
 
         const user = await AuthService.getUserProfile();
         setAuthState({

@@ -82,7 +82,7 @@ export interface UserProfile {
 // Add this at the top of the file, after the imports
 let userProfileCache: UserProfile | null = null;
 let userProfileCacheTime: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Auth service with all API endpoints
 const AuthService = {
@@ -185,14 +185,24 @@ const AuthService = {
       return userProfileCache;
     }
 
-    // If no cache or expired, fetch from API
-    const profile = await apiGet<UserProfile>(ApiPaths.USER_PROFILE);
+    // If no active request is in progress, create one
+    if (!AuthService._pendingUserProfileRequest) {
+      AuthService._pendingUserProfileRequest = apiGet<UserProfile>(ApiPaths.USER_PROFILE)
+        .then(profile => {
+          // Update cache
+          userProfileCache = profile;
+          userProfileCacheTime = currentTime;
+          AuthService._pendingUserProfileRequest = null;
+          return profile;
+        })
+        .catch(error => {
+          AuthService._pendingUserProfileRequest = null;
+          throw error;
+        });
+    }
 
-    // Update cache
-    userProfileCache = profile;
-    userProfileCacheTime = currentTime;
-
-    return profile;
+    // Return the pending request
+    return AuthService._pendingUserProfileRequest;
   },
 
   updateUserProfile: (profileData: Partial<UserProfile>) => {
@@ -222,23 +232,8 @@ const AuthService = {
     apiDelete<{ message: string }>(ApiPaths.USER_DETAIL(id)),
 
   getCurrentUser: async () => {
-    // Use the same cache as getUserProfile
-    const currentTime = Date.now();
-    if (
-      userProfileCache &&
-      currentTime - userProfileCacheTime < CACHE_DURATION
-    ) {
-      return userProfileCache;
-    }
-
-    // If no cache or expired, fetch from API
-    const profile = await apiGet<UserProfile>(ApiPaths.USER_PROFILE);
-
-    // Update cache
-    userProfileCache = profile;
-    userProfileCacheTime = currentTime;
-
-    return profile;
+    // Use the same cache and request as getUserProfile
+    return AuthService.getUserProfile();
   },
 
   // Session management
@@ -259,7 +254,11 @@ const AuthService = {
   clearUserProfileCache: () => {
     userProfileCache = null;
     userProfileCacheTime = 0;
+    AuthService._pendingUserProfileRequest = null;
   },
+
+  // Pending request reference
+  _pendingUserProfileRequest: null as Promise<UserProfile> | null,
 };
 
 export default AuthService;

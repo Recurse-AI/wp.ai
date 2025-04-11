@@ -101,6 +101,12 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   };
 
   const handleDeleteChat = async (chatId: string) => {
+    // Check if the chat being deleted is the active conversation
+    if (pathname === `/chat/${chatId}`) {
+      toast.error("Cannot delete the active conversation", getToastStyle(theme));
+      return;
+    }
+    
     try {
       const success = await chatService.deleteChatSession(chatId);
       if (success) {

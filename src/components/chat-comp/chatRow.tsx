@@ -161,6 +161,13 @@ const ChatRow = ({
 
   // Handle Chat Deletion
   const deleteChat = async () => {
+    // Check if this is the active conversation
+    if (isActive) {
+      toast.error("Cannot delete the active conversation", getToastStyle(theme));
+      setOpenDropdown(null);
+      return;
+    }
+    
     setDeleting(true);
     try {
       if (onDelete) {
