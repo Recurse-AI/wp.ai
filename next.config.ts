@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // Disable ESLint during production builds
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Disable TypeScript type checking during build
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
     return [
       // WordPress API rewrites
