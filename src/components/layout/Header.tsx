@@ -48,6 +48,9 @@ const Header: React.FC<HeaderProps> = ({
   const rotateX = useTransform(y, [-10, 10], [2, -2]);
   const rotateY = useTransform(x, [-10, 10], [-2, 2]);
 
+  // Create a ref for the dropdown menu
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
   // Handle scroll effect and progress
   useEffect(() => {
     const handleScroll = () => {
@@ -72,21 +75,24 @@ const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  // Close menus when clicking outside
+  // Modify the click outside handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (isMobileMenuOpen || isUserMenuOpen) {
-        // Check if click is outside the menu
-        setIsMobileMenuOpen(false);
+      const target = e.target as Node;
+      
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setIsUserMenuOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobileMenuOpen, isUserMenuOpen]);
+  }, [isUserMenuOpen]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -335,12 +341,12 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* User profile or sign in button */}
             {user && isAuthenticated ? (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleUserMenu}
-                  className="flex items-center space-x-2 cursor-pointer"
+                  className="flex items-center space-x-2 cursor-pointer user-menu-button"
                 >
                   <div className="flex items-center space-x-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 px-3.5 py-2 rounded-full border border-gray-200 dark:border-gray-700">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
@@ -366,7 +372,7 @@ const Header: React.FC<HeaderProps> = ({
                   </div>
                 </motion.div>
 
-                {/* Animated dropdown menu - enhanced styling */}
+                {/* Dropdown Menu */}
                 <AnimatePresence>
                   {isUserMenuOpen && (
                     <motion.div
