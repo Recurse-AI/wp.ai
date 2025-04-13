@@ -14,6 +14,7 @@ import AgentEditor from './panels/AgentEditor';
 import AgentPreview from './panels/AgentPreview';
 import AgentChat from './panels/AgentChat';
 import AgentTerminal from './panels/AgentTerminal';
+import AgentLanding from './landing/AgentLanding';
 import { DEFAULT_PLUGIN_STRUCTURE, AGENT_SERVICES } from '../constants';
 
 // Local storage keys for panel sizes
@@ -26,6 +27,25 @@ const EXPLORER_VISIBLE_KEY = 'wp-agent-explorer-visible';
 const PREVIEW_VISIBLE_KEY = 'wp-agent-preview-visible';
 const TERMINAL_VISIBLE_KEY = 'wp-agent-terminal-visible';
 
+// Function to recursively prepare files for JSZip
+const prepareFilesForZip = (files: Record<string, FileNode>, currentPath = '') => {
+  const result: Record<string, string> = {};
+  
+  Object.entries(files).forEach(([name, node]) => {
+    const filePath = currentPath ? `${currentPath}/${name}` : name;
+    
+    if (node.type === 'file') {
+      result[filePath] = node.content || '';
+    } else if (node.type === 'folder' && node.children) {
+      // Recursively process nested files
+      const childResults = prepareFilesForZip(node.children, filePath);
+      Object.assign(result, childResults);
+    }
+  });
+  
+  return result;
+};
+
 const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   preloadedService,
   workspaceId,
@@ -35,6 +55,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const isDark = theme === 'dark';
   const [workspaceName, setWorkspaceName] = useState('My WordPress Project');
   const [selectedService, setSelectedService] = useState<AIService | null>(null);
+  const [showLanding, setShowLanding] = useState(!workspaceId);
 
   // Panel size state with localStorage persistence
   const [chatSize, setChatSize] = useState(() => {
@@ -73,9 +94,9 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const [showExplorer, setShowExplorer] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedVisible = localStorage.getItem(EXPLORER_VISIBLE_KEY);
-      return savedVisible ? savedVisible === 'true' : true;
+      return savedVisible ? savedVisible === 'true' : false;
     }
-    return true;
+    return false;
   });
   
   const [showPreview, setShowPreview] = useState(() => {
@@ -148,7 +169,8 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     updateFiles,
     addMessage,
     setProcessing,
-    saveSession
+    saveSession,
+    updateSessionId
   } = useAgentState(workspaceId, preloadedService);
   
   const {
@@ -346,6 +368,89 @@ Let's get started!`;
       }
     });
   }, [theme, addMessage, updateFiles, sessionState.files]);
+
+  // Handle downloading source code
+  const handleDownloadSourceCode = useCallback(async () => {
+    try {
+      // Dynamically import JSZip to avoid increasing the initial bundle size
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Get all files recursively
+      const flattenedFiles = prepareFilesForZip(sessionState.files);
+      
+      // Add files to zip
+      Object.entries(flattenedFiles).forEach(([path, content]) => {
+        zip.file(path, content);
+      });
+      
+      // Generate the zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Create a download link
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(zipBlob);
+      downloadLink.download = `${workspaceName.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      
+      // Trigger download
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      toast.success('Source code downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading source code:', error);
+      toast.error('Failed to download source code');
+    }
+  }, [sessionState.files, workspaceName]);
+  
+  // Set up event listener for download source code
+  useEffect(() => {
+    const handleDownloadEvent = () => {
+      handleDownloadSourceCode();
+    };
+    
+    document.addEventListener('download-source-code', handleDownloadEvent);
+    
+    return () => {
+      document.removeEventListener('download-source-code', handleDownloadEvent);
+    };
+  }, [handleDownloadSourceCode]);
+
+  // Handler for first prompt from landing page
+  const handleFirstPrompt = useCallback(async (prompt: string, sessionId: string) => {
+    // Set the processing state
+    setProcessing(true);
+    
+    // Update the session ID
+    updateSessionId(sessionId);
+    
+    // Add user message
+    addMessage({
+      role: 'user',
+      content: prompt,
+    });
+    
+    // Send to API
+    await sendMessage(prompt, sessionState.files, (responseMessage) => {
+      addMessage(responseMessage);
+    });
+    
+    // Hide landing page and show workspace
+    setShowLanding(false);
+    
+    // If this is a new workspace, update the URL with the session ID
+    if (!workspaceId) {
+      router.replace(`/agent-workspace/${sessionId}`);
+    }
+    
+    setProcessing(false);
+  }, [addMessage, sendMessage, sessionState.files, setProcessing, workspaceId, router, updateSessionId]);
+
+  // If showing landing page, render only that
+  if (showLanding) {
+    return <AgentLanding onFirstPrompt={handleFirstPrompt} />;
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden agent-workspace">

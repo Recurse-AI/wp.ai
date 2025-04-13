@@ -1,16 +1,22 @@
 "use client";
 
+import React from 'react';
 import AgentWorkspace from '@/agent-workspace/components/AgentWorkspace';
 import { useAuthContext } from '@/context/AuthProvider';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+type PageParams = {
+  id: string;
+};
+
 export default function AgentWorkspaceWithIdPage({
   params,
 }: {
-  params: { id: string };
+  params: PageParams;
 }) {
-  const { id } = params;
+  // Use React.use() with proper typing
+  const { id } = React.use(params as unknown as Promise<PageParams>);
   const { isAuthenticated, loading } = useAuthContext();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const router = useRouter();

@@ -45,6 +45,14 @@ export function useAgentState(workspaceId?: string, serviceId?: string) {
     }
   }, [workspaceId]);
 
+  // Update session ID if needed (e.g., when landing page creates a new session)
+  const updateSessionId = useCallback((newId: string) => {
+    setSessionState(prevState => ({
+      ...prevState,
+      id: newId
+    }));
+  }, []);
+
   // Handlers for updating session state
   const setActiveFile = useCallback((file: AgentFile) => {
     setSessionState(prevState => ({
@@ -128,6 +136,7 @@ export function useAgentState(workspaceId?: string, serviceId?: string) {
     updateFiles,
     addMessage,
     setProcessing,
-    saveSession
+    saveSession,
+    updateSessionId
   };
 } 

@@ -1,4 +1,5 @@
 import AgentWorkspace from './components/AgentWorkspace';
+import AgentLanding from './components/landing/AgentLanding';
 
 // Add custom scrollbar styles
 if (typeof document !== 'undefined') {
@@ -73,7 +74,7 @@ if (typeof document !== 'undefined') {
 }
 
 // Export components
-export { AgentWorkspace };
+export { AgentWorkspace, AgentLanding };
 
 // Export hooks
 export { useAgentState } from './hooks/useAgentState';
