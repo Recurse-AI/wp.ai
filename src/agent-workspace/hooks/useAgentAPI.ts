@@ -127,11 +127,27 @@ export function useAgentAPI() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save workspace');
+        // Check the content type before attempting to parse JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save workspace');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Failed to save workspace: ${response.status} ${response.statusText}\n${errorText.substring(0, 100)}...`);
+        }
       }
       
-      const data = await response.json();
+      // Check content type before attempting to parse JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        throw new Error('Server did not return a valid JSON response');
+      }
+      
       toast.success('Workspace saved successfully');
       
       return { 

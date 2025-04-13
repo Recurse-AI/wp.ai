@@ -197,12 +197,12 @@ const WordPressPlayground: React.FC<WordPressPlaygroundProps> = ({ files, classN
     }, [files]); 
 
     return (
-        <div className={`wordpress-playground-container ${className}`}>
+        <div className={`wordpress-playground-container relative ${className}`}>
             {loading && (
-                <div className="flex justify-center items-center p-10">
+                <div className="absolute inset-0 flex justify-center items-center">
                     <div className="flex flex-col items-center">
                         <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-3"></div>
-                        <p className="text-center mb-2">{loadingStatus}</p>
+                        <p className="text-center mb-2 font-medium">{loadingStatus}</p>
                         <p className="text-xs text-gray-500">This may take a few moments...</p>
                     </div>
                 </div>

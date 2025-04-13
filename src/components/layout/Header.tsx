@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "@/context/ThemeProvider";
 import { usePathname, useRouter } from "next/navigation";
-import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles, MessageCircle, Code } from "lucide-react";
+import { Sun, Moon, Menu, X, User, ChevronDown, Sparkles, Code, MessageCircle } from "lucide-react";
 import {
   motion,
   AnimatePresence,
@@ -152,55 +152,12 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  // Helper function to get icon based on menu name
-  const getMenuIcon = (name: string) => {
-    switch (name) {
-      case "Chat":
-        return <MessageCircle size={18} className="text-blue-500 dark:text-blue-400" />;
-      case "Agent":
-        return <Code size={18} className="text-purple-500 dark:text-purple-400" />;
-      case "Docs":
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500 dark:text-cyan-400">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-        );
-      case "Community":
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fuchsia-500 dark:text-fuchsia-400">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Add this helper function to check auth provider
-  const isManualAuthUser = () => {
-    try {
-      const userData = localStorage.getItem("userData");
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.auth_provider === "manual";
-      }
-      return false;
-    } catch (error) {
-      return false;
-    }
-  };
-
   // Check if current path should hide header
   if (excludedPaths.some((path) => pathname?.startsWith(path))) {
     return null;
   }
+
+
 
   return (
     <header
@@ -222,10 +179,10 @@ const Header: React.FC<HeaderProps> = ({
             >
               <Link href="/" className="flex items-center relative group">
                 {/* Enhanced Logo with animated gradient and effects */}
-                <div className="relative flex items-center py-2.5 px-3">
+                <div className="relative flex items-center py-3 px-3.5">
                   {/* Background glow effect */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-500/20 to-cyan-500/20 rounded-xl blur-xl group-hover:blur-2xl opacity-70 group-hover:opacity-100 transition-all duration-700"
+                    className="absolute inset-0 bg-gradient-to-r from-teal-600/20 via-emerald-500/20 to-cyan-500/20 rounded-xl blur-xl group-hover:blur-2xl opacity-70 group-hover:opacity-100 transition-all duration-700"
                     style={{
                       transform: "translateZ(0)",
                       backfaceVisibility: "hidden",
@@ -234,7 +191,7 @@ const Header: React.FC<HeaderProps> = ({
 
                   {/* Animated background shimmer effect */}
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-blue-600/40 via-purple-500/40 to-cyan-600/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    className="absolute inset-0 bg-gradient-to-r from-teal-600/40 via-emerald-500/40 to-cyan-600/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     animate={{
                       backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                     }}
@@ -253,7 +210,7 @@ const Header: React.FC<HeaderProps> = ({
                   {/* Main text with enhanced gradient */}
                   <div className="relative z-10 flex items-center px-1">
                     <motion.span
-                      className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 leading-none"
+                      className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 leading-none"
                       animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                       }}
@@ -270,17 +227,27 @@ const Header: React.FC<HeaderProps> = ({
                       }}
                     >
                       WP
-                      <span className="relative">
-                        {/* Small dot accent */}
-                        <span className="absolute -top-0.5 right-0 w-1 h-1 rounded-full bg-blue-400 animate-pulse"></span>
-                        .
+                      <span className="relative inline-block mx-0.5">
+                        {/* Enhanced caret symbol with animation */}
+                        <motion.span 
+                          className="absolute -top-2 right-0 text-teal-400 font-bold text-lg"
+                          animate={{ 
+                            y: [0, -2, 0],
+                            opacity: [0.7, 1, 0.7]
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        >^</motion.span>
                       </span>
                       AI
                     </motion.span>
 
                     {/* Tech decoration for AI emphasis */}
                     <motion.div
-                      className="ml-1.5 w-1.5 h-6 bg-gradient-to-b from-blue-400 to-purple-500 rounded-sm"
+                      className="ml-1.5 w-1.5 h-6 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-sm"
                       initial={{ height: "0%" }}
                       animate={{ height: ["0%", "100%", "0%"] }}
                       transition={{
@@ -313,24 +280,36 @@ const Header: React.FC<HeaderProps> = ({
               {[
                 { name: "Chat", href: "/chat" },
                 { name: "Agent", href: "/agent-workspace" },
-                { name: "Docs", href: "/docs" },
-                { name: "Community", href: "/community" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  className="relative"
                 >
                   <Link
                     href={item.href}
-                    className={`px-4 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
+                    className={`px-5 py-3.5 text-sm font-medium rounded-md transition-colors duration-200 flex items-center gap-2 ${
                       isActiveLink(item.href)
                         ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 font-semibold"
                         : "text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                   >
                     {item.name}
+                    <ChevronDown
+                      size={16}
+                      className={`text-emerald-500 dark:text-emerald-400 transition-transform duration-200 ${
+                        isUserMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                    {isActiveLink(item.href) && (
+                      <span className="text-xs text-teal-500 font-bold">^</span>
+                    )}
                   </Link>
+                  {/* Add floating caret for active link */}
+                  {isActiveLink(item.href) && (
+                    <span className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-teal-500 text-lg">^</span>
+                  )}
                 </motion.div>
               ))}
             </nav>
@@ -343,13 +322,13 @@ const Header: React.FC<HeaderProps> = ({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleTheme}
-              className="p-2.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-3 rounded-full text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-gray-800 transition-colors"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
                 <Sun size={20} className="text-yellow-300" />
               ) : (
-                <Moon size={20} className="text-blue-600" />
+                <Moon size={20} className="text-emerald-600" />
               )}
             </motion.button>
 
@@ -362,8 +341,8 @@ const Header: React.FC<HeaderProps> = ({
                   onClick={toggleUserMenu}
                   className="flex items-center space-x-2 cursor-pointer user-menu-button"
                 >
-                  <div className="flex items-center space-x-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 px-3.5 py-2 rounded-full border border-gray-200 dark:border-gray-700">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
+                  <div className="flex items-center space-x-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-gray-800 dark:to-gray-700 px-4 py-3 rounded-full border border-emerald-200 dark:border-gray-700 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
                       {user.profile_picture ? (
                         <img
                           src={user.profile_picture}
@@ -379,7 +358,7 @@ const Header: React.FC<HeaderProps> = ({
                     </span>
                     <ChevronDown
                       size={16}
-                      className={`text-gray-500 transition-transform duration-200 ${
+                      className={`text-emerald-500 dark:text-emerald-400 transition-transform duration-200 ${
                         isUserMenuOpen ? "rotate-180" : ""
                       }`}
                     />
@@ -394,9 +373,9 @@ const Header: React.FC<HeaderProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700"
+                      className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-emerald-100 dark:border-gray-700"
                     >
-                      <div className="p-4 border-b border-gray-100/50 dark:border-gray-700/50">
+                      <div className="p-4 border-b border-emerald-100/50 dark:border-gray-700/50">
                         <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
                           {getDisplayName()}
                         </p>
@@ -405,26 +384,23 @@ const Header: React.FC<HeaderProps> = ({
                         </p>
                       </div>
                       <div className="py-1.5">
-                        {isManualAuthUser() && (
-                          <button
-                            onClick={() => setIsChangePasswordModalOpen(true)}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                <User size={14} />
-                              </div>
-                              <span>Change Password</span>
+                        {/* Change Password Button */}
+                        <button
+                          onClick={() => setIsChangePasswordModalOpen(true)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                              <User size={14} />
                             </div>
-                          </button>
-                        )}
+                            <span>Change Password</span>
+                          </div>
+                        </button>
 
                         {/* Sign Out Button */}
                         <button
                           onClick={handleSignOut}
-                          className={`w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 ${
-                            isManualAuthUser() ? 'border-t border-gray-100/50 dark:border-gray-700/50' : ''
-                          }`}
+                          className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100/50 dark:border-gray-700/50 transition-colors duration-150"
                         >
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
@@ -446,7 +422,7 @@ const Header: React.FC<HeaderProps> = ({
                     boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
                   }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
+                  className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white px-6 py-3.5 rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
                 >
                   Sign In
                 </motion.button>
@@ -506,25 +482,31 @@ const Header: React.FC<HeaderProps> = ({
               {[
                 { name: "Chat", href: "/chat" },
                 { name: "Agent", href: "/agent-workspace" },
-                { name: "Docs", href: "/docs" },
-                { name: "Community", href: "/community" },
               ].map((item) => (
                 <motion.div
                   key={item.name}
                   whileHover={{ x: 4 }}
                   whileTap={{ scale: 0.98 }}
+                  className="relative"
                 >
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium ${
+                    className={`flex items-center gap-3 px-4 py-4 rounded-md text-base font-medium ${
                       isActiveLink(item.href)
                         ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
                         : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    {getMenuIcon(item.name)}
+                    {item.name === "Chat" ? (
+                      <MessageCircle size={20} className="text-blue-500 dark:text-blue-400" />
+                    ) : (
+                      <Code size={20} className="text-purple-500 dark:text-purple-400" />
+                    )}
                     {item.name}
+                    {isActiveLink(item.href) && (
+                      <span className="ml-auto text-teal-500 font-bold">^</span>
+                    )}
                   </Link>
                 </motion.div>
               ))}

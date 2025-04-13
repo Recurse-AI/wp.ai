@@ -73,8 +73,7 @@ const VideoSection: React.FC = () => {
                   <Image 
                     src="/wp.webp"
                     alt="Video thumbnail" 
-                    layout="fill" 
-                    objectFit="cover"
+                    fill={true}
                     className="object-cover"
                     onError={(e) => {
                       // Fallback to a placeholder if image doesn't exist

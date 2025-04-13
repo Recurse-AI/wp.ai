@@ -112,30 +112,39 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             variants={buttonVariants}
             className="mt-10 flex justify-center items-center"
           >
-            {/* Combined button for chat functionality */}
+            {/* Completely redesigned chat button */}
             <Link href="/chat" passHref className="w-full sm:w-auto">
               <Button 
                 size="lg"
-                className="group relative text-lg px-8 py-6 text-white rounded-xl font-semibold overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300 w-full"
+                className="relative text-lg px-8 py-6 text-white rounded-xl font-bold overflow-hidden shadow-lg transition-all duration-300 w-full flex items-center justify-center gap-3 bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 hover:from-emerald-600 hover:via-teal-500 hover:to-cyan-600 hover:shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  <MessageCircle size={20} />
-                  Chat with AI Assistant
-                  <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-                </span>
+                <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-30 transition-opacity duration-300"></div>
+                
+                <div className="flex items-center justify-center bg-white/20 rounded-full p-1.5">
+                  <MessageCircle size={20} strokeWidth={2.5} className="text-white" />
+                </div>
+                
+                <span className="relative z-10">Chat with AI Assistant</span>
+                
+                <div className="relative flex items-center">
+                  <span className="absolute animate-ping w-2 h-2 rounded-full bg-white/70 opacity-75"></span>
+                  <span className="relative w-2 h-2 rounded-full bg-white"></span>
+                </div>
+                
                 {!prefersReducedMotion && (
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
-                    style={{ willChange: "transform" }}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
                     animate={{
-                      x: ["-100%", "100%"],
+                      x: [0, 5, 0],
                     }}
                     transition={{
                       repeat: Infinity,
-                      duration: 2,
-                      ease: "linear",
+                      duration: 1.5,
+                      ease: "easeInOut",
                     }}
-                  />
+                  >
+                    <ArrowRight className="text-white/80" size={18} />
+                  </motion.div>
                 )}
               </Button>
             </Link>
@@ -196,7 +205,7 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
         <Button
           onClick={onChatOpen}
           size="icon"
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg"
+          className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg"
         >
           <MessageCircle size={24} className="text-white" />
         </Button>

@@ -23,20 +23,20 @@ export const THEME_TEMPLATES = {
 // Default Agent Services
 export const AGENT_SERVICES: AIService[] = [
   {
-    id: "themes",
-    title: "AI Theme Creation",
-    description: "Generate custom WordPress themes based on your brand and preferences using AI.",
-    icon: Palette,
-    example: "Create a modern e-commerce theme with a blue and white color scheme",
-    color: "from-blue-500 to-indigo-600",
-  },
-  {
     id: "plugins",
     title: "Plugin Development",
     description: "Create powerful WordPress plugins with our AI assistant generating code and structure.",
     icon: PlugZap,
     example: "Build a plugin that adds a custom image generation button to the media library",
     color: "from-green-500 to-emerald-600",
+  },
+  {
+    id: "themes",
+    title: "AI Theme Creation",
+    description: "Generate custom WordPress themes based on your brand and preferences using AI.",
+    icon: Palette,
+    example: "Create a modern e-commerce theme with a blue and white color scheme",
+    color: "from-blue-500 to-indigo-600",
   },
   {
     id: "pages",
@@ -81,7 +81,7 @@ export const AGENT_SERVICES: AIService[] = [
 ];
 
 // Default Panel Layouts
-export const DEFAULT_PANEL_LAYOUT = PanelLayout.Split;
+export const DEFAULT_PANEL_LAYOUT = PanelLayout.Editor;
 
 // Default Plugin Structure
 export const DEFAULT_PLUGIN_STRUCTURE: Record<string, FileNode> = {

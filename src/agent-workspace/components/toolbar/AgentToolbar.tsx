@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw } from 'lucide-react';
+import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download } from 'lucide-react';
 import { PanelLayout, AgentToolbarProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import Link from 'next/link';
@@ -89,6 +89,17 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
       }
     }
     setServicesOpen(false);
+  };
+  
+  const handleDownloadSourceCode = () => {
+    // Dispatch an event to the parent component to handle the download
+    // This is a simple approach; alternatively you could pass a callback prop
+    const event = new CustomEvent('download-source-code', {
+      bubbles: true,
+      composed: true
+    });
+    document.dispatchEvent(event);
+    setMenuOpen(false);
   };
   
   return (
@@ -309,6 +320,18 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
                     Help & Documentation
+                  </button>
+                  
+                  <button
+                    onClick={handleDownloadSourceCode}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      isDark 
+                        ? 'hover:bg-gray-700 text-gray-300' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Source Code
                   </button>
                   
                   {onSaveWorkspace && (
