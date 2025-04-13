@@ -14,6 +14,7 @@ import {
 import { useAuthContext } from "@/context/AuthProvider";
 import SettingsDialog from "@/myUi/SettingsDialog";
 import MySettings from "@/myUi/MySettings";
+import ChangePasswordModal from "../profile-comp/change-password-modal";
 
 interface HeaderProps {
   excludedPaths?: string[];
@@ -39,12 +40,16 @@ const Header: React.FC<HeaderProps> = ({
   const [scrollProgress, setScrollProgress] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   // Animation values for hover effects
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotateX = useTransform(y, [-10, 10], [2, -2]);
   const rotateY = useTransform(x, [-10, 10], [-2, 2]);
+
+  // Create a ref for the dropdown menu
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Handle scroll effect and progress
   useEffect(() => {
@@ -70,21 +75,24 @@ const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  // Close menus when clicking outside
+  // Modify the click outside handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (isMobileMenuOpen || isUserMenuOpen) {
-        // Check if click is outside the menu
-        setIsMobileMenuOpen(false);
+      const target = e.target as Node;
+      
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setIsUserMenuOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobileMenuOpen, isUserMenuOpen]);
+  }, [isUserMenuOpen]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -326,12 +334,12 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* User profile or sign in button */}
             {user && isAuthenticated ? (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleUserMenu}
-                  className="flex items-center space-x-2 cursor-pointer"
+                  className="flex items-center space-x-2 cursor-pointer user-menu-button"
                 >
                   <div className="flex items-center space-x-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-gray-800 dark:to-gray-700 px-4 py-3 rounded-full border border-emerald-200 dark:border-gray-700 shadow-sm">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white overflow-hidden shadow-sm">
@@ -357,7 +365,7 @@ const Header: React.FC<HeaderProps> = ({
                   </div>
                 </motion.div>
 
-                {/* Animated dropdown menu - enhanced styling */}
+                {/* Dropdown Menu */}
                 <AnimatePresence>
                   {isUserMenuOpen && (
                     <motion.div
@@ -376,35 +384,23 @@ const Header: React.FC<HeaderProps> = ({
                         </p>
                       </div>
                       <div className="py-1.5">
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                          onClick={() => setIsUserMenuOpen(false)}
+                        {/* Change Password Button */}
+                        <button
+                          onClick={() => setIsChangePasswordModalOpen(true)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                         >
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
                               <User size={14} />
                             </div>
-                            <span>Profile</span>
-                          </div>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setIsSettingsOpen(true);
-                            setIsUserMenuOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            </div>
-                            <span>Settings</span>
+                            <span>Change Password</span>
                           </div>
                         </button>
+
+                        {/* Sign Out Button */}
                         <button
-                          className="block w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-emerald-100/50 dark:border-gray-700/50 transition-colors duration-150"
                           onClick={handleSignOut}
+                          className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100/50 dark:border-gray-700/50 transition-colors duration-150"
                         >
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
@@ -540,6 +536,10 @@ const Header: React.FC<HeaderProps> = ({
           }
         />
       )}
+      <ChangePasswordModal 
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </header>
   );
 };
