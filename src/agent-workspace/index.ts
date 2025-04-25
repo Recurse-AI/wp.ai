@@ -4,19 +4,33 @@ import AgentLanding from './components/landing/AgentLanding';
 // Add custom scrollbar styles
 if (typeof document !== 'undefined') {
   const styles = `
+    /* Basic scroll behavior */
+    html, body {
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior-y: none;
+    }
+    
+    /* Ensure all elements can be scrolled if they overflow */
+    .agent-workspace, 
+    .agent-workspace > div {
+      overscroll-behavior: contain;
+    }
+    
+    /* Custom scrollbar styling */
     .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.05);
-      border-radius: 3px;
+      border-radius: 4px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.2);
-      border-radius: 3px;
+      border-radius: 4px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -37,22 +51,22 @@ if (typeof document !== 'undefined') {
 
     /* Apply to all scrollable elements in the workspace */
     .agent-workspace *::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
     }
     
     .agent-workspace *::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.05);
-      border-radius: 3px;
+      border-radius: 4px;
     }
     
     .agent-workspace *::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
     }
     
     .agent-workspace *::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.25);
     }
     
     .dark .agent-workspace *::-webkit-scrollbar-track {
@@ -60,11 +74,28 @@ if (typeof document !== 'undefined') {
     }
     
     .dark .agent-workspace *::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
     }
     
     .dark .agent-workspace *::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
+    }
+    
+    /* Modern CSS scrollbar styling */
+    .agent-workspace * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+    }
+    
+    .dark .agent-workspace * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Fix for textarea inputs to ensure they're visible */
+    textarea, input {
+      -webkit-appearance: none;
+      appearance: none;
     }
   `;
 
@@ -79,6 +110,10 @@ export { AgentWorkspace, AgentLanding };
 // Export hooks
 export { useAgentState } from './hooks/useAgentState';
 export { useAgentAPI } from './hooks/useAgentAPI';
+
+// Export services
+export { agentAPI } from './utils/apiService';
+export { websocketService, WebSocketEventType } from './utils/websocketService';
 
 // Export types
 export * from './types';

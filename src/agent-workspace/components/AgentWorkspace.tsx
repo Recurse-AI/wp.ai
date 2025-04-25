@@ -16,6 +16,7 @@ import AgentChat from './panels/AgentChat';
 import AgentTerminal from './panels/AgentTerminal';
 import AgentLanding from './landing/AgentLanding';
 import { DEFAULT_PLUGIN_STRUCTURE, AGENT_SERVICES } from '../constants';
+import { websocketService } from '../utils/websocketService';
 
 // Local storage keys for panel sizes
 const CHAT_SIZE_KEY = 'wp-agent-chat-size';
@@ -56,6 +57,11 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const [workspaceName, setWorkspaceName] = useState('My WordPress Project');
   const [selectedService, setSelectedService] = useState<AIService | null>(null);
   const [showLanding, setShowLanding] = useState(!workspaceId);
+
+  // Initialize agent API
+  const {
+    createWorkspace
+  } = useAgentAPI();
 
   // Panel size state with localStorage persistence
   const [chatSize, setChatSize] = useState(() => {
@@ -162,57 +168,54 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   // Initialize agent state and API
   const {
     sessionState,
-    layout,
-    setLayout,
-    setActiveFile,
-    updateFileContent,
-    updateFiles,
-    addMessage,
-    setProcessing,
-    saveSession,
-    updateSessionId
-  } = useAgentState(workspaceId, preloadedService);
-  
-  const {
     isLoading,
     error,
     sendMessage,
-    generateCode,
-    saveWorkspace
-  } = useAgentAPI();
+    createFile,
+    updateFile,
+    selectFile,
+    reconnect
+  } = useAgentState({ workspaceId });
+  
+  // Local state for UI layout
+  const [layout, setLayout] = useState<PanelLayout>(PanelLayout.Split);
   
   // Handlers
   const handleFileSelect = useCallback((file: AgentFile) => {
-    setActiveFile(file);
-  }, [setActiveFile]);
+    selectFile(file);
+  }, [selectFile]);
   
   const handleFileContentChange = useCallback((content: string) => {
     if (sessionState.activeFile) {
-      updateFileContent(sessionState.activeFile.id, content);
+      updateFile(sessionState.activeFile.id, content);
     }
-  }, [sessionState.activeFile, updateFileContent]);
+  }, [sessionState.activeFile, updateFile]);
   
   const handleFilesChange = useCallback((files: Record<string, FileNode>) => {
-    updateFiles(files);
-  }, [updateFiles]);
+    // TODO: Add a method to update all files at once in the new API
+    // For now, this won't do anything as we don't have a direct way to update all files
+    console.log("Updating all files at once is not supported in the new API yet");
+  }, []);
   
   const handleSendMessage = useCallback(async (message: string) => {
-    setProcessing(true);
-    
-    // Add user message
-    addMessage({
-      role: 'user',
-      content: message,
-    });
-    
-    // Send to API
-    const response = await sendMessage(message, sessionState.files, (responseMessage) => {
-      addMessage(responseMessage);
-    });
-    
-    setProcessing(false);
-    return response;
-  }, [addMessage, sendMessage, sessionState.files, setProcessing]);
+    try {
+      // Check if we have a session ID before trying to send message
+      if (!sessionState.id || sessionState.id === 'undefined' || sessionState.id === 'null') {
+        console.error(`Cannot send message: Invalid session ID ${sessionState.id}`);
+        toast.error("Cannot send message: No valid workspace ID");
+        return false;
+      }
+      
+      console.log(`Sending message to workspace ID: ${sessionState.id}`);
+      
+      await sendMessage(message);
+      return true;
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message. Please try again.");
+      return false;
+    }
+  }, [sendMessage, sessionState.id]);
 
   const handleRegenerateMessage = useCallback(async () => {
     // To be implemented
@@ -225,29 +228,14 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   }, [theme]);
 
   const handleSaveWorkspace = useCallback(async () => {
-    // Save to server
-    const result = await saveWorkspace(
-      sessionState.id,
-      workspaceName,
-      sessionState.files,
-      sessionState.messages
-    );
-    
-    if (result.success) {
-      // If this is a new workspace, update the URL
-      if (!workspaceId && result.workspaceId) {
-        router.replace(`/agent-workspace/${result.workspaceId}`);
+    // TODO: Implement workspace saving in the new API
+    toast.success("Workspace is automatically saved", {
+      style: {
+        background: theme === 'dark' ? '#333' : '#fff',
+        color: theme === 'dark' ? '#fff' : '#333',
       }
-    }
-  }, [
-    sessionState.id, 
-    sessionState.files, 
-    sessionState.messages, 
-    workspaceName, 
-    saveWorkspace, 
-    workspaceId, 
-    router
-  ]);
+    });
+  }, [theme]);
 
   // Toggle panel visibility
   const toggleExplorer = useCallback(() => {
@@ -286,6 +274,20 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     }
   }, []);
 
+  // Handle service change
+  const handleServiceChange = useCallback((service: AIService) => {
+    setSelectedService(service);
+    setWorkspaceName(`${service.title} Project`);
+    
+    // Display a toast notification instead of adding a system message
+    toast.success(`Switched to ${service.title} service`, {
+      style: {
+        background: theme === 'dark' ? '#333' : '#fff',
+        color: theme === 'dark' ? '#fff' : '#333',
+      }
+    });
+  }, [theme]);
+
   // Initialize workspace from service if provided
   useEffect(() => {
     if (preloadedService && !workspaceId) {
@@ -298,34 +300,12 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       if (service) {
         setSelectedService(service);
         setWorkspaceName(`${service.title} Project`);
-        
-        // Add a system message about the selected service
-        const welcomeMessage = `# Welcome to ${service.title}
-
-${service.description}
-
-You can ask me anything about ${service.title.toLowerCase()}, such as:
-- ${service.example}
-- How to customize or extend your project
-- Best practices and recommendations
-
-Let's get started!`;
-
-        addMessage({
-          role: 'system',
-          content: welcomeMessage
-        });
-        
-        // Initialize with starter template if available
-        if (Object.keys(sessionState.files).length <= 1) {
-          updateFiles(DEFAULT_PLUGIN_STRUCTURE);
-        }
       } else {
         // Default service message if no match found
         setWorkspaceName(`${preloadedService} Project`);
       }
     }
-  }, [preloadedService, workspaceId, addMessage, updateFiles, sessionState.files]);
+  }, [preloadedService, workspaceId]);
 
   // Calculate window sizes for responsive layout
   const [windowWidth, setWindowWidth] = useState(
@@ -335,39 +315,28 @@ Let's get started!`;
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
+      
+      // Auto-adjust layout for small screens
+      if (window.innerWidth < 768 && showExplorer) {
+        // On mobile screens, auto-hide file explorer
+        setShowExplorer(false);
+      }
+      
+      // Adjust chat panel size for small screens
+      if (window.innerWidth < 768 && chatSize < 50) {
+        setChatSize(50); // Make chat wider on mobile
+      } else if (window.innerWidth >= 768 && chatSize > 40) {
+        setChatSize(30); // Default size on larger screens
+      }
     };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', handleResize);
+      // Call once on mount to set initial responsive layout
+      handleResize();
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, []);
-
-  // Handle service change
-  const handleServiceChange = useCallback((service: AIService) => {
-    setSelectedService(service);
-    setWorkspaceName(`${service.title} Project`);
-    
-    // Add a system message about the selected service
-    addMessage({
-      role: 'system',
-      content: `Service selected: ${service.title}\n\nI'm here to help you with ${service.title.toLowerCase()}. ${service.description}\n\nYou can ask me to ${service.example.toLowerCase()}.`
-    });
-    
-    // If no files have been created yet, provide a starter example based on the service
-    if (Object.keys(sessionState.files).length <= 1) {
-      // You could initialize different templates based on service.id
-      // For now we're just using DEFAULT_PLUGIN_STRUCTURE for all services
-      updateFiles(DEFAULT_PLUGIN_STRUCTURE);
-    }
-    
-    toast.success(`Switched to ${service.title} service`, {
-      style: {
-        background: theme === 'dark' ? '#333' : '#fff',
-        color: theme === 'dark' ? '#fff' : '#333',
-      }
-    });
-  }, [theme, addMessage, updateFiles, sessionState.files]);
+  }, [showExplorer, chatSize]);
 
   // Handle downloading source code
   const handleDownloadSourceCode = useCallback(async () => {
@@ -418,34 +387,83 @@ Let's get started!`;
   }, [handleDownloadSourceCode]);
 
   // Handler for first prompt from landing page
-  const handleFirstPrompt = useCallback(async (prompt: string, sessionId: string) => {
-    // Set the processing state
-    setProcessing(true);
-    
-    // Update the session ID
-    updateSessionId(sessionId);
-    
-    // Add user message
-    addMessage({
-      role: 'user',
-      content: prompt,
-    });
-    
-    // Send to API
-    await sendMessage(prompt, sessionState.files, (responseMessage) => {
-      addMessage(responseMessage);
-    });
-    
-    // Hide landing page and show workspace
-    setShowLanding(false);
-    
-    // If this is a new workspace, update the URL with the session ID
-    if (!workspaceId) {
-      router.replace(`/agent-workspace/${sessionId}`);
+  const handleFirstPrompt = useCallback(async (prompt: string) => {
+    try {
+      // Check if the backend server is available
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || window.location.origin;
+      console.log(`Checking backend server at: ${baseUrl}`);
+      
+      // First create a new workspace to get a server-generated ID
+      console.log("Attempting to create a new workspace...");
+      const newWorkspaceId = await createWorkspace("New Workspace");
+      
+      // Validate the workspace ID
+      if (!newWorkspaceId) {
+        console.error("No workspace ID returned from createWorkspace function");
+        toast.error("Failed to create workspace: No workspace ID returned");
+        throw new Error("Failed to create workspace: Server did not return a workspace ID");
+      }
+      
+      if (typeof newWorkspaceId !== 'string' || newWorkspaceId.trim() === '') {
+        console.error(`Invalid workspace ID returned: "${newWorkspaceId}"`);
+        toast.error("Failed to create workspace: Invalid workspace ID");
+        throw new Error(`Failed to create workspace: Invalid workspace ID "${newWorkspaceId}"`);
+      }
+      
+      console.log(`Created new workspace with ID: ${newWorkspaceId}`);
+      
+      // Set active workspace in local storage immediately
+      localStorage.setItem('wp-agent-active-workspace', newWorkspaceId);
+      
+      // Hide landing page and show workspace
+      setShowLanding(false);
+      
+      // Update URL with the correct server-generated ID
+      console.log(`Updating URL to: /agent-workspace/${newWorkspaceId}`);
+      router.replace(`/agent-workspace/${newWorkspaceId}`);
+      
+      // Give the system more time to process the workspace creation
+      // before trying to send a message - increased timeout for more reliable connection
+      console.log("Waiting for workspace connection to stabilize before sending message...");
+      setTimeout(async () => {
+        try {
+          // Verify connection is established
+          const isConnected = websocketService.isConnectedToWorkspace(newWorkspaceId);
+          console.log(`Connection status before sending message: ${isConnected ? 'Connected' : 'Not connected'}`);
+          
+          if (!isConnected) {
+            console.log("Attempting to reconnect before sending message...");
+            try {
+              await reconnect(newWorkspaceId);
+              console.log("Reconnection successful");
+            } catch (connErr) {
+              console.error("Reconnection failed:", connErr);
+              // Continue anyway - the message system will retry
+            }
+          }
+          
+          // Now send the message to the newly created workspace
+          console.log(`Sending initial message to workspace ${newWorkspaceId}: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
+          await sendMessage(prompt);
+        } catch (err) {
+          console.error("Error sending initial message:", err);
+          toast.error("Failed to send initial message. Please try again.");
+        }
+      }, 2000); // Increased from 1000ms to 2000ms
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("Error handling first prompt:", error);
+      
+      // Provide a more user-friendly error message based on the type of error
+      if (errorMsg.includes("network") || errorMsg.includes("fetch") || errorMsg.includes("connect")) {
+        toast.error("Failed to connect to server. Please check if the backend is running and try again.");
+      } else if (errorMsg.includes("workspace")) {
+        toast.error("Failed to create workspace. Please try again.");
+      } else {
+        toast.error("Failed to process your request. Please try again.");
+      }
     }
-    
-    setProcessing(false);
-  }, [addMessage, sendMessage, sessionState.files, setProcessing, workspaceId, router, updateSessionId]);
+  }, [sendMessage, createWorkspace, router, reconnect]);
 
   // If showing landing page, render only that
   if (showLanding) {
@@ -453,7 +471,7 @@ Let's get started!`;
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden agent-workspace">
+    <div className="flex flex-col h-full min-h-screen overflow-hidden agent-workspace">
       {/* Toolbar */}
       <AgentToolbar
         layout={layout}
@@ -467,24 +485,61 @@ Let's get started!`;
         showExplorer={showExplorer}
         showPreview={showPreview}
         showTerminal={showTerminal}
-        onServiceChange={handleServiceChange}
+        connectionStatus={sessionState.connectionStatus}
       />
       
+      {/* Connection Error Message */}
+      {sessionState.connectionStatus === 'error' || sessionState.connectionStatus === 'disconnected' ? (
+        <div className={`px-4 py-2 text-center text-sm ${
+          isDark ? 'bg-red-900 text-white' : 'bg-red-100 text-red-800'
+        }`}>
+          <span className="flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Connection to agent server lost. 
+            <button 
+              onClick={() => sessionState.id && reconnect(sessionState.id)}
+              className={`underline font-medium ${
+                isDark ? 'text-blue-300 hover:text-blue-200' : 'text-blue-700 hover:text-blue-800'
+              }`}
+            >
+              Try reconnecting
+            </button>
+          </span>
+        </div>
+      ) : null}
+      
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-auto">
         {/* Main horizontal layout */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* AI Chat Panel - Always on the left */}
+        <div className="flex-1 flex flex-col sm:flex-row overflow-visible">
+          {/* AI Chat Panel - Full width on mobile, left side on desktop */}
           <Resizable
-            size={{ width: `${chatSize}%`, height: "100%" }}
-            minWidth="20%"
-            maxWidth="50%"
-            enable={{ right: true }}
-            onResizeStop={(e, direction, ref, d) => {
-              const newWidth = chatSize + (d.width / windowWidth * 100);
-              setChatSize(newWidth);
+            size={{ width: windowWidth < 768 ? '100%' : `${chatSize}%`, height: windowWidth < 768 ? '50%' : "100%" }}
+            minWidth={windowWidth < 768 ? '100%' : "20%"}
+            maxWidth={windowWidth < 768 ? '100%' : "50%"}
+            minHeight={windowWidth < 768 ? '30%' : "100%"}
+            maxHeight={windowWidth < 768 ? '70%' : "100%"}
+            enable={{ 
+              right: windowWidth >= 768, 
+              bottom: windowWidth < 768
             }}
-            className={`border-r ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
+            onResizeStop={(e, direction, ref, d) => {
+              if (windowWidth < 768) {
+                // Handle vertical resize on mobile
+                const containerHeight = ref.parentElement?.clientHeight || 0;
+                const newHeight = 50 + (d.height / containerHeight * 100);
+                // Store in a different variable or localStorage if needed
+              } else {
+                // Handle horizontal resize on desktop
+                const newWidth = chatSize + (d.width / windowWidth * 100);
+                setChatSize(newWidth);
+              }
+            }}
+            className={`${windowWidth < 768 ? '' : 'border-r'} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
           >
             <AgentChat
               sessionState={sessionState}
@@ -493,8 +548,8 @@ Let's get started!`;
             />
           </Resizable>
 
-          {/* Workspace Area - Right side */}
-          <div className="flex-1 flex overflow-hidden">
+          {/* Workspace Area - Right side or bottom on mobile */}
+          <div className={`flex-1 flex overflow-auto ${windowWidth < 768 ? 'border-t' : ''} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
             {/* File Explorer - Conditional */}
             {showExplorer && (
               <Resizable
@@ -524,9 +579,9 @@ Let's get started!`;
             )}
 
             {/* Editor/Preview Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-auto">
               {/* Main content area */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-auto">
                 {layout === PanelLayout.Editor || !showPreview ? (
                   sessionState.activeFile ? (
                     <AgentEditor

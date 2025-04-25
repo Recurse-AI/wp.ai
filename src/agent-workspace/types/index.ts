@@ -59,6 +59,8 @@ export interface AgentSessionState {
   selectedService?: AIService;
   isProcessing: boolean;
   previewMode: "code" | "wordpress";
+  connectionStatus?: "connecting" | "connected" | "disconnected" | "error";
+  error?: string | null;
 }
 
 // Agent Panel Layout Options
@@ -110,5 +112,5 @@ export interface AgentToolbarProps {
   showExplorer?: boolean;
   showPreview?: boolean;
   showTerminal?: boolean;
-  onServiceChange?: (service: AIService) => void;
+  connectionStatus?: "connecting" | "connected" | "disconnected" | "error";
 } 

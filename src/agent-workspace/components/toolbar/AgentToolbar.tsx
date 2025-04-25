@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download } from 'lucide-react';
+import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { PanelLayout, AgentToolbarProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import Link from 'next/link';
-import { AGENT_SERVICES } from '../../constants';
 import type { PlaygroundClient } from "@wp-playground/client";
 
 const AgentToolbar: React.FC<AgentToolbarProps> = ({
@@ -21,46 +20,22 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
   showExplorer = true,
   showPreview = true,
   showTerminal = true,
-  onServiceChange
+  connectionStatus = 'connected'
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [servicesOpen, setServicesOpen] = useState(false);
-  const [currentService, setCurrentService] = useState(AGENT_SERVICES[0]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [playgroundClient, setPlaygroundClient] = useState<PlaygroundClient | null>(null);
-  
-  // Set initial service when component mounts
-  useEffect(() => {
-    // If there is no onServiceChange handler provided, we can't change services
-    if (onServiceChange && !currentService) {
-      setCurrentService(AGENT_SERVICES[0]);
-    }
-  }, [onServiceChange, currentService]);
 
   // Initialize WordPress Playground client when needed
   useEffect(() => {
-    if (currentService?.id === 'wp-playground' && !playgroundClient) {
-      initializePlaygroundClient();
-    }
-    
     return () => {
       // Clean up playground client if it exists
       if (playgroundClient && typeof (playgroundClient as any).dispose === 'function') {
         (playgroundClient as any).dispose().catch(console.error);
       }
     };
-  }, [currentService]);
-  
-  const initializePlaygroundClient = async () => {
-    try {
-      const { startPlaygroundWeb } = await import('@wp-playground/client');
-      // The actual initialization would happen in the preview component
-      console.log('WordPress Playground client module loaded');
-    } catch (error) {
-      console.error('Failed to load WordPress Playground:', error);
-    }
-  };
+  }, []);
 
   const handleLayoutChange = (newLayout: PanelLayout) => {
     if (onLayoutChange) {
@@ -79,17 +54,6 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
       await onPublishCode();
     }
   };
-
-  const handleServiceSelect = (serviceId: string) => {
-    if (onServiceChange) {
-      const service = AGENT_SERVICES.find(s => s.id === serviceId);
-      if (service) {
-        setCurrentService(service);
-        onServiceChange(service);
-      }
-    }
-    setServicesOpen(false);
-  };
   
   const handleDownloadSourceCode = () => {
     // Dispatch an event to the parent component to handle the download
@@ -101,92 +65,69 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
     document.dispatchEvent(event);
     setMenuOpen(false);
   };
+
+  // Get connection status icon and color
+  const getConnectionStatusInfo = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return {
+          icon: Wifi,
+          color: isDark ? 'text-green-400' : 'text-green-500',
+          title: 'Connected to agent server'
+        };
+      case 'connecting':
+        return {
+          icon: Loader2,
+          color: isDark ? 'text-yellow-400' : 'text-yellow-500',
+          title: 'Connecting to agent server...',
+          animate: true
+        };
+      case 'disconnected':
+        return {
+          icon: WifiOff,
+          color: isDark ? 'text-red-400' : 'text-red-500',
+          title: 'Disconnected from agent server'
+        };
+      case 'error':
+        return {
+          icon: AlertTriangle,
+          color: isDark ? 'text-red-400' : 'text-red-500',
+          title: 'Connection error'
+        };
+      default:
+        return {
+          icon: Wifi,
+          color: isDark ? 'text-gray-400' : 'text-gray-500',
+          title: 'Unknown connection status'
+        };
+    }
+  };
+  
+  const connectionInfo = getConnectionStatusInfo();
+  const ConnectionIcon = connectionInfo.icon;
   
   return (
-    <div className={`flex items-center justify-between px-4 py-2 border-b ${
+    <div className={`flex items-center justify-between px-2 sm:px-4 py-2 border-b ${
       isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
     }`}>
       {/* Workspace name and home button */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         <Link href="/" className={`p-1.5 rounded ${
           isDark ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
         }`} title="Return to home">
           <Home className="w-4 h-4" />
         </Link>
         
-        <h1 className="text-lg font-medium truncate max-w-xs">
+        <h1 className="text-base sm:text-lg font-medium truncate max-w-[120px] sm:max-w-xs">
           {workspaceName}
         </h1>
         {isProcessing && (
           <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
         )}
       </div>
-
-      {/* Service selector dropdown */}
-      <div className="relative ml-4">
-        <button
-          onClick={() => setServicesOpen(!servicesOpen)}
-          className={`flex items-center space-x-2 py-1.5 px-3 rounded ${
-            isDark 
-              ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
-              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-          }`}
-          aria-expanded={servicesOpen}
-          aria-haspopup="true"
-        >
-          {currentService ? (
-            <>
-              <currentService.icon className="w-4 h-4 mr-2" />
-              <span className="text-sm">{currentService.title}</span>
-            </>
-          ) : (
-            <>
-              <Bot className="w-4 h-4 mr-2" />
-              <span className="text-sm">Select Service</span>
-            </>
-          )}
-          <ChevronDown className="w-4 h-4 ml-1" />
-        </button>
-        
-        {servicesOpen && (
-          <>
-            {/* Overlay to capture clicks outside the dropdown */}
-            <div 
-              className="fixed inset-0 z-40 bg-transparent"
-              onClick={() => setServicesOpen(false)}
-            />
-            <div 
-              className={`absolute z-50 mt-1 w-64 rounded-md shadow-lg ${
-                isDark ? 'bg-gray-800' : 'bg-white'
-              } ring-1 ring-black ring-opacity-5 focus:outline-none`}
-            >
-              <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
-                {AGENT_SERVICES.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => handleServiceSelect(service.id)}
-                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                      currentService?.id === service.id
-                        ? isDark 
-                          ? 'bg-gray-700 text-blue-400'
-                          : 'bg-gray-100 text-blue-600'
-                        : isDark 
-                          ? 'hover:bg-gray-700 text-gray-300' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <service.icon className="w-4 h-4 mr-2" />
-                    {service.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
       
-      {/* Center controls area */}
-      <div className="flex items-center mx-auto space-x-4">
+      {/* Center controls area - hidden on small screens */}
+      <div className="hidden sm:flex items-center mx-auto space-x-4">
         {/* Primary layout controls - consolidated and simplified */}
         <div className={`flex items-center p-1 rounded-md ${
           isDark ? 'bg-gray-800' : 'bg-gray-100'
@@ -272,11 +213,153 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           </button>
         </div>
       </div>
+      
+      {/* Mobile layout controls - only visible on small screens */}
+      <div className="flex sm:hidden items-center">
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`p-1.5 rounded ${
+              isDark 
+                ? 'hover:bg-gray-800 text-gray-300' 
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            title="Layout options"
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          
+          {menuOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40 bg-transparent"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div 
+                className={`absolute left-0 z-50 mt-1 rounded-md shadow-lg ${
+                  isDark ? 'bg-gray-800' : 'bg-white'
+                } ring-1 ring-black ring-opacity-5 focus:outline-none w-40`}
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      handleLayoutChange(PanelLayout.Editor);
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      layout === PanelLayout.Editor
+                        ? isDark 
+                          ? 'bg-gray-700 text-blue-400'
+                          : 'bg-gray-100 text-blue-600'
+                        : isDark 
+                          ? 'hover:bg-gray-700 text-gray-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4 mr-2" />
+                    Editor
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      handleLayoutChange(PanelLayout.Split);
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      layout === PanelLayout.Split
+                        ? isDark 
+                          ? 'bg-gray-700 text-blue-400'
+                          : 'bg-gray-100 text-blue-600'
+                        : isDark 
+                          ? 'hover:bg-gray-700 text-gray-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Columns className="w-4 h-4 mr-2" />
+                    Split View
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      handleLayoutChange(PanelLayout.Preview);
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      layout === PanelLayout.Preview
+                        ? isDark 
+                          ? 'bg-gray-700 text-blue-400'
+                          : 'bg-gray-100 text-blue-600'
+                        : isDark 
+                          ? 'hover:bg-gray-700 text-gray-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Monitor className="w-4 h-4 mr-2" />
+                    Preview
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onToggleExplorer && onToggleExplorer();
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      showExplorer
+                        ? isDark 
+                          ? 'bg-gray-700 text-blue-400'
+                          : 'bg-gray-100 text-blue-600'
+                        : isDark 
+                          ? 'hover:bg-gray-700 text-gray-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Sidebar className="w-4 h-4 mr-2" />
+                    {showExplorer ? 'Hide' : 'Show'} Explorer
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onToggleTerminal && onToggleTerminal();
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                      showTerminal
+                        ? isDark 
+                          ? 'bg-gray-700 text-blue-400'
+                          : 'bg-gray-100 text-blue-600'
+                        : isDark 
+                          ? 'hover:bg-gray-700 text-gray-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Terminal className="w-4 h-4 mr-2" />
+                    {showTerminal ? 'Hide' : 'Show'} Terminal
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
         
-      {/* Action buttons */}
+      {/* Action buttons and connection status */}
       <div className="flex items-center">
+        {/* Connection status indicator */}
+        <div 
+          className={`hidden sm:flex items-center p-1.5 mr-3 rounded-md ${
+            isDark ? 'bg-gray-800' : 'bg-gray-100'
+          }`}
+          title={connectionInfo.title}
+        >
+          <ConnectionIcon 
+            className={`w-4 h-4 ${connectionInfo.color} ${connectionInfo.animate ? 'animate-spin' : ''}`} 
+          />
+        </div>
+        
         {/* Menu dropdown */}
-        <div className="relative mr-3">
+        <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className={`p-1.5 rounded ${
@@ -435,18 +518,18 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
 // Add custom scrollbar styles
 const styles = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
-    border-radius: 3px;
+    border-radius: 4px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
+    border-radius: 4px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
