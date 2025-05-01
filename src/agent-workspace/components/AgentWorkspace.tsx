@@ -15,8 +15,11 @@ import AgentPreview from './panels/AgentPreview';
 import AgentChat from './panels/AgentChat';
 import AgentTerminal from './panels/AgentTerminal';
 import AgentLanding from './landing/AgentLanding';
+import AgentHistoryModal from './modals/AgentHistoryModal';
 import { DEFAULT_PLUGIN_STRUCTURE, AGENT_SERVICES } from '../constants';
 import { websocketService } from '../utils/websocketService';
+import WordPressToolbox from './panels/WordPressToolbox';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
 
 // Local storage keys for panel sizes
 const CHAT_SIZE_KEY = 'wp-agent-chat-size';
@@ -121,6 +124,10 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     return false;
   });
   
+  // History modal state
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  
   // Save panel sizes to localStorage when they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -182,7 +189,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   
   // Handlers
   const handleFileSelect = useCallback((file: AgentFile) => {
-    selectFile(file);
+    selectFile(file.id);
   }, [selectFile]);
   
   const handleFileContentChange = useCallback((content: string) => {
@@ -217,16 +224,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     }
   }, [sendMessage, sessionState.id]);
 
-  const handleRegenerateMessage = useCallback(async () => {
-    // To be implemented
-    toast.error('Regenerate functionality is not yet implemented', {
-      style: {
-        background: theme === 'dark' ? '#333' : '#fff',
-        color: theme === 'dark' ? '#fff' : '#333',
-      }
-    });
-  }, [theme]);
-
   const handleSaveWorkspace = useCallback(async () => {
     // TODO: Implement workspace saving in the new API
     toast.success("Workspace is automatically saved", {
@@ -253,6 +250,11 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
 
   const toggleTerminal = useCallback(() => {
     setShowTerminal(prev => !prev);
+  }, []);
+
+  // Toggle history modal visibility
+  const toggleHistory = useCallback(() => {
+    setShowHistoryModal(prev => !prev);
   }, []);
 
   // Run a command in the terminal
@@ -312,21 +314,52 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     typeof window !== 'undefined' ? window.innerWidth : 1200
   );
 
+  // Define breakpoints for different screen sizes
+  const MOBILE_BREAKPOINT = 640;
+  const TABLET_BREAKPOINT = 768;
+  const DESKTOP_BREAKPOINT = 1024;
+  const LARGE_DESKTOP_BREAKPOINT = 1280;
+
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
       
-      // Auto-adjust layout for small screens
-      if (window.innerWidth < 768 && showExplorer) {
-        // On mobile screens, auto-hide file explorer
+      // Auto-adjust layout for different screen sizes
+      if (window.innerWidth < MOBILE_BREAKPOINT) {
+        // Mobile optimizations
         setShowExplorer(false);
-      }
-      
-      // Adjust chat panel size for small screens
-      if (window.innerWidth < 768 && chatSize < 50) {
-        setChatSize(50); // Make chat wider on mobile
-      } else if (window.innerWidth >= 768 && chatSize > 40) {
-        setChatSize(30); // Default size on larger screens
+        setShowTerminal(false);
+        
+        // Optimize layout for mobile - full width panels
+        if (layout !== PanelLayout.Editor && layout !== PanelLayout.Preview) {
+          setLayout(PanelLayout.Editor);
+        }
+        
+        // Make chat panel take appropriate space on mobile
+        setChatSize(100);
+      } else if (window.innerWidth < TABLET_BREAKPOINT) {
+        // Tablet optimizations
+        if (showExplorer && showPreview) {
+          // Too many panels for tablet view, prioritize editor
+          setShowExplorer(false);
+        }
+        
+        // Adjust chat panel size for tablet
+        if (chatSize < 40 || chatSize > 60) {
+          setChatSize(40);
+        }
+      } else if (window.innerWidth < DESKTOP_BREAKPOINT) {
+        // Small desktop optimizations
+        // Adjust chat panel to an appropriate size
+        if (chatSize > 40) {
+          setChatSize(30);
+        }
+      } else {
+        // Large desktop - default sizes
+        if (!showExplorer && !showPreview) {
+          // Show at least one panel on large screens
+          setShowPreview(true);
+        }
       }
     };
 
@@ -336,7 +369,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       handleResize();
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, [showExplorer, chatSize]);
+  }, [showExplorer, showPreview, showTerminal, chatSize, layout, setLayout]);
 
   // Handle downloading source code
   const handleDownloadSourceCode = useCallback(async () => {
@@ -434,7 +467,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           if (!isConnected) {
             console.log("Attempting to reconnect before sending message...");
             try {
-              await reconnect(newWorkspaceId);
+              await reconnect();
               console.log("Reconnection successful");
             } catch (connErr) {
               console.error("Reconnection failed:", connErr);
@@ -482,6 +515,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
         onToggleExplorer={toggleExplorer}
         onTogglePreview={togglePreview}
         onToggleTerminal={toggleTerminal}
+        onToggleHistory={toggleHistory}
         showExplorer={showExplorer}
         showPreview={showPreview}
         showTerminal={showTerminal}
@@ -501,7 +535,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             </svg>
             Connection to agent server lost. 
             <button 
-              onClick={() => sessionState.id && reconnect(sessionState.id)}
+              onClick={() => sessionState.id && reconnect()}
               className={`underline font-medium ${
                 isDark ? 'text-blue-300 hover:text-blue-200' : 'text-blue-700 hover:text-blue-800'
               }`}
@@ -515,57 +549,74 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
         {/* Main horizontal layout */}
-        <div className="flex-1 flex flex-col sm:flex-row overflow-visible">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-visible">
           {/* AI Chat Panel - Full width on mobile, left side on desktop */}
           <Resizable
-            size={{ width: windowWidth < 768 ? '100%' : `${chatSize}%`, height: windowWidth < 768 ? '50%' : "100%" }}
-            minWidth={windowWidth < 768 ? '100%' : "20%"}
-            maxWidth={windowWidth < 768 ? '100%' : "50%"}
-            minHeight={windowWidth < 768 ? '30%' : "100%"}
-            maxHeight={windowWidth < 768 ? '70%' : "100%"}
+            size={{ 
+              width: windowWidth < DESKTOP_BREAKPOINT ? '100%' : `${chatSize}%`, 
+              height: windowWidth < DESKTOP_BREAKPOINT ? '50%' : "100%" 
+            }}
+            minWidth={windowWidth < DESKTOP_BREAKPOINT ? '100%' : "20%"}
+            maxWidth={windowWidth < DESKTOP_BREAKPOINT ? '100%' : "50%"}
+            minHeight={windowWidth < DESKTOP_BREAKPOINT ? '30%' : "100%"}
+            maxHeight={windowWidth < DESKTOP_BREAKPOINT ? '70%' : "100%"}
             enable={{ 
-              right: windowWidth >= 768, 
-              bottom: windowWidth < 768
+              right: windowWidth >= DESKTOP_BREAKPOINT, 
+              bottom: windowWidth < DESKTOP_BREAKPOINT
             }}
             onResizeStop={(e, direction, ref, d) => {
-              if (windowWidth < 768) {
-                // Handle vertical resize on mobile
+              if (windowWidth < DESKTOP_BREAKPOINT) {
+                // Handle vertical resize on mobile/tablet
                 const containerHeight = ref.parentElement?.clientHeight || 0;
                 const newHeight = 50 + (d.height / containerHeight * 100);
-                // Store in a different variable or localStorage if needed
+                // We could store this in a separate state variable if needed
               } else {
                 // Handle horizontal resize on desktop
-                const newWidth = chatSize + (d.width / windowWidth * 100);
+                const newWidth = chatSize + (d.width / (windowWidth * 0.01));
                 setChatSize(newWidth);
               }
             }}
-            className={`${windowWidth < 768 ? '' : 'border-r'} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
+            className={`${windowWidth < DESKTOP_BREAKPOINT ? '' : 'border-r'} ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
           >
             <AgentChat
               sessionState={sessionState}
               onSendMessage={handleSendMessage}
-              onRegenerateMessage={handleRegenerateMessage}
             />
           </Resizable>
 
           {/* Workspace Area - Right side or bottom on mobile */}
-          <div className={`flex-1 flex overflow-auto ${windowWidth < 768 ? 'border-t' : ''} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className={`flex-1 flex flex-col lg:flex-row overflow-auto ${windowWidth < DESKTOP_BREAKPOINT ? 'border-t' : ''} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
             {/* File Explorer - Conditional */}
             {showExplorer && (
               <Resizable
-                size={{ width: `${explorerSize}%`, height: "100%" }}
-                minWidth="10%"
-                maxWidth="30%"
-                enable={{ right: true }}
-                onResizeStop={(e, direction, ref, d) => {
-                  // Calculate new size as percentage of parent container (workspace area)
-                  const workspaceWidth = windowWidth * (1 - chatSize / 100);
-                  const newWidth = explorerSize + (d.width / workspaceWidth * 100);
-                  setExplorerSize(newWidth);
+                size={{ 
+                  width: windowWidth < TABLET_BREAKPOINT ? '100%' : `${explorerSize}%`, 
+                  height: windowWidth < TABLET_BREAKPOINT ? '40%' : "100%"
                 }}
-                className={`${isDark ? 'bg-gray-800' : 'bg-gray-50'} border-r ${
-                  isDark ? 'border-gray-700' : 'border-gray-200'
-                }`}
+                minWidth={windowWidth < TABLET_BREAKPOINT ? '100%' : "10%"}
+                maxWidth={windowWidth < TABLET_BREAKPOINT ? '100%' : "30%"}
+                minHeight={windowWidth < TABLET_BREAKPOINT ? '20%' : "100%"}
+                maxHeight={windowWidth < TABLET_BREAKPOINT ? '50%' : "100%"}
+                enable={{ 
+                  right: windowWidth >= TABLET_BREAKPOINT,
+                  bottom: windowWidth < TABLET_BREAKPOINT && windowWidth >= MOBILE_BREAKPOINT
+                }}
+                onResizeStop={(e, direction, ref, d) => {
+                  if (windowWidth < TABLET_BREAKPOINT) {
+                    // Handle height resize on small screens
+                    const containerHeight = ref.parentElement?.clientHeight || 0;
+                    const newHeight = 40 + (d.height / containerHeight * 100);
+                    // Store in a state variable if needed
+                  } else {
+                    // Calculate new size as percentage of parent container (workspace area)
+                    const workspaceWidth = windowWidth * (1 - chatSize / 100);
+                    const newWidth = explorerSize + (d.width / workspaceWidth * 100);
+                    setExplorerSize(newWidth);
+                  }
+                }}
+                className={`${isDark ? 'bg-gray-800' : 'bg-gray-50'} ${
+                  windowWidth < TABLET_BREAKPOINT ? 'border-b' : 'border-r'
+                } ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
               >
                 <div className="h-full overflow-auto">
                   <FileExplorer
@@ -592,16 +643,20 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                     <div className={`flex items-center justify-center h-full ${
                       isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
                     }`}>
-                      <p>Select a file to edit</p>
+                      <p className="text-center p-4">Select a file to edit or use the chat to create files</p>
                     </div>
                   )
                 ) : layout === PanelLayout.Preview ? (
-                  <AgentPreview 
-                    files={sessionState.files}
-                    activeFile={sessionState.activeFile}
-                    currentService={selectedService || undefined}
-                  />
-                ) : layout === PanelLayout.Split ? (
+                  <div className="h-full bg-card overflow-hidden flex flex-col">
+                    <div className="flex-grow overflow-y-auto custom-scrollbar">
+                      <AgentPreview 
+                        files={sessionState.files} 
+                        activeFile={sessionState.activeFile}
+                        currentService={selectedService || undefined}
+                      />
+                    </div>
+                  </div>
+                ) : layout === PanelLayout.Split && windowWidth >= TABLET_BREAKPOINT ? (
                   <div className="flex h-full">
                     <Resizable
                       size={{ width: `${editorSize}%`, height: "100%" }}
@@ -609,10 +664,11 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                       maxWidth="70%"
                       enable={{ right: true }}
                       onResizeStop={(e, direction, ref, d) => {
-                        const newWidth = editorSize + (d.width / ref.parentElement!.clientWidth * 100);
+                        const parentWidth = ref.parentElement?.clientWidth || 0;
+                        const newWidth = editorSize + (d.width / parentWidth * 100);
                         setEditorSize(newWidth);
                       }}
-                      className={`border-r ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
+                      className={`border-r ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
                     >
                       {sessionState.activeFile ? (
                         <AgentEditor
@@ -623,11 +679,36 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                         <div className={`flex items-center justify-center h-full ${
                           isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
                         }`}>
-                          <p>Select a file to edit</p>
+                          <p className="text-center p-4">Select a file to edit</p>
                         </div>
                       )}
                     </Resizable>
                     <div className="flex-1">
+                      <AgentPreview 
+                        files={sessionState.files}
+                        activeFile={sessionState.activeFile}
+                        currentService={selectedService || undefined}
+                      />
+                    </div>
+                  </div>
+                ) : layout === PanelLayout.Split && windowWidth < TABLET_BREAKPOINT ? (
+                  // On small screens, stack editor and preview instead of side by side
+                  <div className="flex flex-col h-full">
+                    <div className="h-1/2 border-b overflow-auto transition-all duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'}">
+                      {sessionState.activeFile ? (
+                        <AgentEditor
+                          file={sessionState.activeFile}
+                          onChange={handleFileContentChange}
+                        />
+                      ) : (
+                        <div className={`flex items-center justify-center h-full ${
+                          isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
+                        }`}>
+                          <p className="text-center p-4">Select a file to edit</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="h-1/2 overflow-auto">
                       <AgentPreview 
                         files={sessionState.files}
                         activeFile={sessionState.activeFile}
@@ -645,7 +726,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                     <div className={`flex items-center justify-center h-full ${
                       isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
                     }`}>
-                      <p>Select a file to edit</p>
+                      <p className="text-center p-4">Select a file to edit</p>
                     </div>
                   )
                 )}
@@ -656,22 +737,33 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                 <Resizable
                   size={{ width: "100%", height: `${terminalSize}%` }}
                   minHeight="10%"
-                  maxHeight="50%"
+                  maxHeight={windowWidth < TABLET_BREAKPOINT ? "60%" : "50%"}
                   enable={{ top: true }}
                   onResizeStop={(e, direction, ref, d) => {
                     const containerHeight = ref.parentElement?.clientHeight || 0;
                     const newHeight = terminalSize - (d.height / containerHeight * 100);
                     setTerminalSize(newHeight);
                   }}
-                  className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
+                  className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
                 >
-                  <AgentTerminal onRunCommand={handleRunCommand} />
+                  <AgentTerminal 
+                    onRunCommand={handleRunCommand} 
+                    onToggleTerminal={toggleTerminal}
+                    showTerminal={showTerminal}
+                  />
                 </Resizable>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* History Modal */}
+      <AgentHistoryModal
+        isOpen={showHistoryModal}
+        onClose={toggleHistory}
+        sessionId={sessionState.id}
+      />
 
       {/* CSS for resize handles */}
       <style jsx global>{`
@@ -709,6 +801,27 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
         
         .react-resizable-handle-s:hover {
           height: 7px;
+        }
+
+        /* Improved mobile touch targets */
+        @media (max-width: 768px) {
+          .react-resizable-handle {
+            width: 10px;
+            height: 10px;
+          }
+          
+          .react-resizable-handle-e {
+            width: 12px;
+          }
+          
+          .react-resizable-handle-s {
+            height: 12px;
+          }
+        }
+
+        /* Smooth transitions for responsive layout changes */
+        .agent-workspace * {
+          transition: padding 0.3s, margin 0.3s, width 0.3s, height 0.3s;
         }
       `}</style>
     </div>

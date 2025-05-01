@@ -1,22 +1,19 @@
 "use client";
 
-import React from 'react';
+import React, { use } from 'react';
 import AgentWorkspace from '@/agent-workspace/components/AgentWorkspace';
 import { useAuthContext } from '@/context/AuthProvider';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type PageParams = {
-  id: string;
-};
-
 export default function AgentWorkspaceWithIdPage({
   params,
 }: {
-  params: PageParams;
+  params: any;
 }) {
-  // Use React.use() with proper typing
-  const { id } = React.use(params as unknown as Promise<PageParams>);
+  // Unwrap params with React.use() as required by Next.js 15+
+  const unwrappedParams = use(params) as { id: string };
+  const { id } = unwrappedParams;
   const { isAuthenticated, loading } = useAuthContext();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const router = useRouter();

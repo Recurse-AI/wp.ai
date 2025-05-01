@@ -17,6 +17,18 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
   const [value, setValue] = useState(file.content);
   const [language, setLanguage] = useState('');
   const editorRef = useRef<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if we're on a mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Update editor value when file changes
   useEffect(() => {
@@ -24,15 +36,50 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
     setLanguage(getLanguage(file.name));
   }, [file]);
   
-  // Handle editor mount
+  // Handle editor mount with improved configuration
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
     
-    // Focus editor on mount
+    // Configure editor
+    editor.updateOptions({
+      scrollBeyondLastLine: false,
+      minimap: { enabled: !isMobile },
+      scrollbar: {
+        verticalScrollbarSize: isMobile ? 4 : 10,
+        horizontalScrollbarSize: isMobile ? 4 : 10,
+        vertical: 'visible',
+        horizontal: 'visible',
+        verticalHasArrows: false,
+        horizontalHasArrows: false,
+        useShadows: true,
+      },
+      padding: {
+        top: 8,
+        bottom: 8
+      },
+      fontSize: isMobile ? 13 : 14,
+      lineHeight: 1.5,
+    });
+    
+    // Focus editor on mount with a small delay to ensure it's fully rendered
     setTimeout(() => {
       editor.focus();
     }, 100);
   };
+  
+  // Update editor options when mobile status changes
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        minimap: { enabled: !isMobile },
+        scrollbar: {
+          verticalScrollbarSize: isMobile ? 4 : 10,
+          horizontalScrollbarSize: isMobile ? 4 : 10,
+        },
+        fontSize: isMobile ? 13 : 14,
+      });
+    }
+  }, [isMobile]);
   
   // Handle editor change
   const handleEditorChange = (value: string | undefined) => {
@@ -49,7 +96,8 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
         style: {
           background: isDark ? '#333' : '#fff',
           color: isDark ? '#fff' : '#333',
-        }
+        },
+        duration: 1500
       });
     }
   };
@@ -63,7 +111,8 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
         style: {
           background: isDark ? '#333' : '#fff',
           color: isDark ? '#fff' : '#333',
-        }
+        },
+        duration: 1500
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -87,7 +136,8 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
         style: {
           background: isDark ? '#333' : '#fff',
           color: isDark ? '#fff' : '#333',
-        }
+        },
+        duration: 1500
       });
     } catch (err) {
       console.error('Failed to download:', err);
@@ -166,93 +216,138 @@ const AgentEditor: React.FC<AgentEditorProps> = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Editor header */}
-      <div className={`flex items-center justify-between px-4 py-2 ${
+      <div className={`flex items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 ${
         isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-800 border-gray-200'
       } border-b`}>
-        <div className="flex items-center">
-          <Code className="w-4 h-4 mr-2 text-blue-500" />
-          <div className="text-sm font-medium truncate">
+        <div className="flex items-center overflow-hidden">
+          <Code className="w-4 h-4 mr-2 text-blue-500 flex-shrink-0" />
+          <div className="text-sm font-medium truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">
             {file.name}
           </div>
           <div className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
             isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-          }`}>
+          } flex-shrink-0`}>
             {getLanguageDisplay(language)}
           </div>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 sm:space-x-2">
           <button
             onClick={handleFormat}
             className={`p-1 rounded ${
               isDark ? 'hover:bg-gray-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-            }`}
+            } transition-colors duration-200`}
             title="Format code"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           
           <button
             onClick={handleCopy}
             className={`p-1 rounded ${
               isDark ? 'hover:bg-gray-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-            }`}
+            } transition-colors duration-200`}
             title="Copy code"
           >
-            {copied ? (
-              <CheckCircle className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
+            {copied ? 
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" /> : 
+              <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            }
           </button>
           
           <button
             onClick={handleDownload}
             className={`p-1 rounded ${
               isDark ? 'hover:bg-gray-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-            }`}
+            } transition-colors duration-200`}
             title="Download file"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
       
-      {/* Monaco Editor */}
-      <div className="flex-1 overflow-hidden">
+      {/* Editor */}
+      <div className="flex-1 overflow-hidden bg-opacity-80 relative">
         <Editor
           height="100%"
+          defaultLanguage="javascript"
           language={language}
           value={value}
-          theme={isDark ? 'vs-dark' : 'vs-light'}
+          theme={isDark ? 'vs-dark' : 'vs'}
           onChange={handleEditorChange}
           onMount={handleEditorDidMount}
           options={{
-            minimap: { enabled: true },
-            wordWrap: 'on',
             automaticLayout: true,
-            lineNumbers: 'on',
+            wordWrap: 'on',
+            wrappingIndent: 'same',
             tabSize: 2,
-            fontSize: 14,
-            fontFamily: '"Menlo", "Monaco", "Courier New", monospace',
-            scrollBeyondLastLine: false,
-            smoothScrolling: true,
+            renderWhitespace: 'selection',
+            colorDecorators: true,
             cursorBlinking: 'smooth',
-            formatOnPaste: true,
-            formatOnType: true,
+            smoothScrolling: true,
+            cursorSmoothCaretAnimation: 'explicit',
+            scrollBeyondLastLine: false,
+            hideCursorInOverviewRuler: true,
             renderControlCharacters: true,
-            scrollbar: {
-              verticalScrollbarSize: 12,
-              horizontalScrollbarSize: 12,
-              alwaysConsumeMouseWheel: false,
-            },
-            padding: {
-              top: 10,
-              bottom: 10
-            }
+            quickSuggestions: isMobile ? false : { other: true, comments: true, strings: true },
+            lineNumbers: isMobile ? 'off' : 'on', // hide line numbers on mobile
+            folding: isMobile ? false : true, // disable folding on mobile
           }}
+          className="editor-container"
         />
       </div>
+      
+      {/* Custom styles for Monaco editor scrollbars */}
+      <style jsx global>{`
+        .monaco-editor .scrollbar .slider {
+          background: ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'} !important;
+          border-radius: 10px !important;
+        }
+        
+        .monaco-editor .scrollbar .slider:hover {
+          background: ${isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'} !important;
+        }
+        
+        .monaco-editor .scrollbar .slider.active {
+          background: ${isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'} !important;
+        }
+        
+        /* Improve selection color */
+        .monaco-editor .selected-text {
+          background-color: ${isDark ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.2)'} !important;
+        }
+        
+        /* Make active line highlight more subtle */
+        .monaco-editor .current-line {
+          border: none !important;
+          background-color: ${isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'} !important;
+        }
+        
+        /* Make cursor more visible */
+        .monaco-editor .cursor {
+          background-color: ${isDark ? '#3B82F6' : '#3B82F6'} !important;
+          width: 2px !important;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+          .monaco-editor {
+            padding: 4px 0 !important;
+          }
+          
+          .monaco-editor .scrollbar {
+            width: 4px !important;
+            height: 4px !important;
+          }
+          
+          .monaco-editor .scrollbar .slider {
+            width: 4px !important;
+            height: 4px !important;
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 };

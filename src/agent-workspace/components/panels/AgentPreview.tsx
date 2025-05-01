@@ -5,6 +5,7 @@ import { AgentPreviewProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import { Loader2, RefreshCw } from 'lucide-react';
 import WordPressPlayground from './WordPressPlayground';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 
 const AgentPreview: React.FC<AgentPreviewProps> = ({
   files,
@@ -18,6 +19,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
+  const [previewMode, setPreviewMode] = useState<'code' | 'wordpress'>('code');
   
   // Auto-detect WordPress content in addition to checking service ID
   const isWordPressContent = React.useMemo(() => {
@@ -447,20 +449,38 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
            activeFile ? `Preview: ${activeFile.name}` : 'Preview'}
         </div>
         
-        <button
-          onClick={handleRefresh}
-          disabled={loading}
-          className={`p-1 rounded ${
-            isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
-          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title="Refresh preview"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-        </button>
+        <div className="flex items-center space-x-2">
+          <Select
+            value={previewMode}
+            onValueChange={(value: 'code' | 'wordpress') => {
+              setPreviewMode(value);
+              console.log(`Setting preview mode to ${value}`);
+            }}
+          >
+            <SelectTrigger className="h-7 text-xs w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="code">Code</SelectItem>
+              <SelectItem value="wordpress">WordPress</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className={`p-1 rounded ${
+              isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Refresh preview"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+          </button>
+        </div>
       </div>
       
       {/* Preview content */}
@@ -497,7 +517,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
         )}
         
         {/* WordPress Playground */}
-        {isWordPressPlayground && previewReady && (
+        {(isWordPressPlayground || previewMode === 'wordpress') && previewReady && (
           <WordPressPlayground 
             files={files || {}} 
             className="w-full h-full"
@@ -505,7 +525,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
         )}
         
         {/* Default iframe for other services */}
-        {!isWordPressPlayground && !loading && !error && (
+        {!isWordPressPlayground && previewMode === 'code' && !loading && !error && (
           <div className="w-full h-full">
             {getPreviewContent()}
           </div>

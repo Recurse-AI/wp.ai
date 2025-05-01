@@ -12,6 +12,46 @@ interface MessageParams {
   codeBlocks?: { language: string; code: string }[];
 }
 
+interface WPPluginData {
+  workspace: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  type?: 'plugin' | 'theme';
+  version?: string;
+  requires_wp?: string;
+  requires_php?: string;
+  author?: string;
+  author_uri?: string;
+  plugin_uri?: string;
+  license?: string;
+}
+
+// Types for WordPress operations
+interface CreateWPPluginParams {
+  prompt: string;
+  slug: string;
+  name?: string;
+  description?: string;
+  version?: string;
+  author?: string;
+}
+
+interface CreateWPThemeParams {
+  prompt: string;
+  slug: string;
+  name?: string;
+  description?: string;
+  version?: string;
+  author?: string;
+}
+
+interface DeployWPSiteParams {
+  url: string;
+  username: string;
+  password: string;
+}
+
 class AgentAPIService {
   private baseUrl: string;
   private apiClient: AxiosInstance;
@@ -193,12 +233,22 @@ class AgentAPIService {
   }
 
   // Create a file in the workspace
-  async createFile(workspaceId: string, path: string, content: string): Promise<{ fileId: string }> {
+  async createFile(
+    workspaceId: string, 
+    fileData: {
+      path: string;
+      content: string;
+      type?: 'file' | 'folder';
+      language?: string;
+    }
+  ): Promise<{ fileId: string }> {
     try {
       const response = await this.apiClient.post('/api/workspace/files/', {
         workspace_id: workspaceId,
-        path,
-        content
+        path: fileData.path,
+        content: fileData.content,
+        type: fileData.type || 'file',
+        language: fileData.language
       });
       return response.data;
     } catch (error) {
@@ -253,10 +303,55 @@ class AgentAPIService {
   // Get agent messages
   async getMessages(workspaceId: string): Promise<AgentMessage[]> {
     try {
-      const response = await this.apiClient.get(`/api/workspace/workspaces/${workspaceId}/messages/`);
-      return response.data.messages;
+      // Ensure the workspaceId is properly formatted and not undefined/null
+      if (!workspaceId || workspaceId === 'undefined' || workspaceId === 'null') {
+        console.error('Invalid workspace ID provided to getMessages:', workspaceId);
+        return [];
+      }
+      
+      console.log(`Fetching messages for workspace: ${workspaceId}`);
+      
+      // Use the corrected endpoint path without extra api prefix
+      const response = await this.apiClient.get(`/api/workspace/get-workspace-messages/${workspaceId}/`);
+      
+      console.log('Messages API response status:', response.status);
+      
+      if (!response.data) {
+        console.warn('Empty response data from messages API');
+        return [];
+      }
+      
+      return response.data.messages || response.data;
     } catch (error) {
-      this.handleError(error, 'Failed to get messages');
+      console.error('Error in getMessages API call:', error);
+      if (axios.isAxiosError(error)) {
+        const axiosError = error;
+        console.error(`Axios error: ${axiosError.code}`);
+        console.error(`Request URL: ${axiosError.config?.url}`);
+        console.error(`Response status: ${axiosError.response?.status}`);
+        console.error('Response data:', axiosError.response?.data);
+        
+        // Try alternative endpoint if first one fails
+        try {
+          console.log('Primary endpoint failed, trying alternative endpoint structure');
+          const alternativeResponse = await this.apiClient.get(`/api/workspace/messages/?workspace_id=${workspaceId}`);
+          
+          console.log('Alternative messages API response status:', alternativeResponse.status);
+          
+          if (!alternativeResponse.data) {
+            console.warn('Empty response data from alternative messages API');
+            return [];
+          }
+          
+          return alternativeResponse.data.messages || alternativeResponse.data;
+        } catch (fallbackError) {
+          console.error('Both endpoint attempts failed:', fallbackError);
+          return [];
+        }
+      }
+      
+      // Instead of throwing, just return empty array
+      return []; 
     }
   }
 
@@ -267,6 +362,124 @@ class AgentAPIService {
       return { success: true };
     } catch (error) {
       this.handleError(error, 'Failed to delete file');
+    }
+  }
+
+  /**
+   * Create a new WordPress plugin or theme
+   */
+  async createWPPlugin(data: WPPluginData) {
+    try {
+      const response = await this.apiClient.post('/plugins/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating WordPress plugin:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate WordPress plugin code with AI
+   */
+  async generatePluginWithAI(pluginId: string, prompt: string) {
+    try {
+      const response = await this.apiClient.post(`/plugins/${pluginId}/generate_with_ai/`, {
+        prompt
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error generating plugin code with AI:', error);
+      throw error;
+    }
+  }
+
+  // Create WordPress plugin from prompt
+  async createWordPressPlugin(workspaceId: string, params: CreateWPPluginParams): Promise<any> {
+    try {
+      console.log(`Creating WordPress plugin in workspace ${workspaceId}`);
+      
+      const response = await this.apiClient.post(
+        `/api/workspace/workspaces/${workspaceId}/wordpress/plugin/`, 
+        params
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in createWordPressPlugin API call:', error);
+      this.handleError(error, 'Failed to create WordPress plugin');
+    }
+  }
+  
+  // Create WordPress theme from prompt
+  async createWordPressTheme(workspaceId: string, params: CreateWPThemeParams): Promise<any> {
+    try {
+      console.log(`Creating WordPress theme in workspace ${workspaceId}`);
+      
+      const response = await this.apiClient.post(
+        `/api/workspace/workspaces/${workspaceId}/wordpress/theme/`, 
+        params
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in createWordPressTheme API call:', error);
+      this.handleError(error, 'Failed to create WordPress theme');
+    }
+  }
+  
+  // Download WordPress package as ZIP
+  async downloadWordPressPackage(workspaceId: string): Promise<{ downloadUrl: string; fileName: string }> {
+    try {
+      console.log(`Downloading WordPress package from workspace ${workspaceId}`);
+      
+      const response = await this.apiClient.get(
+        `/api/workspace/workspaces/${workspaceId}/wordpress/download/`
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in downloadWordPressPackage API call:', error);
+      this.handleError(error, 'Failed to download WordPress package');
+    }
+  }
+  
+  // Deploy to WordPress site
+  async deployToWordPressSite(workspaceId: string, params: DeployWPSiteParams): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log(`Deploying WordPress package to site from workspace ${workspaceId}`);
+      
+      const response = await this.apiClient.post(
+        `/api/workspace/workspaces/${workspaceId}/wordpress/deploy/`, 
+        params
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in deployToWordPressSite API call:', error);
+      this.handleError(error, 'Failed to deploy to WordPress site');
+    }
+  }
+
+  // Get message history for a workspace (agent session)
+  async getAgentHistory(workspaceId: string): Promise<any> {
+    try {
+      console.log(`Fetching agent history for workspace ${workspaceId}`);
+      
+      const response = await this.apiClient.get(
+        `/api/workspace/workspaces/${workspaceId}/history/`
+      );
+      
+      console.log(`History API response status: ${response.status}`);
+      
+      // Validate the response
+      if (!response.data) {
+        throw new Error('Server returned empty response for history');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in getAgentHistory API call:', error);
+      this.handleError(error, 'Failed to fetch agent history');
     }
   }
 

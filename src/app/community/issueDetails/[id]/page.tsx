@@ -1,11 +1,9 @@
-"use client";
-
 import React, { useState, useEffect, useContext } from "react";
 import { useParams } from "next/navigation";
 import CommentForm from "@/components/community/comment/CommentForm";
 import styles from "./issueDetails.module.css";
 import { getRandomAvatar } from "@/utils/avatarUtils";
-import { IssueContext, type Issue } from "@/context/IssueContext";
+import { IssueContext } from "@/context/IssueContext";
 import Comment from "@/components/community/comment/Comment";
 import { FaInfoCircle, FaTimes, FaEdit } from 'react-icons/fa';
 import { formatDate } from '@/utils/dateUtils';
@@ -20,6 +18,18 @@ interface Comment {
         username: string;
     };
     replies?: Comment[];
+}
+
+interface Issue {
+    id: number;
+    title: string;
+    description: string;
+    created_at: string;
+    updated_at?: string;
+    created_by: {
+        username: string;
+    };
+    comments?: Comment[];
 }
 
 interface IssueData extends Issue {
@@ -57,45 +67,65 @@ const IssueDetails: React.FC = () => {
         }
     }, [issue]);
 
-    const handleSaveIssue = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/community/issues/${params.id}/`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    title: editedTitle,
-                    description: editedDescription
-                }),
-            });
+    const handleSaveIssue = () => {
+        const headers = new Headers();
+        const authHeaders = getAuthHeaders();
+        Object.entries(authHeaders).forEach(([key, value]) => {
+            if (value !== undefined) {
+                headers.append(key, value);
+            }
+        });
 
+        fetch(`${API_BASE_URL}/api/community/issues/${params.id}/`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+                title: editedTitle,
+                description: editedDescription
+            }),
+        })
+        .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to update issue');
             }
-
-            await refetchIssues();
+            return refetchIssues();
+        })
+        .then(() => {
             setIsEditing(false);
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('Error updating issue:', error instanceof Error ? error.message : 'An error occurred');
-        }
+        });
     };
 
-    const fetchComments = async () => {
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/community/issues/${params.id}/comments/`,
-                { headers: getAuthHeaders() }
-            );
-            
-            if (response.status !== 404) {
-                const data = await response.json();
-                setComments(data);
+    const fetchComments = () => {
+        const headers = new Headers();
+        const authHeaders = getAuthHeaders();
+        Object.entries(authHeaders).forEach(([key, value]) => {
+            if (value !== undefined) {
+                headers.append(key, value);
             }
-        } catch (error) {
+        });
+
+        fetch(`${API_BASE_URL}/api/community/issues/${params.id}/comments/`, { 
+            headers
+        })
+        .then(response => {
+            if (response.status !== 404) {
+                return response.json();
+            }
+            return [];
+        })
+        .then(data => {
+            setComments(data);
+        })
+        .catch(error => {
             console.error("Error fetching comments:", error);
             setError(error instanceof Error ? error.message : "An error occurred");
-        } finally {
+        })
+        .finally(() => {
             setLoading(false);
-        }
+        });
     };
 
     useEffect(() => {
@@ -104,25 +134,32 @@ const IssueDetails: React.FC = () => {
         }
     }, [params.id]);
 
-    const handleCommentSubmit = async (commentText: string) => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/community/comments/`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    content: commentText,
-                    issue: params.id,
-                }),
-            });
+    const handleCommentSubmit = (commentText: string) => {
+        const headers = new Headers();
+        const authHeaders = getAuthHeaders();
+        Object.entries(authHeaders).forEach(([key, value]) => {
+            if (value !== undefined) {
+                headers.append(key, value);
+            }
+        });
 
+        fetch(`${API_BASE_URL}/api/community/comments/`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                content: commentText,
+                issue: params.id,
+            }),
+        })
+        .then(response => {
             if (!response.ok) {
                 throw new Error("Failed to add comment");
             }
-
-            await fetchComments();
-        } catch (error) {
+            fetchComments();
+        })
+        .catch(error => {
             console.error("Error submitting comment:", error);
-        }
+        });
     };
 
     const handleQuoteReply = (quotedText: string) => {
@@ -133,7 +170,7 @@ const IssueDetails: React.FC = () => {
         setCommentText(quotedText);
     };
 
-    const handleCommentUpdate = async (updatedComment: Comment) => {
+    const handleCommentUpdate = (updatedComment: Comment) => {
         setComments(prevComments => 
             prevComments.map(comment => 
                 comment.id === updatedComment.id ? updatedComment : comment

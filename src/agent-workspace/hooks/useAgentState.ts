@@ -12,12 +12,17 @@ import {
 import { DEFAULT_PANEL_LAYOUT, DEFAULT_PLUGIN_STRUCTURE } from '../constants';
 import { useAgentAPI } from './useAgentAPI';
 import { toast } from 'react-hot-toast';
-import { getSocketService } from '../utils/serviceFactory';
-import { WebSocketEventType, WebSocketMessage } from '../utils/websocketService';
+import { getSocketService, WebSocketEventType } from '../utils/websocketService';
 import { cleanWorkspace } from '../utils/workspaceUtils';
+import { getApiService } from '../utils/serviceFactory';
 
 interface UseAgentStateProps {
   workspaceId?: string;
+}
+
+// Define custom event interface for TypeScript
+interface ThinkingCompletedEventDetail {
+  messageId: string;
 }
 
 export function useAgentState({ workspaceId: initialWorkspaceId }: UseAgentStateProps = {}) {
@@ -40,15 +45,18 @@ export function useAgentState({ workspaceId: initialWorkspaceId }: UseAgentState
     isSocketConnected,
     createWorkspace,
     connectToWorkspace,
-    sendMessage,
+    sendMessage: apiSendMessage,
     createFile,
     updateFileContent,
     setActiveFile,
+    createWordPressPlugin,
+    createWordPressTheme
   } = useAgentAPI();
   
   const pendingThinking = useRef<string>('');
   const pendingText = useRef<string>('');
   const connectionAttemptedRef = useRef(false);
+  const thinkingCollapsedRef = useRef(false);
   
   // Clean a specific workspace
   const cleanCurrentWorkspace = useCallback(() => {
@@ -95,6 +103,53 @@ export function useAgentState({ workspaceId: initialWorkspaceId }: UseAgentState
       connectionStatus: isSocketConnected ? 'connected' : connectionAttemptedRef.current ? 'disconnected' : 'connecting'
     }));
   }, [isSocketConnected]);
+
+  // Fetch messages from the backend API
+  const fetchMessagesFromBackend = useCallback(async (workspaceId: string) => {
+    try {
+      console.log(`Fetching messages for workspace: ${workspaceId}`);
+      const response = await getApiService().getMessages(workspaceId);
+      
+      if (response) {
+        let messagesArray: any[] = [];
+        
+        // Handle different response formats
+        if (Array.isArray(response)) {
+          messagesArray = response;
+        } else if (response.messages && Array.isArray(response.messages)) {
+          messagesArray = response.messages;
+        } else {
+          console.warn('Unexpected messages format from API:', response);
+          return [];
+        }
+        
+        // Convert the backend message format to our frontend format
+        const formattedMessages: AgentMessage[] = messagesArray.map(msg => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          // Convert timestamp to Date object
+          timestamp: new Date(msg.timestamp),
+          codeBlocks: msg.code_blocks?.map((block: any) => ({
+            id: block.id || uuidv4(),
+            language: block.language,
+            code: block.code
+          })) || [],
+          thinking: msg.metadata?.thinking || '',
+          status: msg.metadata?.status || 'completed'
+        }));
+        
+        console.log(`Loaded ${formattedMessages.length} messages from backend`);
+        
+        return formattedMessages;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching messages from backend:', error);
+      return [];
+    }
+  }, []);
   
   // Initialize workspace or create a new one
   useEffect(() => {
@@ -115,12 +170,17 @@ export function useAgentState({ workspaceId: initialWorkspaceId }: UseAgentState
             throw new Error(`Invalid workspace ID: ${initialWorkspaceId}`);
           }
           
+          // First connect to the WebSocket
           await connectToWorkspace(initialWorkspaceId);
+          
+          // Then fetch messages from the backend
+          const messages = await fetchMessagesFromBackend(initialWorkspaceId);
           
           console.log(`Successfully connected to workspace: ${initialWorkspaceId}`);
           setSessionState(prev => ({
             ...prev,
-            id: initialWorkspaceId
+            id: initialWorkspaceId,
+            messages: messages
           }));
         } else {
           // Instead of creating a new workspace here, we'll wait for explicit createWorkspace call
@@ -133,356 +193,291 @@ export function useAgentState({ workspaceId: initialWorkspaceId }: UseAgentState
         setSessionState(prev => ({
           ...prev,
           connectionStatus: 'error',
-          error: err instanceof Error ? err.message : 'Unknown error occurred'
+          error: err instanceof Error ? err.message : String(err)
         }));
       }
     };
     
     initWorkspace();
-  }, [initialWorkspaceId, connectToWorkspace]);
+  }, [initialWorkspaceId, connectToWorkspace, fetchMessagesFromBackend]);
   
-  // Set up WebSocket listeners for file updates
-  useEffect(() => {
-    const fileUpdateHandler = (data: WebSocketMessage) => {
-      if (data.file) {
-        const { id, path, content } = data.file;
-        
-        if (content !== undefined) {
-          // Update files state by creating or updating the file
-          setSessionState(prev => {
-            // Split the path into parts
-            const pathParts = path.split('/').filter(Boolean);
-            const fileName = pathParts.pop() || '';
-            
-            // Create a new files object
-            const newFiles = { ...prev.files };
-            
-            // Navigate to the correct folder, creating the path if needed
-            let currentLevel = newFiles;
-            pathParts.forEach(folder => {
-              if (!currentLevel[folder]) {
-                currentLevel[folder] = { type: 'folder', children: {} };
-              } else if (currentLevel[folder].type !== 'folder') {
-                // Convert to folder if it's not already
-                currentLevel[folder] = { type: 'folder', children: {} };
-              }
-              currentLevel = currentLevel[folder].children!;
-            });
-            
-            // Add or update the file
-            currentLevel[fileName] = {
-              type: 'file',
-              content,
-              language: getLanguageFromFileName(fileName),
-            };
-            
-            return {
-              ...prev,
-              files: newFiles,
-            };
-          });
-        }
-      }
-    };
+  // Wrapper for sending messages that updates local state
+  const sendMessage = useCallback(async (
+    message: string,
+    codeBlocks?: { language: string; code: string }[]
+  ): Promise<string | undefined> => {
+    if (!sessionState.id) {
+      console.error('Cannot send message: No active workspace');
+      return undefined;
+    }
     
-    getSocketService().on(WebSocketEventType.FILE_UPDATE, fileUpdateHandler);
-    
-    return () => {
-      getSocketService().removeListener(WebSocketEventType.FILE_UPDATE, fileUpdateHandler);
-    };
-  }, []);
-  
-  // Update processing state based on WebSocket events
-  useEffect(() => {
-    setSessionState(prev => ({
-      ...prev,
-      isProcessing
-    }));
-  }, [isProcessing]);
-  
-  // Display connection error
-  useEffect(() => {
-    if (error) {
+    try {
+      // Reset thinking and pending text
+      pendingThinking.current = '';
+      pendingText.current = '';
+      thinkingCollapsedRef.current = false;
+      
+      // Set processing state
       setSessionState(prev => ({
         ...prev,
-        error
+        isProcessing: true,
+        error: null
       }));
-    }
-  }, [error]);
-  
-  // Send a message to the agent
-  const sendAgentMessage = useCallback(async (message: string) => {
-    if (!sessionState.id) {
-      toast.error('No active workspace');
-      return;
-    }
-    
-    console.log(`Sending message to workspace: ${sessionState.id}`);
-    
-    // Check connection status
-    if (sessionState.connectionStatus === 'disconnected' || sessionState.connectionStatus === 'error') {
-      // Try reconnecting before sending
-      try {
-        console.log(`Attempting to reconnect to workspace: ${sessionState.id}`);
-        await connectToWorkspace(sessionState.id);
-        
-        // Wait a short time for the connection to stabilize
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (err) {
-        console.error('Failed to reconnect:', err);
-        toast.error('Cannot send message: Failed to reconnect to server');
-        return;
-      }
-    }
-    
-    // Add the user message to the state
-    const userMessage: AgentMessage = {
-      id: uuidv4(),
-      role: 'user',
-      content: message,
-      timestamp: new Date(),
-    };
-    
-    setSessionState(prev => ({
-      ...prev,
-      messages: [...prev.messages, userMessage],
-      error: null // Clear any previous errors
-    }));
-    
-    // Reset pending message data
-    pendingThinking.current = '';
-    pendingText.current = '';
-    
-    // Define handlers for the streaming response
-    const handleThinkingUpdate = (thinking: string) => {
-      pendingThinking.current = thinking;
-    };
-    
-    const handleTextUpdate = (text: string) => {
-      // Store the complete response text, not just the latest chunk
-      pendingText.current = text;
       
-      // Update the session with the in-progress assistant message
-      setSessionState(prev => {
-        const existingMessages = [...prev.messages];
-        const lastMessage = existingMessages[existingMessages.length - 1];
+      // Add user message to state immediately for UI feedback
+      const userMessage: AgentMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content: message,
+        timestamp: new Date(),
+        codeBlocks: codeBlocks?.map(block => ({
+          id: uuidv4(),
+          language: block.language,
+          code: block.code
+        })) || [],
+        status: 'completed'
+      };
+      
+      // Create a placeholder assistant message
+      const assistantMessage: AgentMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        thinking: '',
+        status: 'processing'
+      };
+      
+      // Update state with both messages
+      setSessionState(prev => ({
+        ...prev,
+        messages: [...prev.messages, userMessage, assistantMessage]
+      }));
+      
+      // Define callback handlers for stream updates
+      const onThinkingUpdate = (thinking: string) => {
+        pendingThinking.current = thinking;
+        thinkingCollapsedRef.current = false;
         
-        // If the last message is already an assistant response, update it
-        if (lastMessage && lastMessage.role === 'assistant' && !lastMessage.id.includes('final')) {
-          existingMessages[existingMessages.length - 1] = {
-            ...lastMessage,
-            content: text, // Use the complete text, not just the incremental update
-          };
-        } else {
-          // Otherwise add a new assistant message
-          existingMessages.push({
-            id: uuidv4() + '_draft',
-            role: 'assistant',
-            content: text,
-            timestamp: new Date(),
-          });
-        }
-        
-        return {
-          ...prev,
-          messages: existingMessages,
-        };
-      });
-    };
-    
-    // Maximum retry count for sending a message
-    const maxRetries = 3;
-    let retryCount = 0;
-    
-    while (retryCount <= maxRetries) {
-      try {
-        // Send the message to the agent
-        console.log(`Attempt ${retryCount + 1} to send message to workspace ${sessionState.id}`);
-        
-        const result = await sendMessage(
-          sessionState.id,
-          message,
-          undefined, // code blocks
-          handleThinkingUpdate,
-          handleTextUpdate
-        );
-        
-        // Finalize the message with the complete response
         setSessionState(prev => {
-          const existingMessages = [...prev.messages];
-          const assistantMessageIndex = existingMessages.findIndex(msg => 
-            msg.role === 'assistant' && msg.id.includes('draft')
+          // Find and update the last assistant message
+          const updatedMessages = [...prev.messages];
+          const lastAssistantIndex = updatedMessages.findIndex(
+            m => m.role === 'assistant' && m.status === 'processing'
           );
           
-          if (assistantMessageIndex !== -1) {
-            // Replace the draft message with the final one
-            existingMessages[assistantMessageIndex] = {
-              id: result.messageId,
-              role: 'assistant',
-              content: pendingText.current,
-              timestamp: new Date(),
+          if (lastAssistantIndex !== -1) {
+            updatedMessages[lastAssistantIndex] = {
+              ...updatedMessages[lastAssistantIndex],
+              thinking
             };
-          } else {
-            // Add the assistant message if it doesn't exist
-            existingMessages.push({
-              id: result.messageId,
-              role: 'assistant',
-              content: pendingText.current,
-              timestamp: new Date(),
-            });
           }
           
           return {
             ...prev,
-            messages: existingMessages,
+            messages: updatedMessages
           };
         });
+      };
+      
+      const onTextUpdate = (text: string) => {
+        pendingText.current += text;
         
-        // Success, break out of the retry loop
-        break;
-        
-      } catch (err) {
-        retryCount++;
-        console.error(`Error sending message (attempt ${retryCount}/${maxRetries + 1}):`, err);
-        
-        if (retryCount <= maxRetries) {
-          // Wait before retrying (exponential backoff)
-          const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 8000);
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+        setSessionState(prev => {
+          // Find and update the last assistant message
+          const updatedMessages = [...prev.messages];
+          const lastAssistantIndex = updatedMessages.findIndex(
+            m => m.role === 'assistant' && m.status === 'processing'
+          );
           
-          // Try to reconnect before retrying
-          try {
-            await connectToWorkspace(sessionState.id);
-          } catch (connErr) {
-            console.error('Failed to reconnect before retry:', connErr);
+          if (lastAssistantIndex !== -1) {
+            updatedMessages[lastAssistantIndex] = {
+              ...updatedMessages[lastAssistantIndex],
+              content: pendingText.current
+            };
           }
-        } else {
-          // We've exhausted all retries
-          toast.error('Failed to send message to agent after multiple attempts');
           
-          // Update session with error state
-          setSessionState(prev => ({
+          return {
             ...prev,
-            error: err instanceof Error ? err.message : 'Failed to send message to agent'
-          }));
-          return;
+            messages: updatedMessages
+          };
+        });
+      };
+      
+      // Send the message via the API with available callbacks
+      // Make sure we're only passing parameters the API expects
+      const result = await apiSendMessage(
+        sessionState.id,
+        message,
+        codeBlocks,
+        onThinkingUpdate,
+        onTextUpdate
+      );
+      
+      // Don't auto-collapse thinking when completed - REMOVED: thinkingCollapsedRef.current = true;
+      
+      // Mark the assistant message as completed
+      setSessionState(prev => {
+        const updatedMessages = [...prev.messages];
+        const lastAssistantIndex = updatedMessages.findIndex(
+          m => m.role === 'assistant' && m.status === 'processing'
+        );
+        
+        if (lastAssistantIndex !== -1) {
+          updatedMessages[lastAssistantIndex] = {
+            ...updatedMessages[lastAssistantIndex],
+            status: 'completed'
+          };
+          
+          // Dispatch an event to notify components that the message is complete
+          // but don't request collapsing the thinking section
+          if (updatedMessages[lastAssistantIndex].id) {
+            const thinkingCompletedEvent = new CustomEvent<ThinkingCompletedEventDetail>('thinking-completed', {
+              detail: { messageId: updatedMessages[lastAssistantIndex].id }
+            });
+            window.dispatchEvent(thinkingCompletedEvent);
+          }
         }
-      }
+        
+        return {
+          ...prev,
+          isProcessing: false,
+          messages: updatedMessages
+        };
+      });
+      
+      return result?.messageId;
+    } catch (err) {
+      console.error('Error sending message:', err);
+      
+      // Update error state
+      setSessionState(prev => ({
+        ...prev,
+        isProcessing: false,
+        error: err instanceof Error ? err.message : String(err)
+      }));
+      
+      return undefined;
     }
-  }, [sessionState.id, sessionState.connectionStatus, connectToWorkspace, sendMessage]);
+  }, [sessionState.id, apiSendMessage]);
   
-  // Create a new file in the workspace
-  const createNewFile = useCallback(async (path: string, content: string) => {
+  // Function to reconnect to the current workspace
+  const reconnect = useCallback(async () => {
     if (!sessionState.id) {
-      toast.error('No active workspace');
-      return null;
+      console.error('Cannot reconnect: No active workspace');
+      return false;
     }
     
     try {
-      const result = await createFile(sessionState.id, path, content);
-      return result.fileId;
+      // First reconnect WebSocket
+      await connectToWorkspace(sessionState.id);
+      
+      // Then fetch messages from the backend
+      const messages = await fetchMessagesFromBackend(sessionState.id);
+      
+      // Update state with fetched messages
+      setSessionState(prev => ({
+        ...prev,
+        messages: messages,
+        connectionStatus: 'connected'
+      }));
+      
+      return true;
+    } catch (err) {
+      console.error('Error reconnecting to workspace:', err);
+      setSessionState(prev => ({
+        ...prev,
+        connectionStatus: 'error',
+        error: err instanceof Error ? err.message : String(err)
+      }));
+      return false;
+    }
+  }, [sessionState.id, connectToWorkspace, fetchMessagesFromBackend]);
+  
+  // Create a file in the workspace
+  const createFileNode = useCallback(async (
+    path: string,
+    content: string,
+    type: 'file' | 'folder' = 'file',
+    language?: string
+  ): Promise<string | undefined> => {
+    if (!sessionState.id) {
+      console.error('Cannot create file: No active workspace');
+      return undefined;
+    }
+    
+    try {
+      // Call the API to create the file
+      const result = await createFile(
+        sessionState.id,
+        path,
+        content
+      );
+      
+      if (result?.fileId) {
+        // Update local files state - but should come from server update
+        // This is just for immediate UI feedback
+        return result.fileId;
+      }
+      
+      return undefined;
     } catch (err) {
       console.error('Error creating file:', err);
-      toast.error('Failed to create file');
-      return null;
+      return undefined;
     }
   }, [sessionState.id, createFile]);
   
-  // Update an existing file
-  const updateFile = useCallback(async (fileId: string, content: string) => {
-    try {
-      await updateFileContent(fileId, content);
-      return true;
-    } catch (err) {
-      console.error('Error updating file:', err);
-      toast.error('Failed to update file');
-      return false;
-    }
-  }, [updateFileContent]);
-  
-  // Set the active file in the workspace
-  const selectFile = useCallback(async (file: AgentFile) => {
+  // Update a file in the workspace
+  const updateFile = useCallback(async (
+    fileId: string,
+    content: string
+  ): Promise<boolean> => {
     if (!sessionState.id) {
-      toast.error('No active workspace');
-      return;
+      console.error('Cannot update file: No active workspace');
+      return false;
     }
     
     try {
-      await setActiveFile(sessionState.id, file.id);
-      
-      setSessionState(prev => ({
-        ...prev,
-        activeFile: file,
-      }));
+      // Call the API to update the file
+      const result = await updateFileContent(sessionState.id + '/' + fileId, content);
+      return result?.success || false;
     } catch (err) {
-      console.error('Error setting active file:', err);
+      console.error('Error updating file:', err);
+      return false;
+    }
+  }, [sessionState.id, updateFileContent]);
+  
+  // Select a file in the workspace
+  const selectFile = useCallback(async (
+    fileId: string
+  ): Promise<boolean> => {
+    if (!sessionState.id) {
+      console.error('Cannot select file: No active workspace');
+      return false;
+    }
+    
+    try {
+      // Call the API to set the active file
+      const result = await setActiveFile(sessionState.id, fileId);
+      return result?.success || false;
+    } catch (err) {
+      console.error('Error selecting file:', err);
+      return false;
     }
   }, [sessionState.id, setActiveFile]);
   
-  // Helper to determine file language from filename
-  const getLanguageFromFileName = (fileName: string): string => {
-    const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    
-    const extensionMap: Record<string, string> = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'html': 'html',
-      'css': 'css',
-      'php': 'php',
-      'py': 'python',
-      'rb': 'ruby',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'c': 'c',
-      'cpp': 'cpp',
-      'cs': 'csharp',
-      'json': 'json',
-      'md': 'markdown',
-      'yml': 'yaml',
-      'yaml': 'yaml',
-      'xml': 'xml',
-      'sql': 'sql',
-      'sh': 'bash',
-      'bash': 'bash',
-    };
-    
-    return extensionMap[extension] || 'plaintext';
-  };
-  
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      // If this is the first cleanup in strict mode, just mark it and don't actually disconnect
-      if (!strictModeUnmountRef.current) {
-        strictModeUnmountRef.current = true;
-        // In strict mode, React will run cleanup and setup functions twice
-        // The first time isn't a real unmount, so don't fully disconnect
-        console.log("Initial cleanup in development mode - not disconnecting WebSocket");
-        return;
-      }
-
-      // This is either the second cleanup in strict mode or a real unmount in production
-      console.log("Final cleanup - disconnecting WebSocket");
-      // No need to clean up localStorage on unmount
-      // Just close the WebSocket connection
-      getSocketService().disconnect();
-    };
-  }, []);
-  
+  // Return the hook state and methods
   return {
     sessionState,
-    isLoading,
+    isLoading: isLoading,
     error,
-    sendMessage: sendAgentMessage,
-    createFile: createNewFile,
+    sendMessage,
+    createFile: createFileNode,
     updateFile,
     selectFile,
-    reconnect: connectToWorkspace,
+    reconnect,
     cleanWorkspace: cleanCurrentWorkspace,
     cleanSpecificWorkspace,
+    shouldCollapseThinking: thinkingCollapsedRef.current
   };
 } 

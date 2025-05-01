@@ -5,6 +5,8 @@ import { AgentMessage, FileNode, AgentFile } from '../types';
 import { toast } from 'react-hot-toast';
 import { getApiService, getSocketService } from '../utils/serviceFactory';
 import { WebSocketEventType, WebSocketMessage } from '../utils/websocketService';
+import { agentAPI } from '../utils/apiService';
+import { v4 as uuidv4 } from 'uuid';
 
 export function useAgentAPI() {
   const [isLoading, setIsLoading] = useState(false);
@@ -402,6 +404,138 @@ export function useAgentAPI() {
     };
   }, [currentWorkspaceId, isSocketConnected, connectToWorkspace, maxReconnectAttempts]);
 
+  // WordPress-specific methods
+  const createWordPressPlugin = useCallback(async (
+    prompt: string,
+    pluginInfo: {
+      slug: string;
+      name?: string;
+      description?: string;
+      version?: string;
+      author?: string;
+    }
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (!currentWorkspaceId) {
+        throw new Error('No active workspace. Please create or select a workspace first.');
+      }
+      
+      const result = await getApiService().createWordPressPlugin(currentWorkspaceId, {
+        prompt,
+        ...pluginInfo
+      });
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error creating WordPress plugin: ${errorMessage}`);
+      toast.error(`Failed to create WordPress plugin: ${errorMessage}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspaceId]);
+  
+  const createWordPressTheme = useCallback(async (
+    prompt: string,
+    themeInfo: {
+      slug: string;
+      name?: string;
+      description?: string;
+      version?: string;
+      author?: string;
+    }
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (!currentWorkspaceId) {
+        throw new Error('No active workspace. Please create or select a workspace first.');
+      }
+      
+      const result = await getApiService().createWordPressTheme(currentWorkspaceId, {
+        prompt,
+        ...themeInfo
+      });
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error creating WordPress theme: ${errorMessage}`);
+      toast.error(`Failed to create WordPress theme: ${errorMessage}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspaceId]);
+  
+  const downloadWordPressPackage = useCallback(async () => {
+    try {
+      if (!currentWorkspaceId) {
+        throw new Error('No active workspace. Please create or select a workspace first.');
+      }
+      
+      const result = await getApiService().downloadWordPressPackage(currentWorkspaceId);
+      
+      // Create a download link for the ZIP file
+      if (result && result.downloadUrl) {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = result.downloadUrl;
+        downloadLink.download = result.fileName || 'wordpress-package.zip';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        toast.success('WordPress package downloaded successfully');
+        return true;
+      } else {
+        throw new Error('Download URL not provided in the response');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error downloading WordPress package: ${errorMessage}`);
+      toast.error(`Failed to download WordPress package: ${errorMessage}`);
+      return false;
+    }
+  }, [currentWorkspaceId]);
+  
+  const deployToWordPressSite = useCallback(async (
+    siteInfo: {
+      url: string;
+      username: string;
+      password: string;
+    }
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (!currentWorkspaceId) {
+        throw new Error('No active workspace. Please create or select a workspace first.');
+      }
+      
+      const result = await getApiService().deployToWordPressSite(currentWorkspaceId, siteInfo);
+      
+      if (result && result.success) {
+        toast.success(`Successfully deployed to ${siteInfo.url}`);
+        return true;
+      } else {
+        throw new Error(result.error || 'Deployment failed');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error deploying to WordPress site: ${errorMessage}`);
+      toast.error(`Failed to deploy to WordPress site: ${errorMessage}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspaceId]);
+
   return {
     isLoading,
     isProcessing,
@@ -413,6 +547,13 @@ export function useAgentAPI() {
     createFile,
     updateFileContent,
     setActiveFile,
-    cleanupMessageListeners
+    cleanupMessageListeners,
+    createWPPlugin: agentAPI.createWPPlugin.bind(agentAPI),
+    generatePluginWithAI: agentAPI.generatePluginWithAI.bind(agentAPI),
+    // WordPress-specific methods
+    createWordPressPlugin,
+    createWordPressTheme,
+    downloadWordPressPackage,
+    deployToWordPressSite
   };
 } 

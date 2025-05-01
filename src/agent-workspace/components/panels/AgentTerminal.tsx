@@ -6,9 +6,11 @@ import { ChevronRight, X, Copy, DownloadCloud } from 'lucide-react';
 
 interface AgentTerminalProps {
   onRunCommand?: (command: string) => Promise<string>;
+  onToggleTerminal: () => void;
+  showTerminal: boolean;
 }
 
-const AgentTerminal: React.FC<AgentTerminalProps> = ({ onRunCommand }) => {
+const AgentTerminal: React.FC<AgentTerminalProps> = ({ onRunCommand, onToggleTerminal, showTerminal }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [command, setCommand] = useState<string>('');
@@ -19,19 +21,56 @@ const AgentTerminal: React.FC<AgentTerminalProps> = ({ onRunCommand }) => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   
-  // Auto-scroll to bottom when history changes
+  // Check if we're on a mobile device
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Auto-scroll to bottom when history changes if auto-scroll is enabled
+  useEffect(() => {
+    if (isAutoScrollEnabled) {
+      scrollToBottom();
+    }
+  }, [history, isAutoScrollEnabled]);
+  
+  // Scroll to bottom helper function
+  const scrollToBottom = () => {
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [history]);
+  };
   
-  // Focus the input when the component mounts
+  // Focus the input when the component mounts or after mobile keyboard closes
   useEffect(() => {
-    if (inputRef.current) {
+    if (inputRef.current && showTerminal) {
       inputRef.current.focus();
     }
+  }, [showTerminal]);
+  
+  // Track scrolling to determine if auto-scroll should be enabled
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+    
+    const handleScroll = () => {
+      // If user scrolls up more than 100px from bottom, disable auto-scroll
+      const isNearBottom = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 100;
+      setIsAutoScrollEnabled(isNearBottom);
+    };
+    
+    terminal.addEventListener('scroll', handleScroll);
+    return () => {
+      terminal.removeEventListener('scroll', handleScroll);
+    };
   }, []);
   
   const handleCommandSubmit = async (e: React.FormEvent) => {
@@ -42,6 +81,9 @@ const AgentTerminal: React.FC<AgentTerminalProps> = ({ onRunCommand }) => {
     // Add command to history
     setHistory(prev => [...prev, { type: 'command', content: command }]);
     setCommandHistory(prev => [command, ...prev]);
+    
+    // Re-enable auto-scroll when submitting a command
+    setIsAutoScrollEnabled(true);
     
     // Process command
     if (command.toLowerCase() === 'clear') {
@@ -85,6 +127,11 @@ Available commands:
     
     setCommand('');
     setHistoryIndex(-1);
+    
+    // Focus the input field again after command execution
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -145,15 +192,15 @@ Available commands:
   };
   
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Terminal header */}
       <div className={`flex justify-between items-center p-2 border-b ${
         isDark ? 'bg-gray-900 border-gray-700' : 'bg-gray-100 border-gray-200'
       }`}>
         <div className="flex items-center">
-          <span className="font-medium">WordPress Terminal</span>
+          <span className="font-medium text-sm sm:text-base">WordPress Terminal</span>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 sm:space-x-2">
           <button 
             onClick={handleCopyToClipboard}
             className={`p-1 rounded ${
@@ -161,7 +208,7 @@ Available commands:
             }`}
             title="Copy to clipboard"
           >
-            <Copy className="w-4 h-4" />
+            <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           <button 
             onClick={handleDownload}
@@ -170,29 +217,42 @@ Available commands:
             }`}
             title="Download history"
           >
-            <DownloadCloud className="w-4 h-4" />
+            <DownloadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           <button 
-            onClick={() => setHistory([{ type: 'output', content: 'Terminal cleared.' }])}
+            onClick={() => {
+              setHistory([{ type: 'output', content: 'Terminal cleared.' }]);
+              if (inputRef.current) inputRef.current.focus();
+              setIsAutoScrollEnabled(true);
+            }}
             className={`p-1 rounded ${
               isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
             }`}
             title="Clear terminal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
       
-      {/* Terminal output */}
+      {/* Terminal output with improved scrolling */}
       <div 
         ref={terminalRef}
-        className={`flex-1 overflow-auto p-2 font-mono text-sm ${
+        className={`flex-1 overflow-y-auto p-2 font-mono text-xs sm:text-sm ${
           isDark ? 'bg-gray-900 text-gray-200' : 'bg-black text-gray-200'
-        }`}
+        } terminal-scrollbar`}
+        style={{ 
+          height: isMobile ? '150px' : '200px',
+          minHeight: isMobile ? '150px' : '200px',
+          maxHeight: isMobile ? '250px' : '400px',
+          width: '100%',
+          resize: 'vertical',
+          overflow: 'auto',
+          paddingBottom: '20px' // Extra padding to ensure text isn't cut off
+        }}
       >
         {history.map((item, index) => (
-          <div key={index} className="whitespace-pre-wrap break-words">
+          <div key={index} className="whitespace-pre-wrap break-words mb-1">
             {item.type === 'command' ? (
               <div className="flex items-start">
                 <span className="text-green-400 mr-2">$</span>
@@ -205,10 +265,12 @@ Available commands:
             )}
           </div>
         ))}
+        {/* Invisible element to help with scrolling to the very bottom */}
+        <div className="h-4"></div>
       </div>
       
-      {/* Command input */}
-      <div className={`border-t ${
+      {/* Command input - Make sticky to ensure it's always visible */}
+      <div className={`sticky bottom-0 border-t w-full ${
         isDark ? 'bg-gray-900 border-gray-700' : 'bg-black border-gray-600'
       }`}>
         <form onSubmit={handleCommandSubmit} className="flex items-center p-2">
@@ -219,7 +281,7 @@ Available commands:
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyDown}
-            className={`flex-1 bg-transparent border-none outline-none ${
+            className={`flex-1 bg-transparent border-none outline-none text-sm sm:text-base ${
               isDark ? 'text-white' : 'text-white'
             }`}
             placeholder="Type a command..."
@@ -228,6 +290,50 @@ Available commands:
           />
         </form>
       </div>
+      
+      {/* Scroll to bottom button - shows when auto-scroll is disabled */}
+      {!isAutoScrollEnabled && (
+        <button 
+          onClick={() => {
+            scrollToBottom();
+            setIsAutoScrollEnabled(true);
+          }}
+          className={`absolute bottom-16 right-3 p-1.5 rounded-full shadow-md
+            ${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-600 text-gray-200 hover:bg-gray-500'}
+            transition-all duration-200 z-10`}
+          title="Scroll to bottom"
+        >
+          <ChevronRight className="w-4 h-4 rotate-90" />
+        </button>
+      )}
+      
+      {/* Custom scrollbar styles */}
+      <style jsx global>{`
+        .terminal-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        .terminal-scrollbar::-webkit-scrollbar-track {
+          background: ${isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)'};
+          border-radius: 4px;
+        }
+        
+        .terminal-scrollbar::-webkit-scrollbar-thumb {
+          background: ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.3)'};
+          border-radius: 4px;
+        }
+        
+        .terminal-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: ${isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.4)'};
+        }
+        
+        /* For Firefox */
+        .terminal-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: ${isDark ? 'rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2)'};
+        }
+      `}</style>
     </div>
   );
 };

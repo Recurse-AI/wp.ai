@@ -32,6 +32,8 @@ export interface AgentMessage {
   codeBlocks?: CodeBlock[];
   files?: AgentFile[];
   metadata?: Record<string, any>;
+  thinking?: string;
+  status?: "processing" | "completed" | "error";
 }
 
 export interface CodeBlock {
@@ -85,7 +87,6 @@ export interface AgentPanelProps {
 export interface AgentChatProps {
   sessionState: AgentSessionState;
   onSendMessage: (message: string) => Promise<any>;
-  onRegenerateMessage?: () => Promise<any>;
 }
 
 export interface AgentEditorProps {
@@ -109,6 +110,7 @@ export interface AgentToolbarProps {
   onToggleExplorer?: () => void;
   onTogglePreview?: () => void;
   onToggleTerminal?: () => void;
+  onToggleHistory?: () => void;
   showExplorer?: boolean;
   showPreview?: boolean;
   showTerminal?: boolean;

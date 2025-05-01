@@ -3,10 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AgentChatProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
-import { Send, RefreshCw, User, Bot, ChevronDown, Code, ExternalLink } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
-import type { Components } from 'react-markdown';
+import { Send, RefreshCw, ExternalLink, Code } from 'lucide-react';
+import ScrollableMessageContainer from './ScrollableMessageContainer';
 
 // Extend the ReactMarkdown types to include inline property
 declare module 'react-markdown' {
@@ -18,29 +16,106 @@ declare module 'react-markdown' {
 const AgentChat: React.FC<AgentChatProps> = ({
   sessionState,
   onSendMessage,
-  onRegenerateMessage
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [currentResponse, setCurrentResponse] = useState<string | null>(null);
+  const [currentThinking, setCurrentThinking] = useState<string | null>(null);
   
-  // Scroll to bottom when messages change
+  // Sample AI responses to simulate streaming
+  const aiResponses = [
+    "Hello! How can I help you today?",
+    "That's an interesting question. Let me think about it for a moment... Based on my understanding, the best approach would be to consider multiple factors before making a decision.",
+    "I understand your concern. It's important to remember that technology is constantly evolving, and what works today might need adjustment tomorrow. Let's explore some options that could address your needs both in the short and long term.",
+    "Great question! The concept you're asking about has several dimensions to it. First, we need to consider the technical aspects. Second, there are usability concerns to address. And finally, we should think about scalability for future growth."
+  ];
+
+  // Sample thinking process to simulate streaming
+  const thinkingProcesses = [
+    "Thinking Process\nThe user has sent a very simple greeting with \"Hello\" and a few more \"Hi\" messages. I should respond with a professional, friendly greeting and indicate that I'm here to help with WordPress development. I'll introduce myself and ask how I can assist them with their WordPress development needs.",
+    "Thinking Process\nThe user is asking about WordPress plugin development best practices. This is a broad topic that covers code organization, security, performance, and WordPress integration. I'll structure my answer to cover the most important aspects of plugin development while keeping the response concise and practical.",
+    "Thinking Process\nThe user wants to know about the difference between WordPress hooks: actions and filters. This is a fundamental WordPress development concept. I'll explain both types of hooks, their syntax, how they're used, and provide simple examples of each to illustrate the differences."
+  ];
+  
+  // Check for mobile viewport
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [sessionState.messages]);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
-  // Auto-resize textarea
+  // Simulate AI typing with streaming effect (for testing only)
+  const simulateAIResponse = async () => {
+    setIsTyping(true);
+    
+    // First, simulate thinking process
+    const thinkingIndex = Math.floor(Math.random() * thinkingProcesses.length);
+    const fullThinking = thinkingProcesses[thinkingIndex];
+    
+    // Stream the thinking process character by character
+    setCurrentThinking('');
+    for (let i = 0; i < fullThinking.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      setCurrentThinking(prev => prev ? prev + fullThinking[i] : fullThinking[i]);
+    }
+    
+    // Pause between thinking and response
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Select random response
+    const responseIndex = Math.floor(Math.random() * aiResponses.length);
+    const fullResponse = aiResponses[responseIndex];
+    
+    // Stream the response character by character
+    setCurrentResponse('');
+    for (let i = 0; i < fullResponse.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 30));
+      setCurrentResponse(prev => prev ? prev + fullResponse[i] : fullResponse[i]);
+    }
+    
+    return fullResponse;
+  };
+  
+  // Auto-resize textarea with improved handling
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+      // Reset height before calculating new height to avoid cumulative growth
+      textarea.style.height = '0px';
+      const maxHeight = isMobile ? 100 : 150; // Lower max height on mobile
+      const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+      textarea.style.height = `${newHeight}px`;
+      
+      // If we're at max height, ensure the textarea is scrollable
+      if (newHeight === maxHeight) {
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.overflowY = 'hidden';
+      }
     }
   };
   
-  // Handle input change
+  // Readjust textarea when mobile state changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [isMobile]);
+  
+  // Focus input when conversation is empty
+  useEffect(() => {
+    if (sessionState.messages.length === 0 && textareaRef.current && !isMobile) {
+      textareaRef.current.focus();
+    }
+  }, [sessionState.messages.length, isMobile]);
+  
+  // Handle input change with improved resize handling
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     adjustTextareaHeight();
@@ -54,279 +129,160 @@ const AgentChat: React.FC<AgentChatProps> = ({
     }
   };
   
-  // Handle send message
+  // Enhanced send message function
   const handleSendMessage = async () => {
-    if (!message.trim() || sessionState.isProcessing) return;
+    if (!message.trim() || sessionState.isProcessing || isTyping) return;
     
     const userMessage = message;
     setMessage('');
+    setIsTyping(true);
     
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      // Focus back on input after sending for continuous conversation
+      textareaRef.current.focus();
     }
     
-    await onSendMessage(userMessage);
-  };
-  
-  // Handle regenerate last message
-  const handleRegenerateMessage = async () => {
-    if (sessionState.isProcessing || !onRegenerateMessage) return;
-    await onRegenerateMessage();
-  };
-  
-  // Format message content with code blocks
-  const MessageContent = ({ content }: { content: string }) => {
-    // Define custom components for ReactMarkdown with proper typing
-    const customComponents: Components = {
-      // Custom rendering for code blocks
-      code(props) {
-        const { className, children } = props;
-        // Use index signature to bypass type checking
-        const inline = (props as any).inline;
-        const match = /language-(\w+)/.exec(className || '');
-        if (inline) {
-          return (
-            <code className={`px-1 py-0.5 rounded text-sm ${
-              isDark ? 'bg-gray-800' : 'bg-gray-100'
-            }`} {...props}>
-              {children}
-            </code>
-          );
-        }
+    try {
+      // For demo purposes - in production would be replaced with actual API call
+      if (process.env.NODE_ENV === 'development' && typeof onSendMessage !== 'function') {
+        // Simulate AI response if we're in development
+        const fullResponse = await simulateAIResponse();
         
-        return (
-          <div className={`my-2 overflow-x-auto rounded-md ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <div className={`flex items-center justify-between px-4 py-1.5 text-xs border-b ${
-              isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
-            }`}>
-              <span>{match?.[1] || 'code'}</span>
-              <button className="hover:text-blue-500" title="Copy code">
-                <Code className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <pre className="p-4 text-sm overflow-x-auto">
-              <code className={className} {...props}>
-                {children}
-              </code>
-            </pre>
-          </div>
-        );
-      },
-      
-      // Custom rendering for links
-      a({ children, href, ...props }) {
-        return (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center ${
-              isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-            }`}
-            {...props}
-          >
-            {children}
-            <ExternalLink className="w-3 h-3 ml-1" />
-          </a>
-        );
+        // Wait a bit before finishing
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setCurrentResponse(null);
+        setCurrentThinking(null);
+      } else {
+        await onSendMessage(userMessage);
       }
-    };
-
-    return (
-      <ReactMarkdown components={customComponents}>
-        {content}
-      </ReactMarkdown>
-    );
+    } finally {
+      setIsTyping(false);
+      setCurrentThinking(null);
+    }
+  };
+  
+  // Handle example click from empty state
+  const handleExampleClick = (exampleText: string) => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      setMessage(exampleText);
+      adjustTextareaHeight();
+    }
   };
 
   return (
-    <div className="flex flex-col h-full overflow-auto">
-      {/* Chat header with service info */}
-      <div className={`flex items-center justify-between px-4 py-2 ${
-        isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-800 border-gray-200'
-      } border-b sticky top-0 z-10`}>
-        <div className="flex items-center">
-          <div className="text-sm font-medium flex items-center">
-            {sessionState.selectedService ? (
-              <>
-                <sessionState.selectedService.icon className="w-4 h-4 mr-2" />
-                <span>{sessionState.selectedService.title}</span>
-              </>
-            ) : (
-              <>
-                <Bot className="w-4 h-4 mr-2" />
-                <span>AI Assistant</span>
-              </>
-            )}
-          </div>
-          {sessionState.isProcessing && (
-            <div className="ml-2 flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            </div>
-          )}
-        </div>
-        
-        <button
-          onClick={() => {
-            /* Toggle theme or other actions */
-          }}
-          className={`p-1 rounded ${
-            isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
-          }`}
-          title="Chat options"
-        >
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
+    <div className="flex flex-col h-full overflow-hidden" style={{ 
+      height: '100%', 
+      maxHeight: '100vh',
+      position: 'relative'
+    }}>
+      {/* Using the ScrollableMessageContainer component */}
+      <ScrollableMessageContainer
+        messages={sessionState.messages}
+        isDark={isDark}
+        isMobile={isMobile}
+        emptyStateTitle={sessionState.selectedService ? 
+          `${sessionState.selectedService.title} Assistant` : 
+          'WordPress AI Assistant'}
+        emptyStateDescription={sessionState.selectedService ? 
+          sessionState.selectedService.description : 
+          'I can help you build, customize, and debug WordPress plugins and themes. Ask me anything about WordPress development!'}
+        emptyStateExample={sessionState.selectedService?.example}
+        onExampleClick={handleExampleClick}
+        maxHeight="calc(95vh - 140px)"
+        currentResponse={currentResponse}
+        isTyping={isTyping}
+        currentThinking={currentThinking}
+      />
       
-      {/* Messages */}
-      <div className={`flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 custom-scrollbar ${
-        isDark ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        {sessionState.messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md px-4">
-              <h3 className={`text-lg font-medium ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-                {sessionState.selectedService ? 
-                  `${sessionState.selectedService.title} Assistant` : 
-                  'WordPress AI Assistant'}
-              </h3>
-              <p className={`mt-2 text-sm ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                {sessionState.selectedService ? 
-                  sessionState.selectedService.description : 
-                  'I can help you build, customize, and debug WordPress plugins and themes. Ask me anything about WordPress development!'}
-              </p>
-              {sessionState.selectedService && (
-                <div className={`mt-4 p-3 rounded ${
-                  isDark ? 'bg-gray-800' : 'bg-white'
-                } border ${
-                  isDark ? 'border-gray-700' : 'border-gray-200'
-                }`}>
-                  <p className="text-sm font-medium mb-1">Try asking:</p>
-                  <p className="text-sm italic">{sessionState.selectedService.example}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          sessionState.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-[90%] sm:max-w-[85%] ${
-                msg.role === 'user'
-                  ? isDark
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-blue-500 text-white'
-                  : isDark
-                    ? 'bg-gray-800 text-gray-200'
-                    : 'bg-white text-gray-800 border border-gray-200'
-              } rounded-lg p-2 sm:p-3 shadow-sm overflow-hidden`}>
-                {/* Message header */}
-                <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    msg.role === 'user'
-                      ? 'bg-blue-400'
-                      : isDark
-                        ? 'bg-gray-700'
-                        : 'bg-gray-100'
-                  }`}>
-                    {msg.role === 'user' ? (
-                      <User className="w-3 h-3 text-white" />
-                    ) : (
-                      <Bot className={`w-3 h-3 ${
-                        isDark ? 'text-blue-400' : 'text-blue-500'
-                      }`} />
-                    )}
-                  </div>
-                  <span className="text-xs opacity-70">
-                    {msg.role === 'user' ? 'You' : 'AI Assistant'}
-                  </span>
-                  <span className="text-xs opacity-50 ml-auto">
-                    {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
-                  </span>
-                </div>
-                
-                {/* Message content */}
-                <div className="prose prose-sm max-w-none mt-1">
-                  <MessageContent content={msg.content} />
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      {/* Input area */}
-      <div className={`p-3 sm:p-4 border-t sticky bottom-0 ${
-        isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        {/* Regenerate button (conditional) */}
-        {sessionState.messages.length > 0 && sessionState.messages[sessionState.messages.length - 1].role !== 'user' && (
-          <div className="mb-2">
-            <button
-              onClick={handleRegenerateMessage}
-              disabled={sessionState.isProcessing}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded ${
-                sessionState.isProcessing
-                  ? 'opacity-50 cursor-not-allowed'
-                  : isDark
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <RefreshCw className="w-3 h-3" />
-              Regenerate response
-            </button>
-          </div>
-        )}
-        
-        {/* Input form */}
-        <div className={`flex items-end gap-2 rounded-lg border p-2 ${
-          isDark
-            ? 'bg-gray-700 border-gray-600'
-            : 'bg-white border-gray-300 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500'
+      {/* Improved input box with modern design */}
+      <div className={`p-2 sm:p-4 transition-all flex-shrink-0 ${
+        isDark ? 'bg-gray-900' : 'bg-white'
+      }`}
+      style={{ 
+        maxHeight: '140px', // Increased height
+        position: 'sticky',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
+      }}
+      >
+        <div className={`flex-1 rounded-xl overflow-hidden flex flex-col shadow-sm ${
+          isDark ? 'bg-gray-800' : 'bg-gray-50'
+        } ${sessionState.isProcessing || isTyping ? 'opacity-60' : ''} focus-within:ring-2 ${
+          isDark ? 'focus-within:ring-blue-500/50' : 'focus-within:ring-blue-400/50'
         }`}>
           <textarea
             ref={textareaRef}
+            rows={1}
+            placeholder={
+              sessionState.isProcessing || isTyping
+                ? 'Agent is processing...'
+                : 'Type your message here...'
+            }
             value={message}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            disabled={sessionState.isProcessing}
-            placeholder={sessionState.isProcessing ? 'Waiting for response...' : 'Ask something about WordPress...'}
-            className={`flex-1 max-h-[150px] min-h-[40px] resize-none outline-none py-2 px-3 ${
-              isDark
-                ? 'bg-gray-700 text-white placeholder-gray-400'
-                : 'bg-white text-gray-900 placeholder-gray-500'
-            }`}
-            rows={1}
+            disabled={sessionState.isProcessing || isTyping}
+            className={`flex-1 p-3 sm:p-4 resize-none focus:outline-none ${
+              isDark ? 'bg-gray-800 text-gray-200' : 'bg-gray-50 text-gray-800'
+            } ${isMobile ? 'text-sm' : ''} custom-scrollbar-improved`}
+            style={{ 
+              minHeight: '42px',
+              height: isMobile ? '40px' : '50px',
+              maxHeight: isMobile ? '80px' : '100px'
+            }}
           />
-          
-          <button
-            onClick={handleSendMessage}
-            disabled={!message.trim() || sessionState.isProcessing}
-            className={`p-2 rounded-md ${
-              !message.trim() || sessionState.isProcessing
-                ? 'opacity-50 cursor-not-allowed'
-                : isDark
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="mt-2 text-xs text-center text-gray-500">
-          AI assistant powered by WP.ai
+          <div className={`flex items-center justify-between px-2 py-1 ${
+            isDark ? 'bg-gray-800' : 'bg-gray-50'
+          }`}>
+            <div className="flex space-x-1">
+              {/* Additional buttons could go here */}
+            </div>
+            <button
+              onClick={handleSendMessage}
+              disabled={!message.trim() || sessionState.isProcessing || isTyping}
+              className={`px-3 py-1.5 rounded-lg ${
+                !message.trim() || sessionState.isProcessing || isTyping
+                  ? 'opacity-50 cursor-not-allowed'
+                  : isDark
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+              } transition-colors duration-200 flex items-center justify-center mb-2`}
+            >
+              <span className="mr-1.5 font-medium text-sm">Send</span>
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Add improved custom scrollbar styles */}
+      <style jsx global>{`
+        .custom-scrollbar-improved::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 8px;
+          margin: 2px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-thumb {
+          background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+          border-radius: 8px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-thumb:hover {
+          background: ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'};
+        }
+      `}</style>
     </div>
   );
 };

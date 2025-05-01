@@ -53,11 +53,32 @@
   transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
   position: relative;
   margin-bottom: 1rem;
+  overflow: hidden;
 }
 
 .search-results-container[data-complete="true"],
 .thinking-container[data-complete="true"] {
   opacity: 0.85;
+}
+
+/* Enhanced thinking container styling */
+.thinking-container {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Ensure thinking content doesn't overflow horizontally */
+.thinking-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Phase transition animations */
@@ -135,6 +156,30 @@
 
 .ai-response-section.completed {
   opacity: 0.85;
+}
+
+/* Expanded thinking transition */
+.thinking-expanded {
+  max-height: 50vh;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.thinking-collapsed {
+  max-height: 100px;
+  transition: max-height 0.3s ease-in-out;
+}
+
+/* Thinking toggle button styles */
+.thinking-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
 }
 
 /* Cursor animation for streaming text */
@@ -248,45 +293,39 @@ ol.generated-list {
 /* Task list styling */
 .task-list-item {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
 }
 
 .task-list-item input[type="checkbox"] {
-  margin-top: 0.25rem;
-  margin-right: 0.5rem;
-  min-width: 1rem;
-  height: 1rem;
+  margin-right: 0.5em;
+  margin-top: 0.25em;
 }
 
 /* Table styling */
 .markdown-content table,
 .ai-response-text table {
   border-collapse: collapse;
-  width: 100%;
   margin: 1rem 0;
-  font-size: 0.9rem;
+  width: 100%;
 }
 
 .markdown-content th,
 .ai-response-text th {
+  background-color: rgba(0, 0, 0, 0.05);
   font-weight: 600;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  text-align: left;
 }
 
 .markdown-content td, 
-.markdown-content th,
-.ai-response-text td, 
-.ai-response-text th {
+.ai-response-text td {
   padding: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+/* Dark mode table */
 .dark .markdown-content td,
-.dark .markdown-content th,
-.dark .ai-response-text td,
-.dark .ai-response-text th {
-  border-color: rgba(255, 255, 255, 0.1);
+.dark .ai-response-text td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Image styling */
@@ -294,48 +333,47 @@ ol.generated-list {
 .ai-response-text img {
   max-width: 100%;
   height: auto;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   margin: 1rem 0;
 }
 
 /* Link styling */
 .markdown-content a,
 .ai-response-text a {
-  color: #3b82f6;
-  text-decoration: none;
+  color: #2563eb;
+  text-decoration: underline;
 }
 
 .markdown-content a:hover,
 .ai-response-text a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .dark .markdown-content a,
 .dark .ai-response-text a {
-  color: #60a5fa;
+  color: #3b82f6;
 }
 
-/* Better horizontal rule */
+/* Horizontal rule */
 .markdown-content hr,
 .ai-response-text hr {
-  border: 0;
-  height: 1px;
-  background-color: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   margin: 1.5rem 0;
 }
 
 .dark .markdown-content hr,
 .dark .ai-response-text hr {
-  background-color: rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Improved inline code */
+/* Inline code */
 .inline-code {
-  font-family: monospace;
   background-color: rgba(0, 0, 0, 0.05);
   border-radius: 0.25rem;
-  padding: 0.125rem 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.875em;
+  padding: 0.2em 0.4em;
 }
 
 .dark .inline-code {

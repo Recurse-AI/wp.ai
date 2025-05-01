@@ -1,4 +1,5 @@
 import { MessageOptions, MessageResponse } from '@/lib/types/messageTypes';
+import TokenManager from '@/lib/tokenManager'; 
 
 // Base message service for common functionality
 export const baseMessageService = {
@@ -132,17 +133,76 @@ export const agentMessageService = {
   // Get agent session history
   getAgentHistory: async (sessionId: string): Promise<MessageResponse> => {
     try {
-      const response = await fetch(`/api/agent/session/${sessionId}/history`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch agent session history');
+      // Validate sessionId
+      if (!sessionId || sessionId === 'undefined') {
+        return {
+          success: false,
+          message: 'Invalid session ID provided',
+        };
       }
+      
+      // Get token for authorization
+      let token = null;
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add token to headers if available
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // First try the session-based history endpoint
+      try {
+        const response = await fetch(`/api/agent/session/${sessionId}/history`, {
+          credentials: 'include', // Include cookies for authentication
+          headers
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Agent session history retrieved successfully',
+            data,
+          };
+        }
+      } catch (error) {
+        console.log('Session API endpoint not found, falling back to workspace API');
+      }
+      
+      // Fall back to workspace-based history endpoint
+      const workspaceResponse = await fetch(`/api/workspace/workspaces/${sessionId}/history/`, {
+        credentials: 'include', // Include cookies for authentication
+        headers
+      });
+      
+      // Handle authentication errors specifically
+      if (workspaceResponse.status === 401) {
+        console.error('Authentication failed when fetching agent history');
+        return {
+          success: false,
+          message: 'Authentication failed. You might need to log in again.',
+        };
+      }
+      
+      // Handle other errors
+      if (!workspaceResponse.ok) {
+        throw new Error(
+          workspaceResponse.statusText || 'Failed to fetch agent history'
+        );
+      }
+      
+      const workspaceData = await workspaceResponse.json();
       
       return {
         success: true,
-        message: 'Agent session history retrieved successfully',
-        data,
+        message: 'Agent history retrieved successfully',
+        data: workspaceData,
       };
     } catch (error) {
       return baseMessageService.handleApiError(error);

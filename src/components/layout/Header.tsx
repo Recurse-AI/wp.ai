@@ -152,12 +152,25 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  // Add this helper function to check auth provider
+  const isManualAuthUser = () => {
+    try {
+      const userData = localStorage.getItem("userData");
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.auth_provider === "manual";
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking auth provider:", error);
+      return false;
+    }
+  };
+
   // Check if current path should hide header
   if (excludedPaths.some((path) => pathname?.startsWith(path))) {
     return null;
   }
-
-
 
   return (
     <header
@@ -384,23 +397,26 @@ const Header: React.FC<HeaderProps> = ({
                         </p>
                       </div>
                       <div className="py-1.5">
-                        {/* Change Password Button */}
-                        <button
-                          onClick={() => setIsChangePasswordModalOpen(true)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                              <User size={14} />
+                        {isManualAuthUser() && (
+                          <button
+                            onClick={() => setIsChangePasswordModalOpen(true)}
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                <User size={14} />
+                              </div>
+                              <span>Change Password</span>
                             </div>
-                            <span>Change Password</span>
-                          </div>
-                        </button>
+                          </button>
+                        )}
 
                         {/* Sign Out Button */}
                         <button
                           onClick={handleSignOut}
-                          className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-t border-gray-100/50 dark:border-gray-700/50 transition-colors duration-150"
+                          className={`w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 ${
+                            isManualAuthUser() ? 'border-t border-gray-100/50 dark:border-gray-700/50' : ''
+                          } transition-colors duration-150`}
                         >
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">

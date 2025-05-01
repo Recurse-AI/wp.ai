@@ -43,8 +43,19 @@ const nextConfig = {
     ],
     unoptimized: true, // ⚠️ Disables image optimization (Allows any external image)
   },
-  // Configure React to help with hydration issues
-  reactStrictMode: true,
+  // Configure React settings
+  reactStrictMode: false, // Temporarily disable strict mode to check if it resolves bootstrap issues
+  serverExternalPackages: [],
+  experimental: {
+    // Additional experimental features to fix bootstrap issues
+    optimizePackageImports: ["react", "react-dom"],
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    // These settings should help with bootstrap script issues
+    ppr: false, 
+    taint: false
+  },
   // This helps with browser extensions like Grammarly that might modify the DOM
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,

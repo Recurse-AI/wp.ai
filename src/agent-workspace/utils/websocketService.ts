@@ -508,4 +508,5 @@ class WebSocketService extends EventEmitter {
   }
 }
 
-export const websocketService = new WebSocketService(); 
+export const websocketService = new WebSocketService();
+export const getSocketService = () => websocketService; 

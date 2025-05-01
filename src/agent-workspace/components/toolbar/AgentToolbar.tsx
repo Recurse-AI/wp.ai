@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download, Wifi, WifiOff, AlertTriangle, History } from 'lucide-react';
 import { PanelLayout, AgentToolbarProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import Link from 'next/link';
@@ -20,12 +20,50 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
   showExplorer = true,
   showPreview = true,
   showTerminal = true,
-  connectionStatus = 'connected'
+  connectionStatus = 'connected',
+  onToggleHistory
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [menuOpen, setMenuOpen] = useState(false);
   const [playgroundClient, setPlaygroundClient] = useState<PlaygroundClient | null>(null);
+
+  // Define breakpoints for responsive design
+  const MOBILE_BREAKPOINT = 640;
+  const TABLET_BREAKPOINT = 768;
+  const DESKTOP_BREAKPOINT = 1024;
+  
+  // State to track screen size
+  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  
+  // Update screen size based on window width
+  useEffect(() => {
+    const updateScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth < MOBILE_BREAKPOINT) {
+          setScreenSize('mobile');
+        } else if (window.innerWidth < DESKTOP_BREAKPOINT) {
+          setScreenSize('tablet');
+        } else {
+          setScreenSize('desktop');
+        }
+      }
+    };
+    
+    updateScreenSize();
+    window.addEventListener('resize', updateScreenSize);
+    return () => window.removeEventListener('resize', updateScreenSize);
+  }, []);
+
+  // Adjust UI based on screen size changes
+  useEffect(() => {
+    // Apply any specific adjustments when screen size changes
+    if (screenSize === 'mobile') {
+      // Mobile-specific adjustments
+    } else if (screenSize === 'tablet') {
+      // Tablet-specific adjustments
+    }
+  }, [screenSize]);
 
   // Initialize WordPress Playground client when needed
   useEffect(() => {
@@ -106,6 +144,24 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
   const connectionInfo = getConnectionStatusInfo();
   const ConnectionIcon = connectionInfo.icon;
   
+  // Adjust toolbar based on screen size
+  const getButtonClassName = (isActive: boolean) => {
+    const baseClasses = isActive
+      ? isDark 
+        ? 'bg-gray-700 text-blue-400' 
+        : 'bg-white text-blue-600 shadow-sm'
+      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300';
+      
+    // Adjust padding based on screen size
+    const paddingClasses = screenSize === 'mobile' 
+      ? 'p-1' 
+      : screenSize === 'tablet' 
+        ? 'p-1.5' 
+        : 'p-1.5';
+        
+    return `${paddingClasses} rounded ${baseClasses}`;
+  };
+  
   return (
     <div className={`flex items-center justify-between px-2 sm:px-4 py-2 border-b ${
       isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
@@ -118,7 +174,9 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           <Home className="w-4 h-4" />
         </Link>
         
-        <h1 className="text-base sm:text-lg font-medium truncate max-w-[120px] sm:max-w-xs">
+        <h1 className={`text-base sm:text-lg font-medium truncate
+          ${screenSize === 'mobile' ? 'max-w-[100px]' : 
+            screenSize === 'tablet' ? 'max-w-[140px]' : 'max-w-xs'}`}>
           {workspaceName}
         </h1>
         {isProcessing && (
@@ -127,7 +185,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
       </div>
       
       {/* Center controls area - hidden on small screens */}
-      <div className="hidden sm:flex items-center mx-auto space-x-4">
+      <div className={`${screenSize === 'desktop' ? 'flex' : 'hidden'} items-center mx-auto space-x-4`}>
         {/* Primary layout controls - consolidated and simplified */}
         <div className={`flex items-center p-1 rounded-md ${
           isDark ? 'bg-gray-800' : 'bg-gray-100'
@@ -135,13 +193,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           {/* Editor button */}
           <button
             onClick={() => handleLayoutChange(PanelLayout.Editor)}
-            className={`p-1.5 rounded ${
-              layout === PanelLayout.Editor
-                ? isDark 
-                  ? 'bg-gray-700 text-blue-400' 
-                  : 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={getButtonClassName(layout === PanelLayout.Editor)}
             title="Code editor view"
           >
             <LayoutGrid className="w-4 h-4" />
@@ -150,13 +202,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           {/* Split view button */}
           <button
             onClick={() => handleLayoutChange(PanelLayout.Split)}
-            className={`p-1.5 rounded ml-2 ${
-              layout === PanelLayout.Split
-                ? isDark 
-                  ? 'bg-gray-700 text-blue-400' 
-                  : 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={`${getButtonClassName(layout === PanelLayout.Split)} ml-2`}
             title="Split view (Editor + Preview)"
           >
             <Columns className="w-4 h-4" />
@@ -165,13 +211,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           {/* Preview button */}
           <button
             onClick={() => handleLayoutChange(PanelLayout.Preview)}
-            className={`p-1.5 rounded ml-2 ${
-              layout === PanelLayout.Preview
-                ? isDark 
-                  ? 'bg-gray-700 text-blue-400' 
-                  : 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={`${getButtonClassName(layout === PanelLayout.Preview)} ml-2`}
             title="Preview view"
           >
             <Monitor className="w-4 h-4" />
@@ -185,13 +225,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           {/* File Explorer toggle */}
           <button
             onClick={onToggleExplorer}
-            className={`p-1.5 rounded ${
-              showExplorer
-                ? isDark 
-                  ? 'bg-gray-700 text-blue-400' 
-                  : 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={getButtonClassName(showExplorer)}
             title={showExplorer ? "Hide file explorer" : "Show file explorer"}
           >
             <Sidebar className="w-4 h-4" />
@@ -200,13 +234,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           {/* Terminal toggle */}
           <button
             onClick={onToggleTerminal}
-            className={`p-1.5 rounded ml-2 ${
-              showTerminal
-                ? isDark 
-                  ? 'bg-gray-700 text-blue-400' 
-                  : 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={`${getButtonClassName(showTerminal)} ml-2`}
             title={showTerminal ? "Hide terminal" : "Show terminal"}
           >
             <Terminal className="w-4 h-4" />
@@ -214,8 +242,8 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         </div>
       </div>
       
-      {/* Mobile layout controls - only visible on small screens */}
-      <div className="flex sm:hidden items-center">
+      {/* Mobile and Tablet layout controls - visible on small and medium screens */}
+      <div className={`${screenSize !== 'desktop' ? 'flex' : 'hidden'} items-center`}>
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -228,7 +256,10 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
             aria-haspopup="true"
             aria-expanded={menuOpen}
           >
-            <LayoutGrid className="w-4 h-4" />
+            <div className="flex items-center">
+              <LayoutGrid className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </div>
           </button>
           
           {menuOpen && (
@@ -238,9 +269,9 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                 onClick={() => setMenuOpen(false)}
               />
               <div 
-                className={`absolute left-0 z-50 mt-1 rounded-md shadow-lg ${
+                className={`absolute right-0 z-50 mt-1 rounded-md shadow-lg ${
                   isDark ? 'bg-gray-800' : 'bg-white'
-                } ring-1 ring-black ring-opacity-5 focus:outline-none w-40`}
+                } ring-1 ring-black ring-opacity-5 focus:outline-none w-48`}
               >
                 <div className="py-1">
                   <button
@@ -259,7 +290,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                     }`}
                   >
                     <LayoutGrid className="w-4 h-4 mr-2" />
-                    Editor
+                    Code Editor
                   </button>
                   
                   <button
@@ -300,6 +331,8 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                     Preview
                   </button>
                   
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  
                   <button
                     onClick={() => {
                       onToggleExplorer && onToggleExplorer();
@@ -316,7 +349,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                     }`}
                   >
                     <Sidebar className="w-4 h-4 mr-2" />
-                    {showExplorer ? 'Hide' : 'Show'} Explorer
+                    {showExplorer ? 'Hide' : 'Show'} Files
                   </button>
                   
                   <button
@@ -337,6 +370,23 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                     <Terminal className="w-4 h-4 mr-2" />
                     {showTerminal ? 'Hide' : 'Show'} Terminal
                   </button>
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  
+                  <button
+                    onClick={() => {
+                      handleDownloadSourceCode();
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center
+                      ${isDark 
+                        ? 'hover:bg-gray-700 text-gray-300' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Code
+                  </button>
                 </div>
               </div>
             </>
@@ -344,11 +394,11 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         </div>
       </div>
         
-      {/* Action buttons and connection status */}
+      {/* Action buttons */}
       <div className="flex items-center">
-        {/* Connection status indicator */}
+        {/* Connection status indicator - always show */}
         <div 
-          className={`hidden sm:flex items-center p-1.5 mr-3 rounded-md ${
+          className={`flex items-center p-1.5 mr-2 sm:mr-3 rounded-md ${
             isDark ? 'bg-gray-800' : 'bg-gray-100'
           }`}
           title={connectionInfo.title}
@@ -357,160 +407,44 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
             className={`w-4 h-4 ${connectionInfo.color} ${connectionInfo.animate ? 'animate-spin' : ''}`} 
           />
         </div>
-        
-        {/* Menu dropdown */}
-        <div className="relative">
+
+        {/* History button - always visible */}
+        {onToggleHistory && (
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className={`p-1.5 rounded ${
+            onClick={onToggleHistory}
+            className={`flex items-center p-1.5 mr-2 rounded ${
               isDark 
-                ? 'hover:bg-gray-800 text-gray-300' 
-                : 'hover:bg-gray-100 text-gray-600'
+                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
-            title="More options"
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
+            title="View agent history"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="6" r="1" />
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="18" r="1" />
-            </svg>
+            <History className="w-4 h-4" />
+            <span className={`ml-1 text-sm ${screenSize === 'mobile' ? 'hidden' : 'inline'}`}>History</span>
           </button>
-          
-          {menuOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-40 bg-transparent"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div 
-                className={`absolute right-0 z-50 mt-1 w-48 rounded-md shadow-lg ${
-                  isDark ? 'bg-gray-800' : 'bg-white'
-                } ring-1 ring-black ring-opacity-5 focus:outline-none custom-scrollbar`}
-              >
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      window.open('https://wp.ai/docs', '_blank');
-                      setMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                      isDark 
-                        ? 'hover:bg-gray-700 text-gray-300' 
-                        : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Help & Documentation
-                  </button>
-                  
-                  <button
-                    onClick={handleDownloadSourceCode}
-                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                      isDark 
-                        ? 'hover:bg-gray-700 text-gray-300' 
-                        : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Source Code
-                  </button>
-                  
-                  {onSaveWorkspace && (
-                    <button
-                      onClick={() => {
-                        handleSave();
-                        setMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                        isDark 
-                          ? 'hover:bg-gray-700 text-gray-300' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Workspace
-                    </button>
-                  )}
-                  
-                  {onPublishCode && (
-                    <button
-                      onClick={() => {
-                        handlePublish();
-                        setMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                        isDark 
-                          ? 'hover:bg-gray-700 text-gray-300' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Publish Code
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      if (onSaveWorkspace) {
-                        onSaveWorkspace().then(() => {
-                          window.location.href = '/';
-                        });
-                      } else {
-                        window.location.href = '/';
-                      }
-                      setMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                      isDark 
-                        ? 'hover:bg-gray-700 text-gray-300' 
-                        : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    New Workspace
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-        
+        )}
+
+        {/* Save button - always visible but more compact on mobile */}
         <button
           onClick={handleSave}
-          disabled={isProcessing || !onSaveWorkspace}
-          className={`p-1.5 rounded flex items-center mr-3 ${
-            isProcessing || !onSaveWorkspace
-              ? 'opacity-50 cursor-not-allowed'
-              : isDark
-                ? 'bg-gray-800 hover:bg-gray-700 text-blue-400'
-                : 'bg-blue-50 hover:bg-blue-100 text-blue-600'
+          className={`flex items-center p-1.5 rounded ${
+            isDark 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
           }`}
           title="Save workspace"
         >
           <Save className="w-4 h-4" />
-          <span className="ml-1 text-sm hidden sm:inline">Save</span>
+          <span className={`ml-1 text-sm ${screenSize === 'mobile' ? 'hidden' : 'inline'}`}>Save</span>
         </button>
-        
-        {onPublishCode && (
-          <button
-            onClick={handlePublish}
-            disabled={isProcessing}
-            className={`p-1.5 rounded flex items-center ${
-              isProcessing
-                ? 'opacity-50 cursor-not-allowed'
-                : isDark
-                  ? 'bg-green-900/30 hover:bg-green-900/50 text-green-400'
-                  : 'bg-green-50 hover:bg-green-100 text-green-600'
-            }`}
-            title="Publish code"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="ml-1 text-sm hidden sm:inline">Publish</span>
-          </button>
-        )}
       </div>
+
+      {/* Add smooth transitions for any layout changes */}
+      <style jsx global>{`
+        .agent-toolbar * {
+          transition: padding 0.2s, margin 0.2s, width 0.2s, height 0.2s;
+        }
+      `}</style>
     </div>
   );
 };
