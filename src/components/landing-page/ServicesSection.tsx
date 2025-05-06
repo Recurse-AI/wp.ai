@@ -4,9 +4,8 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { AI_SERVICES } from "./data";
 import ServiceCard from "./ServiceCard";
-import { ServicesSectionProps } from "./types";
 
-const ServicesSection = ({ onChatOpen }: ServicesSectionProps) => {
+const ServicesSection = () => {
   return (
     <section id="services" className="relative py-24">
       {/* Decorative background elements */}
@@ -46,7 +45,6 @@ const ServicesSection = ({ onChatOpen }: ServicesSectionProps) => {
               key={service.id}
               service={service}
               index={index}
-              onChatOpen={onChatOpen}
             />
           ))}
         </div>

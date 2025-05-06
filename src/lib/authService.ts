@@ -97,10 +97,7 @@ const AuthService = {
     apiPost<TokenResponse>(ApiPaths.LOGIN, credentials),
 
   refreshToken: (refresh: string) => {
-    // For refresh token requests, we use the no-auth version of apiPost
-    // to avoid sending the expired access token in the Authorization header
-    console.log('🔄 AuthService: Refreshing token with refresh token (using no-auth endpoint)');
-    
+    // For refresh token requests, we use the no-auth version of apiPost    
     return apiPostWithoutAuth(ApiPaths.REFRESH_TOKEN, { refresh });
   },
 

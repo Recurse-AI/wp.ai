@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useContext } from "react";
 import { useParams } from "next/navigation";
 import CommentForm from "@/components/community/comment/CommentForm";

@@ -14,8 +14,7 @@ import { Bot, MessageSquare, Sparkles } from "lucide-react";
 import axios from 'axios';
 import ChatService from "@/lib/services/chatService";
 import { ChatConversation } from "@/lib/types/chat";
-import { getToastStyle } from "@/lib/toastConfig";
-import toast from "react-hot-toast";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
 const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const { theme } = useTheme();
@@ -59,7 +58,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       }
       
       setError(true);
-      toast.error("Failed to load chat history", getToastStyle(theme));
+      showErrorToast('Failed to load chat history');
     } finally {
       setLoading(false);
     }
@@ -87,7 +86,7 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       }
     } catch (error) {
       console.error("Error navigating to chat:", error);
-      toast.error("Failed to navigate to chat", getToastStyle(theme));
+      showErrorToast('Failed to navigate to chat');
     } finally {
       // Reset navigation state after a short delay
       setTimeout(() => {
@@ -103,19 +102,19 @@ const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const handleDeleteChat = async (chatId: string) => {
     // Check if the chat being deleted is the active conversation
     if (pathname === `/chat/${chatId}`) {
-      toast.error("Cannot delete the active conversation", getToastStyle(theme));
+      showErrorToast('Cannot delete the active conversation');
       return;
     }
     
     try {
       const success = await chatService.deleteChatSession(chatId);
       if (success) {
-        toast.success("Chat deleted successfully", getToastStyle(theme));
+        showStatusToast('COMPLETED', 'Chat deleted successfully');
         fetchConversations(); // Refresh the list
       }
     } catch (error) {
       console.error("Error deleting chat:", error);
-      toast.error("Failed to delete chat", getToastStyle(theme));
+      showErrorToast('Failed to delete chat');
     }
   };
 

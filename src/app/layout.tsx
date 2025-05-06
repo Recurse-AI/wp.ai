@@ -16,13 +16,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="h-full">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
-        <div className="min-h-screen">
+      <body className={`${inter.className} flex flex-col h-full bg-white dark:bg-gray-900 text-black dark:text-white`} suppressHydrationWarning>
+        <div className="flex flex-col flex-1 h-full">
           <ClientLayout>{children}</ClientLayout>
         </div>
       </body>

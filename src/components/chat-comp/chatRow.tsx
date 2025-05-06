@@ -8,10 +8,10 @@ import { FaEdit, FaCheck } from "react-icons/fa";
 import { createPortal } from "react-dom";
 import { useTheme } from "@/context/ThemeProvider";
 import { toast } from "react-hot-toast";
-import { getToastStyle } from "@/lib/toastConfig";
 import { formatDistanceToNow } from "date-fns";
 import ChatService from "@/lib/services/chatService";
 import { useChatSocket } from "@/context/ChatSocketContext";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
 
 const ChatRow = ({
@@ -149,10 +149,10 @@ const ChatRow = ({
       // Also update on the server if needed
       await chatService.renameConversation(id, newTitle);
       
-      toast.success("Chat title updated!", getToastStyle(theme));
+      showStatusToast('COMPLETED', 'Chat title updated!');
       setIsEditing(false);
     } catch (error) {
-      toast.error("Failed to update title", getToastStyle(theme));
+      showErrorToast('Failed to update title');
       console.error("Error updating title:", error);
     } finally {
       setLoading(false);
@@ -163,7 +163,7 @@ const ChatRow = ({
   const deleteChat = async () => {
     // Check if this is the active conversation
     if (isActive) {
-      toast.error("Cannot delete the active conversation", getToastStyle(theme));
+      showErrorToast('Cannot delete the active conversation');
       setOpenDropdown(null);
       return;
     }
@@ -175,12 +175,12 @@ const ChatRow = ({
       } else {
         // Fallback to simulated deletion if onDelete is not provided
         await new Promise(resolve => setTimeout(resolve, 500));
-        toast.success("Chat deleted!", getToastStyle(theme));
+        showStatusToast('COMPLETED', 'Chat deleted!');
         refreshChats();
         router.push("/chat");
       }
     } catch (error) {
-      toast.error("Failed to delete chat", getToastStyle(theme));
+      showErrorToast('Failed to delete chat');
       console.error("Error deleting chat:", error);
     } finally {
       setDeleting(false);
@@ -190,7 +190,7 @@ const ChatRow = ({
 
   const handleClick = () => { 
     if (isLoading) {
-      toast.error("Chat is loading...", getToastStyle(theme));
+      showErrorToast('Chat is loading...');
       return;
     }
     try {

@@ -1,16 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2 as Spinner } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle, Mail } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { getToastStyle } from '@/lib/toastConfig';
 import { useTheme } from "@/context/ThemeProvider";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme } = useTheme();
@@ -28,6 +28,7 @@ export default function VerifyEmailPage() {
   const [errorMessage, setErrorMessage] = useState<string>(message || '');
   const [email, setEmail] = useState<string>('');
   const [isResending, setIsResending] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // If status is already provided in URL, use it
@@ -107,38 +108,45 @@ export default function VerifyEmailPage() {
     }
   }
 
-  async function handleResendVerification() {
+  const handleResendVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      showErrorToast('Please enter your email address');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Show loading toast
+    const loadingToastId = showStatusToast('LOADING', 'Sending verification email...');
+    
     try {
-      setIsResending(true);
-      if (!email.trim()) {
-        toast.error('Please enter your email address', getToastStyle(theme));
-        setIsResending(false);
-        return;
-      }
-
-      // Call resend verification API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/resend-verification/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/verify-email/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
-
+      
       const data = await response.json();
-
+      
       if (response.ok) {
-        toast.success('Verification email sent! Please check your inbox.', getToastStyle(theme));
+        toast.dismiss(loadingToastId);
+        showStatusToast('COMPLETED', 'Verification email sent! Please check your inbox.');
       } else {
-        toast.error(data.error || 'Failed to resend verification email', getToastStyle(theme));
+        toast.dismiss(loadingToastId);
+        showErrorToast(data.error || 'Failed to resend verification email');
       }
     } catch (error) {
-      console.error('Error resending verification:', error);
-      toast.error('An error occurred. Please try again.', getToastStyle(theme));
+      console.error('Error resending verification email:', error);
+      toast.dismiss(loadingToastId);
+      showErrorToast('An error occurred. Please try again.');
     } finally {
-      setIsResending(false);
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-12">
@@ -184,10 +192,10 @@ export default function VerifyEmailPage() {
                   />
                   <Button
                     onClick={handleResendVerification}
-                    disabled={isResending}
+                    disabled={isLoading}
                     className="w-full"
                   >
-                    {isResending ? (
+                    {isLoading ? (
                       <>
                         <Spinner className="mr-2 h-4 w-4" />
                         Sending...
@@ -215,5 +223,22 @@ export default function VerifyEmailPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="container flex items-center justify-center min-h-screen py-12">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center space-y-4 py-8">
+            <Spinner className="w-12 h-12" />
+            <p className="text-center text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

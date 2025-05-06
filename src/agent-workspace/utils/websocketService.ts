@@ -1,6 +1,7 @@
 "use client";
 
 import { EventEmitter } from "events";
+import { v4 as uuidv4 } from 'uuid';
 
 export enum WebSocketEventType {
   CONNECTION_ESTABLISHED = "connection_established",
@@ -10,7 +11,13 @@ export enum WebSocketEventType {
   AI_ERROR = "ai_error",
   FILE_UPDATE = "file_update", 
   FILE_EDIT_NOTIFICATION = "file_edit_notification",
-  USER_ACTIVITY_NOTIFICATION = "user_activity_notification"
+  USER_ACTIVITY_NOTIFICATION = "user_activity_notification",
+  AGENT_RESPONSE = "agent_response",
+  TOOL_RESULT = "tool_result",
+  WORKSPACE_HISTORY = "workspace_history",
+  AVAILABLE_TOOLS = "available_tools",
+  WORKSPACE_CREATED = "workspace_created",
+  MESSAGE_UPDATE = "message_update"
 }
 
 export interface WebSocketMessage {
@@ -41,7 +48,28 @@ export interface WebSocketMessage {
     action: string;
     details?: any;
   };
+  tool_name?: string;
+  result?: any;
+  query?: string;
+  response?: string;
+  mode?: string;
+  history?: any[];
+  tools?: any[];
+  workspace?: {
+    id: string;
+    name: string;
+    created_at?: string;
+  };
+  role?: string;
+  content?: string;
 }
+
+// Timeouts and retry settings
+const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds to establish connection
+const OPERATION_TIMEOUT_MS = 30000;  // 30 seconds for operations to complete
+const MAX_RECONNECT_ATTEMPTS = 10;   // Maximum number of reconnect attempts
+const PING_INTERVAL_MS = 15000;      // 15 seconds between pings
+const HEALTH_CHECK_INTERVAL_MS = 60000; // 1 minute for health checks
 
 class WebSocketService extends EventEmitter {
   private socket: WebSocket | null = null;
@@ -54,12 +82,24 @@ class WebSocketService extends EventEmitter {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private forcedReconnect = false;
   private connectingPromise: Promise<void> | null = null;
+  private thinkingBuffers: Record<string, string> = {}; // Buffer to store thinking text by message ID
+  private lastMessageReceived: number | null = null;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private pendingOperations = new Map<string, number>();
+  private operationTimeouts = new Map<string, NodeJS.Timeout>();
   
   constructor() {
     super();
     // Node.js EventEmitter has a default limit of 10 listeners per event
     // Increase it to avoid memory leak warnings
-    this.setMaxListeners(50);
+    this.setMaxListeners(100);
+    
+    // Add a health check timer
+    this.healthCheckInterval = null;
+    
+    // Add pending operations tracking
+    this.pendingOperations = new Map();
+    this.operationTimeouts = new Map();
   }
   
   connect(workspaceId: string): Promise<void> {
@@ -93,12 +133,12 @@ class WebSocketService extends EventEmitter {
         return;
       }
       
-      this.workspaceId = workspaceId;
+      // Close existing connection if any
+      this.disconnect(false); // Don't reset workspaceId here
+      
+      this.workspaceId = workspaceId; // Set the workspaceId after disconnect
       const baseWsUrl = this.getWebSocketBaseUrl();
       const url = `${baseWsUrl}/ws/workspace/${workspaceId}/`;
-      
-      // Close existing connection if any
-      this.disconnect();
       
       try {
         // Add a timeout to detect connection issues
@@ -117,14 +157,14 @@ class WebSocketService extends EventEmitter {
             console.error('WebSocket timeout:', timeoutError);
             
             // Close and nullify the socket to prevent further errors
-            this.disconnect();
+            this.disconnect(false);
             
             // Reset connecting promise on failure
             this.connectingPromise = null;
             
             reject(timeoutError);
           }
-        }, 15000); // Increase timeout to 15 seconds
+        }, CONNECTION_TIMEOUT_MS); // Use constant for timeout
         
         // Get auth token if available
         let token = '';
@@ -136,7 +176,11 @@ class WebSocketService extends EventEmitter {
         }
         
         // Add token to URL if available
-        const authUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+        let authUrl = url;
+        
+        if (token) {
+          authUrl = `${url}?token=${encodeURIComponent(token)}`;
+        }
         
         console.log(`Attempting to connect to WebSocket URL: ${authUrl.replace(/token=([^&]+)/, 'token=REDACTED')}`);
         
@@ -147,11 +191,6 @@ class WebSocketService extends EventEmitter {
           this.isConnected = true;
           this.reconnectAttempts = 0;
           
-          // Make sure workspaceId is set correctly
-          if (!this.workspaceId && workspaceId) {
-            this.workspaceId = workspaceId;
-          }
-          
           console.log(`WebSocket connection established for workspace: ${this.workspaceId}`);
           
           if (this.connectionTimeout) {
@@ -159,11 +198,23 @@ class WebSocketService extends EventEmitter {
             this.connectionTimeout = null;
           }
           
+          // Update the last message received time
+          this.lastMessageReceived = Date.now();
+          
           // Setup ping interval to keep connection alive
           this.setupPingInterval();
           
+          // Setup health check
+          this.setupHealthCheck();
+          
           // Send an initial ping immediately to verify the connection
           this.sendPing();
+          
+          // Clear any reconnection attempts that might be in progress
+          if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+          }
           
           // Emit connection established event
           this.emit(WebSocketEventType.CONNECTION_ESTABLISHED, {
@@ -183,11 +234,47 @@ class WebSocketService extends EventEmitter {
         
         this.socket.onmessage = (event) => {
           try {
+            // Update last message received time
+            this.lastMessageReceived = Date.now();
+            
             const data: WebSocketMessage = JSON.parse(event.data);
             
             // Log important message types for debugging
             if (data.type !== 'ping' && data.type !== 'pong') {
               console.debug(`WebSocket received: ${data.type}`);
+              
+              // Handle backend errors better without exposing sensitive error details to the UI
+              if (data.type === 'error' || (data.error && data.error.message)) {
+                const errorMessage = data.error?.message || 'Unknown backend error';
+                console.error('Backend error received:', errorMessage);
+                
+                // Sanitize error message for the UI - don't expose API key details
+                if (data.error && data.error.message && 
+                    (data.error.message.includes('API key') || 
+                     data.error.message.includes('authentication'))) {
+                  // Replace with generic message
+                  data.error.message = 'Backend configuration error. Please check server logs.';
+                } else if (!data.error) {
+                  // Create an error object if it doesn't exist
+                  data.error = { message: errorMessage };
+                }
+              }
+              
+              // Special handling for thinking updates
+              if (data.type === WebSocketEventType.THINKING_UPDATE && data.thinking) {
+                const messageId = data.message_id || 'unknown';
+                const receivedThinking = data.thinking;
+                
+                // Store and process thinking updates to prevent truncation
+                this.processThinkingUpdate(messageId, receivedThinking);
+                
+                // Modify the data with the full thinking text
+                if (messageId && messageId !== 'unknown') {
+                  data.thinking = this.thinkingBuffers[messageId] || receivedThinking;
+                }
+                
+                console.debug(`Thinking update for message ${messageId}: ${receivedThinking.length} chars (total: ${data.thinking.length} chars)`);
+              }
             }
             
             // Reset reconnection counter when we get a real message
@@ -195,6 +282,7 @@ class WebSocketService extends EventEmitter {
               this.reconnectAttempts = 0;
             }
             
+            // Emit the specific event type 
             this.emit(data.type, data);
             
             // Also emit a generic 'message' event for all messages
@@ -232,21 +320,38 @@ class WebSocketService extends EventEmitter {
           const wasConnected = this.isConnected;
           this.isConnected = false;
           
+          // Clean up intervals
           if (this.pingInterval) {
             clearInterval(this.pingInterval);
             this.pingInterval = null;
           }
           
-          console.log(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`);
+          if (this.healthCheckInterval) {
+            clearInterval(this.healthCheckInterval);
+            this.healthCheckInterval = null;
+          }
+          
+          // Detect abnormal closure codes
+          const abnormalClosure = event.code !== 1000 && event.code !== 1001;
+          const closureType = abnormalClosure ? 'Abnormal' : 'Normal';
+          
+          console.log(`${closureType} WebSocket closure. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`);
           
           // Reset connecting promise on socket close
           this.connectingPromise = null;
           
           // Don't try to reconnect if this was a clean disconnect we initiated (code 1000)
           // Don't reconnect for React strict mode clean close (code 1000, 1001)
-          if (wasConnected && event.code !== 1000 && event.code !== 1001 && this.reconnectAttempts < this.maxReconnectAttempts) {
+          const cleanDisconnect = event.code === 1000 || event.code === 1001;
+          
+          // Always attempt to reconnect on abnormal closures, respect max attempts for normal closures
+          if (abnormalClosure || (wasConnected && !cleanDisconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS)) {
+            // Always reset reconnect attempts for abnormal closures to ensure we keep trying
+            if (abnormalClosure) {
+              this.reconnectAttempts = 0;
+            }
             this.scheduleReconnect();
-          } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          } else if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && !cleanDisconnect) {
             console.error('Max reconnection attempts reached. Giving up.');
             this.emit('reconnect_failed', { 
               type: 'reconnect_failed',
@@ -261,6 +366,9 @@ class WebSocketService extends EventEmitter {
                 }
               }
             });
+            
+            // Clear all pending operations
+            this.clearAllPendingOperations();
           }
         };
       } catch (err) {
@@ -288,7 +396,16 @@ class WebSocketService extends EventEmitter {
     return this.connectingPromise;
   }
   
-  disconnect(): void {
+  disconnect(resetWorkspaceId = true): void {
+    // Clean up health check
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
+    // Clear all pending operations
+    this.clearAllPendingOperations();
+    
     const workspaceId = this.workspaceId;
     console.log(`Disconnecting WebSocket${workspaceId ? ` for workspace: ${workspaceId}` : ''}`);
     
@@ -322,9 +439,9 @@ class WebSocketService extends EventEmitter {
     }
     
     this.isConnected = false;
-    // Only reset workspaceId if this is a true cleanup, not when reconnecting
-    // to the same workspace
-    if (!this.forcedReconnect) {
+    
+    // Reset workspaceId if requested (might not want to during reconnection)
+    if (resetWorkspaceId && !this.forcedReconnect) {
       this.workspaceId = null;
     }
     
@@ -426,7 +543,14 @@ class WebSocketService extends EventEmitter {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       try {
         console.debug('Sending ping to keep connection alive');
-        this.socket.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+        const pingId = `ping-${Date.now()}`;
+        this.trackOperation(pingId, 10000); // 10 second timeout for ping
+        
+        this.socket.send(JSON.stringify({ 
+          type: 'ping', 
+          operation_id: pingId,
+          timestamp: new Date().toISOString() 
+        }));
       } catch (error) {
         console.error('Error sending ping:', error);
       }
@@ -439,56 +563,75 @@ class WebSocketService extends EventEmitter {
       clearInterval(this.pingInterval);
     }
     
-    // Send ping more frequently (every 15 seconds) to keep connection alive
+    // Send ping based on our constant
     this.pingInterval = setInterval(() => {
       this.sendPing();
-    }, 15000); // Reduced from 30s to 15s
+    }, PING_INTERVAL_MS);
   }
   
+  /**
+   * Schedule a reconnection attempt with exponential backoff.
+   */
   private scheduleReconnect(): void {
-    // Use a shorter initial delay and gentler backoff
-    const delay = Math.min(1000 * Math.pow(1.5, this.reconnectAttempts), 30000); // Exponential backoff, max 30s
-    
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
     
-    // Store the current workspaceId for reconnection
-    const reconnectWorkspaceId = this.workspaceId;
-    
-    if (!reconnectWorkspaceId) {
-      console.error('Cannot reconnect: No workspace ID available');
+    // Don't schedule reconnect if we're already connected
+    if (this.isConnected && this.socket?.readyState === WebSocket.OPEN) {
+      console.log('Already connected, skipping reconnection');
       return;
     }
     
-    console.log(`Scheduling reconnect attempt to workspace ${reconnectWorkspaceId} in ${delay}ms`);
+    // Don't attempt to reconnect if no workspace ID is set
+    if (!this.workspaceId) {
+      console.log('No workspace ID set, not attempting to reconnect');
+      return;
+    }
     
-    this.reconnectTimeout = setTimeout(() => {
-      this.reconnectAttempts++;
-      console.log(`Attempting to reconnect to workspace ${reconnectWorkspaceId} (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      
-      // Set the forcedReconnect flag to prevent workspaceId from being cleared
-      this.forcedReconnect = true;
-      
-      this.connect(reconnectWorkspaceId).catch(error => {
-        console.error(`Reconnection to workspace ${reconnectWorkspaceId} failed:`, error);
-        
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.scheduleReconnect();
-        } else {
-          console.error('Max reconnection attempts reached. Giving up.');
-          this.emit('reconnect_failed', {
-            type: 'reconnect_failed',
-            timestamp: new Date().toISOString(),
-            details: {
-              attempts: this.reconnectAttempts,
-              workspace_id: reconnectWorkspaceId,
-              error
-            }
-          });
-        }
+    // Limit reconnect attempts
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error(`Maximum reconnect attempts (${this.maxReconnectAttempts}) reached.`);
+      this.emit('reconnect_failed', {
+        type: 'reconnect_failed',
+        timestamp: new Date().toISOString()
       });
-    }, delay);
+      return;
+    }
+    
+    this.reconnectAttempts += 1;
+    
+    // Calculate backoff delay (exponential with jitter)
+    // Base: 1 second, max: 30 seconds
+    const baseSec = Math.min(Math.pow(2, this.reconnectAttempts - 1), 30);
+    const jitterSec = 0.5 * Math.random();
+    const delaySec = baseSec + jitterSec;
+    const delayMs = Math.floor(delaySec * 1000);
+    
+    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delaySec.toFixed(1)}s`);
+    
+    // Set flag for forced reconnect to avoid resetting workspace ID
+    this.forcedReconnect = true;
+    
+    this.reconnectTimeout = setTimeout(async () => {
+      if (this.isConnected || !this.workspaceId) {
+        console.log('Connection already established or no workspace ID, skipping reconnect');
+        return;
+      }
+      
+      console.log(`Attempting reconnect #${this.reconnectAttempts} to workspace ${this.workspaceId}`);
+      
+      try {
+        await this.connect(this.workspaceId);
+        console.log('Reconnect successful');
+        this.reconnectAttempts = 0;
+      } catch (error) {
+        console.error('Error during reconnect:', error);
+        // Schedule next attempt
+        this.scheduleReconnect();
+      }
+    }, delayMs);
   }
   
   private getWebSocketBaseUrl(): string {
@@ -505,6 +648,242 @@ class WebSocketService extends EventEmitter {
     const host = process.env.NEXT_PUBLIC_WS_HOST || window.location.host;
     
     return `${protocol}//${host}`;
+  }
+  
+  // Add a send method to send messages through the socket
+  send(data: string | Object): boolean {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      console.error('Cannot send message: WebSocket not connected');
+      
+      // Attempt to reconnect automatically if we have a workspace ID
+      if (this.workspaceId && !this.reconnectTimeout && this.reconnectAttempts < this.maxReconnectAttempts) {
+        console.log('Attempting to reconnect before sending message...');
+        this.scheduleReconnect();
+      }
+      
+      return false;
+    }
+    
+    try {
+      const messageToSend = typeof data === 'string' ? data : JSON.stringify(data);
+      this.socket.send(messageToSend);
+      return true;
+    } catch (err) {
+      console.error('Error sending message:', err);
+      return false;
+    }
+  }
+  
+  // Process thinking updates to prevent truncation
+  private processThinkingUpdate(messageId: string, thinkingChunk: string): void {
+    // Initialize if this is the first update for this message
+    if (!this.thinkingBuffers[messageId]) {
+      this.thinkingBuffers[messageId] = '';
+    }
+    
+    // Append the chunk to the thinking buffer
+    this.thinkingBuffers[messageId] += thinkingChunk;
+    
+    // Prevent buffers from growing too large by implementing a size limit
+    const MAX_THINKING_BUFFER_SIZE = 100000; // 100KB max
+    if (this.thinkingBuffers[messageId].length > MAX_THINKING_BUFFER_SIZE) {
+      // Keep the last half of the buffer
+      const halfSize = MAX_THINKING_BUFFER_SIZE / 2;
+      this.thinkingBuffers[messageId] = this.thinkingBuffers[messageId].substring(
+        this.thinkingBuffers[messageId].length - halfSize
+      );
+      console.warn(`Thinking buffer for message ${messageId} exceeded size limit. Truncating.`);
+    }
+  }
+  
+  // Clear thinking buffer for a specific message
+  clearThinkingBuffer(messageId: string): void {
+    if (messageId && this.thinkingBuffers[messageId]) {
+      delete this.thinkingBuffers[messageId];
+    }
+  }
+  
+  // Clear all thinking buffers
+  clearAllThinkingBuffers(): void {
+    this.thinkingBuffers = {};
+  }
+  
+  /**
+   * Set up a periodic health check interval.
+   */
+  private setupHealthCheck(): void {
+    // Clear any existing health check interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
+    // Set up a new health check interval
+    this.healthCheckInterval = setInterval(() => {
+      this.checkConnectionHealth();
+      
+      // Also check pending operations
+      this.checkPendingOperations();
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
+  
+  /**
+   * Check the health of the WebSocket connection.
+   * 
+   * This inspects the connection state and last message received time to determine if
+   * the connection is still healthy or if a reconnect is needed.
+   */
+  private checkConnectionHealth(): void {
+    // If we're not connected yet or no workspaceId, nothing to do
+    if (!this.workspaceId || !this.isConnected) {
+      return;
+    }
+    
+    // If we received a message within the last minute, connection is healthy
+    if (this.lastMessageReceived && (Date.now() - this.lastMessageReceived) < 60000) {
+      // Connection is healthy - reset reconnect attempts
+      this.reconnectAttempts = 0;
+      return;
+    }
+    
+    // If socket exists but not in OPEN state, might need reconnect
+    if (this.socket && this.socket.readyState !== WebSocket.OPEN) {
+      console.warn(`WebSocket not open (state: ${this.socket.readyState}), reconnecting...`);
+      this.disconnect(false);
+      this.scheduleReconnect();
+      return;
+    }
+    
+    // If no message received recently, but socket is still open, send a ping to check
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      console.debug('No messages received recently, sending ping to check connection');
+      this.sendPing();
+    }
+  }
+  
+  // Add operation tracking methods
+  private trackOperation(operationId: string, timeout: number = OPERATION_TIMEOUT_MS): void {
+    this.pendingOperations.set(operationId, Date.now());
+    
+    // Set a timeout to automatically clean up if the operation doesn't complete
+    const timeoutId = setTimeout(() => {
+      if (this.pendingOperations.has(operationId)) {
+        console.warn(`Operation ${operationId} timed out after ${timeout}ms`);
+        this.pendingOperations.delete(operationId);
+        this.operationTimeouts.delete(operationId);
+        
+        // Skip emitting timeout events for ping operations
+        if (!operationId.startsWith('ping-')) {
+          // Emit a timeout event
+          this.emit('operation_timeout', {
+            type: 'operation_timeout',
+            operation_id: operationId,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.log(`Ping operation ${operationId} timed out - ignoring`);
+        }
+      }
+    }, timeout);
+    
+    this.operationTimeouts.set(operationId, timeoutId);
+  }
+  
+  private completeOperation(operationId: string): void {
+    if (this.pendingOperations.has(operationId)) {
+      this.pendingOperations.delete(operationId);
+      
+      // Clear the timeout
+      const timeoutId = this.operationTimeouts.get(operationId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        this.operationTimeouts.delete(operationId);
+      }
+    }
+  }
+  
+  private checkPendingOperations(): void {
+    // Check for operations that have been pending too long
+    const now = Date.now();
+    
+    this.pendingOperations.forEach((startTime, operationId) => {
+      const duration = now - startTime;
+      if (duration > OPERATION_TIMEOUT_MS) {
+        console.warn(`Operation ${operationId} has been pending for ${duration}ms, considering it timed out`);
+        this.completeOperation(operationId);
+        
+        // Skip emitting timeout events for ping operations
+        if (!operationId.startsWith('ping-')) {
+          // Emit a timeout event
+          this.emit('operation_timeout', {
+            type: 'operation_timeout',
+            operation_id: operationId,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.log(`Ping operation ${operationId} timed out during health check - ignoring`);
+        }
+      }
+    });
+  }
+  
+  // Add method to send a message with operation tracking and timeout
+  sendWithTracking(data: string | Object, operationId: string = '', timeout: number = OPERATION_TIMEOUT_MS): boolean {
+    const messageId = operationId || uuidv4();
+    
+    // Track the operation
+    this.trackOperation(messageId, timeout);
+    
+    // Add the operation ID to the message if it's an object
+    let messageToSend = data;
+    if (typeof data === 'object') {
+      messageToSend = { 
+        ...data, 
+        operation_id: messageId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Send the message
+    const success = this.send(messageToSend);
+    
+    // If sending failed, clean up the operation tracking
+    if (!success) {
+      this.completeOperation(messageId);
+    }
+    
+    return success;
+  }
+  
+  // Helper to clear all pending operations
+  clearAllPendingOperations(): void {
+    // Clear all timeout handles
+    this.operationTimeouts.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    
+    // Clear the maps
+    this.pendingOperations.clear();
+    this.operationTimeouts.clear();
+    
+    console.log("All pending operations cleared");
+  }
+  
+  // Public method to manually force clear any stuck operations
+  forceResetOperations(): void {
+    const count = this.pendingOperations.size;
+    this.clearAllPendingOperations();
+    
+    if (count > 0) {
+      console.log(`Manually cleared ${count} stuck operations`);
+    }
+    
+    // Reset processing state by emitting a custom event
+    this.emit('processing_status', {
+      type: 'processing_status',
+      is_processing: false,
+      timestamp: new Date().toISOString()
+    });
   }
 }
 

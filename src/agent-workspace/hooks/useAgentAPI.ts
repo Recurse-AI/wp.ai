@@ -10,13 +10,37 @@ import { v4 as uuidv4 } from 'uuid';
 
 export function useAgentAPI() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
-  const messageListeners = useRef<Record<string, ((data: WebSocketMessage) => void)[]>>({});
+  const currentWorkspaceIdRef = useRef<string | null>(null);
   const reconnectCountRef = useRef(0);
   const maxReconnectAttempts = 3;
+  const activeTool = useRef<string | null>(null);
+  const messageListeners = useRef<Record<string, ((...args: any[]) => void)[]>>({});
+
+  // Add message listener helper function
+  const addMessageListener = useCallback((eventType: string, listener: (...args: any[]) => void) => {
+    getSocketService().on(eventType, listener);
+    
+    if (!messageListeners.current[eventType]) {
+      messageListeners.current[eventType] = [];
+    }
+    
+    messageListeners.current[eventType].push(listener);
+  }, []);
+
+  // Cleanup function to remove all message listeners
+  const cleanupMessageListeners = useCallback(() => {
+    Object.entries(messageListeners.current).forEach(([eventType, listeners]) => {
+      listeners.forEach(listener => {
+        getSocketService().removeListener(eventType, listener);
+      });
+    });
+    
+    // Reset the listeners
+    messageListeners.current = {};
+  }, []);
 
   // Handle WebSocket events
   useEffect(() => {
@@ -46,7 +70,7 @@ export function useAgentAPI() {
       
       // If we have a workspace ID in the message, make sure it's set as current
       if (data.workspace_id) {
-        setCurrentWorkspaceId(data.workspace_id);
+        currentWorkspaceIdRef.current = data.workspace_id;
       }
     };
 
@@ -54,7 +78,6 @@ export function useAgentAPI() {
     const reconnectFailedHandler = (data: any) => {
       setIsSocketConnected(false);
       setError('Connection to agent server lost');
-      toast.error('Connection to agent server lost. Please reload the page.');
     };
 
     // Add event listeners
@@ -88,13 +111,13 @@ export function useAgentAPI() {
     if (socketService.isConnectedToWorkspace(workspaceId)) {
       console.log(`Already connected to workspace: ${workspaceId}`);
       setIsSocketConnected(true);
-      setCurrentWorkspaceId(workspaceId);
+      currentWorkspaceIdRef.current = workspaceId;
       return;
     }
     
     // If we need to switch workspaces, disconnect from the current one first
-    if (currentWorkspaceId && currentWorkspaceId !== workspaceId) {
-      console.log(`Switching workspace connection from ${currentWorkspaceId} to ${workspaceId}`);
+    if (currentWorkspaceIdRef.current && currentWorkspaceIdRef.current !== workspaceId) {
+      console.log(`Switching workspace connection from ${currentWorkspaceIdRef.current} to ${workspaceId}`);
       // No need to explicitly disconnect - the WebSocketService.connect method will handle this
     }
     
@@ -105,7 +128,7 @@ export function useAgentAPI() {
       await socketService.connect(workspaceId);
       
       console.log(`Successfully connected to workspace: ${workspaceId}`);
-      setCurrentWorkspaceId(workspaceId);
+      currentWorkspaceIdRef.current = workspaceId;
       setIsSocketConnected(true);
       reconnectCountRef.current = 0;
     } catch (err) {
@@ -129,7 +152,10 @@ export function useAgentAPI() {
               if (reconnectCountRef.current >= maxReconnectAttempts) {
                 const errorMsg = 'Failed to connect to workspace after multiple attempts';
                 setError(errorMsg);
-                toast.error('Connection error. Please check your network and reload the page.');
+                // Only show toast for critical connection failures, not intermediate ones
+                if (!retry) {
+                  toast.error('Connection error. Please check your network and reload the page.');
+                }
                 reject(new Error(errorMsg));
               } else {
                 reject(e);
@@ -142,7 +168,7 @@ export function useAgentAPI() {
         throw err;
       }
     }
-  }, [currentWorkspaceId, maxReconnectAttempts]);
+  }, [maxReconnectAttempts]);
 
   // Create a new workspace
   const createWorkspace = useCallback(async (
@@ -199,10 +225,14 @@ export function useAgentAPI() {
       if (err instanceof Error && (err.message.includes('network') || err.message.includes('fetch'))) {
         console.error('Network error detected - is the backend server running?');
         setError('Network error: Unable to reach the server. Please check if the backend is running.');
+        // Keep this critical error toast since it's important for users to know
         toast.error('Network error: Unable to reach the server');
       } else {
         setError(errorMessage);
-        toast.error(`Error: ${errorMessage}`);
+        // Keep critical error information but don't show for common cases
+        if (!errorMessage.includes('timeout') && !errorMessage.includes('connection')) {
+          toast.error(`Error: ${errorMessage}`);
+        }
       }
       
       throw err;
@@ -211,69 +241,249 @@ export function useAgentAPI() {
     }
   }, [connectToWorkspace]);
 
-  // Function to send a message to the agent
+  // Send a message to the agent and handle streaming responses
   const sendMessage = useCallback(async (
     workspaceId: string,
-    message: string, 
+    message: string,
     codeBlocks?: { language: string; code: string }[],
     onThinkingUpdate?: (thinking: string) => void,
     onTextUpdate?: (text: string) => void
-  ): Promise<{ messageId: string }> => {
-    setIsLoading(true);
-    setError(null);
-    
+  ): Promise<{ messageId?: string }> => {
     try {
-      // Ensure we're connected to the workspace
-      if (!getSocketService().isConnectedToWorkspace(workspaceId)) {
-        await connectToWorkspace(workspaceId);
+      console.log(`Sending message to workspace: ${workspaceId}`);
+      
+      // Set current workspace ID for tracking
+      currentWorkspaceIdRef.current = workspaceId;
+      
+      // Set loading state
+      setIsLoading(true);
+      setIsProcessing(true);
+      setError(null);
+      
+      // Connect to workspace via WebSocket if not already connected
+      const socketService = getSocketService();
+      if (!socketService.isConnectedToWorkspace(workspaceId)) {
+        console.log(`Not connected to workspace ${workspaceId}, connecting now...`);
+        try {
+          await socketService.connect(workspaceId);
+          console.log(`Successfully connected to workspace ${workspaceId}`);
+        } catch (connErr) {
+          console.error(`Failed to connect to workspace ${workspaceId}:`, connErr);
+          throw new Error(`WebSocket connection failed: ${connErr instanceof Error ? connErr.message : String(connErr)}`);
+        }
+      } else {
+        console.log(`Already connected to workspace ${workspaceId}`);
       }
       
-      // Set up message-specific listeners if callbacks provided
-      if (onThinkingUpdate || onTextUpdate) {
-        const thinkingHandler = (data: WebSocketMessage) => {
-          if (data.message_id && data.thinking && onThinkingUpdate) {
-            onThinkingUpdate(data.thinking);
-          }
-        };
+      // Create message event listeners
+      // Remove existing listeners first to prevent duplicates
+      cleanupMessageListeners();
+      
+      let messageId: string | undefined;
+      let completeResponse = '';
+      let completeThinking = '';
+      
+      // Add event listener for processing status
+      const processingListener = (data: any) => {
+        console.log('Received processing status:', data);
         
-        const textHandler = (data: WebSocketMessage) => {
-          if (data.message_id && data.text && onTextUpdate) {
-            onTextUpdate(data.text);
-          }
-        };
-        
-        // Add event listeners
-        getSocketService().on(WebSocketEventType.THINKING_UPDATE, thinkingHandler);
-        getSocketService().on(WebSocketEventType.TEXT_UPDATE, textHandler);
-        
-        // Store the listeners for later removal
-        if (!messageListeners.current[WebSocketEventType.THINKING_UPDATE]) {
-          messageListeners.current[WebSocketEventType.THINKING_UPDATE] = [];
-        }
-        if (!messageListeners.current[WebSocketEventType.TEXT_UPDATE]) {
-          messageListeners.current[WebSocketEventType.TEXT_UPDATE] = [];
+        if (data.message_id) {
+          messageId = data.message_id;
         }
         
-        messageListeners.current[WebSocketEventType.THINKING_UPDATE].push(thinkingHandler);
-        messageListeners.current[WebSocketEventType.TEXT_UPDATE].push(textHandler);
-      }
+        setIsProcessing(data.is_processing);
+        
+        if (data.has_error) {
+          const errorMsg = data.error_message || 'An error occurred while processing your request';
+          setError(errorMsg);
+          toast.error(`Error: ${errorMsg}`);
+        }
+      };
+      addMessageListener(WebSocketEventType.PROCESSING_STATUS, processingListener);
       
-      // Send the message to the agent
-      const result = await getApiService().sendMessage(workspaceId, {
-        message,
-        codeBlocks
-      });
+      // Add event listener for thinking updates
+      const thinkingListener = (data: any) => {
+        if (data.thinking && onThinkingUpdate) {
+          // Append to complete thinking for context
+          completeThinking += data.thinking;
+          
+          // Call the callback with the update
+          onThinkingUpdate(data.thinking);
+        }
+      };
+      addMessageListener(WebSocketEventType.THINKING_UPDATE, thinkingListener);
       
-      return result;
+      // Add event listener for text updates
+      const textListener = (data: any) => {
+        if (data.text && onTextUpdate) {
+          // Append to complete response
+          completeResponse += data.text;
+          
+          // Call the callback with just the update chunk
+          onTextUpdate(data.text);
+        }
+      };
+      addMessageListener(WebSocketEventType.TEXT_UPDATE, textListener);
+      
+      // Add event listener for AI errors
+      const errorListener = (data: any) => {
+        if (data.error) {
+          const errorMessage = typeof data.error === 'string' 
+            ? data.error 
+            : data.error.message || 'Unknown error';
+            
+          setError(errorMessage);
+          toast.error(`Error: ${errorMessage}`);
+          setIsProcessing(false);
+        }
+      };
+      addMessageListener(WebSocketEventType.AI_ERROR, errorListener);
+      
+      // Add event listener for agent responses
+      const agentResponseListener = (data: any) => {
+        console.log('Received agent response:', data);
+        
+        // If we get a direct response (not streaming), store it
+        if (data.response && typeof data.response === 'string') {
+          completeResponse = data.response;
+          
+          // If we have an onTextUpdate callback, call it with the complete response
+          if (onTextUpdate) {
+            onTextUpdate(data.response);
+          }
+        }
+        
+        // Response complete, reset processing state
+        setIsProcessing(false);
+        
+        // Clear the active tool
+        activeTool.current = null;
+      };
+      addMessageListener(WebSocketEventType.AGENT_RESPONSE, agentResponseListener);
+      
+      // Add event listener for tool results
+      const toolResultListener = (data: any) => {
+        console.log('Received tool result:', data);
+        
+        // Update active tool for UI feedback
+        if (data.tool_name) {
+          activeTool.current = data.tool_name;
+          
+          // Show tool being called in the thinking as well
+          if (onThinkingUpdate) {
+            const toolMessage = `\n\nCalling tool: ${data.tool_name}\n`;
+            completeThinking += toolMessage;
+            onThinkingUpdate(toolMessage);
+            
+            // If we have a result, add that to thinking too
+            if (data.result) {
+              let resultStr = '';
+              try {
+                // Format the result for display
+                if (typeof data.result === 'string') {
+                  resultStr = data.result;
+                } else {
+                  resultStr = JSON.stringify(data.result, null, 2);
+                }
+                
+                const resultMessage = `\nTool result:\n${resultStr}\n`;
+                completeThinking += resultMessage;
+                onThinkingUpdate(resultMessage);
+              } catch (e) {
+                // Just log any errors during result formatting, don't interrupt the process
+                console.error('Error formatting tool result:', e);
+              }
+            }
+          }
+          
+          // Clear active tool after a brief delay
+          setTimeout(() => {
+            if (activeTool.current === data.tool_name) {
+              activeTool.current = null;
+            }
+          }, 2000);
+        }
+      };
+      addMessageListener(WebSocketEventType.TOOL_RESULT, toolResultListener);
+      
+      // Add event listener for file updates
+      const fileUpdateListener = (data: any) => {
+        console.log('Received file update:', data);
+        
+        // Add file update to thinking if available
+        if (data.file && onThinkingUpdate) {
+          const fileUpdateMessage = `\nFile updated: ${data.file.path}\n`;
+          completeThinking += fileUpdateMessage;
+          onThinkingUpdate(fileUpdateMessage);
+        }
+      };
+      addMessageListener(WebSocketEventType.FILE_UPDATE, fileUpdateListener);
+      
+      // Progress timeout - if no update in 60 seconds, show a warning but don't fail
+      const progressTimeout = setTimeout(() => {
+        if (isProcessing) {
+          console.warn('No progress updates received for 60 seconds');
+          if (onThinkingUpdate) {
+            const timeoutMsg = '\n\nThe operation is taking longer than expected. Still processing...\n';
+            completeThinking += timeoutMsg;
+            onThinkingUpdate(timeoutMsg);
+          }
+        }
+      }, 60000);
+      
+      // Send the message via WebSocket with retry on failure
+      const sendMessageWithRetry = async (retries = 1): Promise<void> => {
+        const success = socketService.send({
+          type: 'query_agent',
+          query: message,
+          mode: 'chat'
+        });
+        
+        if (!success && retries > 0) {
+          console.log(`Failed to send message, retrying (${retries} attempts left)...`);
+          
+          // Wait briefly before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check connection and reconnect if needed
+          if (!socketService.isConnectedToWorkspace(workspaceId)) {
+            try {
+              console.log('Reconnecting to workspace before retry...');
+              await socketService.connect(workspaceId);
+            } catch (err) {
+              console.error('Reconnection failed:', err);
+            }
+          }
+          
+          // Retry send
+          return sendMessageWithRetry(retries - 1);
+        } else if (!success) {
+          throw new Error('Failed to send message via WebSocket after retries');
+        }
+      };
+      
+      // Send the message with retry
+      await sendMessageWithRetry(2);
+      
+      // Clean up the timeout when done or on error
+      clearTimeout(progressTimeout);
+      
+      return { messageId };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
+      console.error('Error sending message via WebSocket:', err);
+      
+      setError(err instanceof Error ? err.message : `${err}`);
+      setIsProcessing(false);
+      setIsLoading(false);
+      
+      // Notify user about the error
+      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [connectToWorkspace]);
+  }, [addMessageListener, cleanupMessageListeners]);
 
   // Create a file in the workspace
   const createFile = useCallback(async (
@@ -285,7 +495,7 @@ export function useAgentAPI() {
     setError(null);
     
     try {
-      return await getApiService().createFile(workspaceId, path, content);
+      return await getApiService().createFile(workspaceId, { path, content });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
@@ -333,76 +543,70 @@ export function useAgentAPI() {
     }
   }, []);
 
-  // Cleanup function to remove all message listeners
-  const cleanupMessageListeners = useCallback(() => {
-    Object.entries(messageListeners.current).forEach(([eventType, listeners]) => {
-      listeners.forEach(listener => {
-        getSocketService().removeListener(eventType, listener);
-      });
-    });
-    
-    // Reset the listeners
-    messageListeners.current = {};
-  }, []);
-
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
       cleanupMessageListeners();
       
       // Disconnect from WebSocket if connected
-      if (currentWorkspaceId) {
+      if (currentWorkspaceIdRef.current) {
         getSocketService().disconnect();
       }
     };
-  }, [currentWorkspaceId, cleanupMessageListeners]);
+  }, [cleanupMessageListeners]);
 
   // Check WebSocket connection status periodically
   useEffect(() => {
-    if (!currentWorkspaceId) return;
+    if (!currentWorkspaceIdRef.current) return;
     
     // Track consecutive connection check failures to avoid triggering on temporary glitches
     let consecutiveFailures = 0;
-    const requiredFailures = 2; // Require multiple consecutive failures before reconnecting
+    const failureThreshold = 3; // Number of consecutive failures before trying to reconnect
     
     const checkConnectionInterval = setInterval(() => {
-      const isConnected = getSocketService().isConnectedToWorkspace(currentWorkspaceId);
+      const isConnected = getSocketService().isConnectedToWorkspace(currentWorkspaceIdRef.current || '');
       
       // If connected, reset the failure counter
       if (isConnected) {
         consecutiveFailures = 0;
-        
-        // Ensure state reflects connected status
         if (!isSocketConnected) {
           setIsSocketConnected(true);
         }
-        return;
-      }
-      
-      // Only count as a failure if we were previously connected
-      if (isSocketConnected) {
+      } else {
+        // Not connected, increment counter
         consecutiveFailures++;
-        console.log(`Connection check failure ${consecutiveFailures}/${requiredFailures}`);
         
-        // Only attempt reconnection after multiple consecutive failures
-        if (consecutiveFailures >= requiredFailures) {
+        if (isSocketConnected) {
           setIsSocketConnected(false);
-          console.log('WebSocket connection lost, attempting to reconnect...');
+        }
+        
+        // Only try to reconnect after multiple consecutive failures to avoid
+        // unnecessary reconnection attempts on temporary network glitches
+        if (consecutiveFailures >= failureThreshold) {
+          console.log(`${consecutiveFailures} consecutive connection failures detected. Attempting reconnect...`);
           
+          // Only try to reconnect if we're not already at the maximum attempts
           if (reconnectCountRef.current < maxReconnectAttempts) {
+            reconnectCountRef.current++;
+            
             // Add a delay before reconnection to avoid race conditions
             setTimeout(() => {
-              connectToWorkspace(currentWorkspaceId, true).catch(console.error);
+              if (currentWorkspaceIdRef.current) {
+                connectToWorkspace(currentWorkspaceIdRef.current, true).catch(console.error);
+              }
             }, 1000);
           }
+          
+          // Reset counter after attempting
+          consecutiveFailures = 0;
         }
       }
-    }, 10000); // Check every 10 seconds
+    }, 5000); // Check every 5 seconds
     
     return () => {
       clearInterval(checkConnectionInterval);
     };
-  }, [currentWorkspaceId, isSocketConnected, connectToWorkspace, maxReconnectAttempts]);
+  }, [currentWorkspaceIdRef.current, isSocketConnected, connectToWorkspace, maxReconnectAttempts]);
 
   // WordPress-specific methods
   const createWordPressPlugin = useCallback(async (
@@ -419,11 +623,11 @@ export function useAgentAPI() {
     setError(null);
     
     try {
-      if (!currentWorkspaceId) {
+      if (!currentWorkspaceIdRef.current) {
         throw new Error('No active workspace. Please create or select a workspace first.');
       }
       
-      const result = await getApiService().createWordPressPlugin(currentWorkspaceId, {
+      const result = await getApiService().createWordPressPlugin(currentWorkspaceIdRef.current, {
         prompt,
         ...pluginInfo
       });
@@ -437,7 +641,7 @@ export function useAgentAPI() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceIdRef.current]);
   
   const createWordPressTheme = useCallback(async (
     prompt: string,
@@ -453,11 +657,11 @@ export function useAgentAPI() {
     setError(null);
     
     try {
-      if (!currentWorkspaceId) {
+      if (!currentWorkspaceIdRef.current) {
         throw new Error('No active workspace. Please create or select a workspace first.');
       }
       
-      const result = await getApiService().createWordPressTheme(currentWorkspaceId, {
+      const result = await getApiService().createWordPressTheme(currentWorkspaceIdRef.current, {
         prompt,
         ...themeInfo
       });
@@ -471,15 +675,15 @@ export function useAgentAPI() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceIdRef.current]);
   
   const downloadWordPressPackage = useCallback(async () => {
     try {
-      if (!currentWorkspaceId) {
+      if (!currentWorkspaceIdRef.current) {
         throw new Error('No active workspace. Please create or select a workspace first.');
       }
       
-      const result = await getApiService().downloadWordPressPackage(currentWorkspaceId);
+      const result = await getApiService().downloadWordPressPackage(currentWorkspaceIdRef.current);
       
       // Create a download link for the ZIP file
       if (result && result.downloadUrl) {
@@ -501,7 +705,7 @@ export function useAgentAPI() {
       toast.error(`Failed to download WordPress package: ${errorMessage}`);
       return false;
     }
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceIdRef.current]);
   
   const deployToWordPressSite = useCallback(async (
     siteInfo: {
@@ -514,11 +718,11 @@ export function useAgentAPI() {
     setError(null);
     
     try {
-      if (!currentWorkspaceId) {
+      if (!currentWorkspaceIdRef.current) {
         throw new Error('No active workspace. Please create or select a workspace first.');
       }
       
-      const result = await getApiService().deployToWordPressSite(currentWorkspaceId, siteInfo);
+      const result = await getApiService().deployToWordPressSite(currentWorkspaceIdRef.current, siteInfo);
       
       if (result && result.success) {
         toast.success(`Successfully deployed to ${siteInfo.url}`);
@@ -534,13 +738,13 @@ export function useAgentAPI() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceIdRef.current]);
 
   return {
     isLoading,
     isProcessing,
     error,
-    isSocketConnected,
+    isSocketConnected: getSocketService().isConnectedToWorkspace(currentWorkspaceIdRef.current || ''),
     createWorkspace,
     connectToWorkspace,
     sendMessage,
@@ -554,6 +758,7 @@ export function useAgentAPI() {
     createWordPressPlugin,
     createWordPressTheme,
     downloadWordPressPackage,
-    deployToWordPressSite
+    deployToWordPressSite,
+    activeTool: activeTool.current
   };
 } 

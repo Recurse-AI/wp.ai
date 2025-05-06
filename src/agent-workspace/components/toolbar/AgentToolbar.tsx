@@ -190,7 +190,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         <div className={`flex items-center p-1 rounded-md ${
           isDark ? 'bg-gray-800' : 'bg-gray-100'
         }`}>
-          {/* Editor button */}
+          {/* Editor button - only active when layout is Editor */}
           <button
             onClick={() => handleLayoutChange(PanelLayout.Editor)}
             className={getButtonClassName(layout === PanelLayout.Editor)}

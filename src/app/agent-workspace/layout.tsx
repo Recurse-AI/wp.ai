@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import FileOperationsProvider from '@/agent-workspace/context/FileOperationsContext';
 
 export const metadata: Metadata = {
   title: 'WordPress AI Agent Workspace',
@@ -11,8 +12,10 @@ export default function AgentWorkspaceLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="h-screen overflow-hidden">
-      {children}
+    <main className="flex flex-col flex-1 h-full w-full overflow-hidden">
+      <FileOperationsProvider>
+        {children}
+      </FileOperationsProvider>
     </main>
   );
 } 

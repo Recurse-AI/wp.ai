@@ -1,5 +1,6 @@
 import AgentWorkspace from './components/AgentWorkspace';
 import AgentLanding from './components/landing/AgentLanding';
+import { WordPressWorkspace } from './components/file-explorer';
 
 // Add custom scrollbar styles
 if (typeof document !== 'undefined') {
@@ -15,6 +16,8 @@ if (typeof document !== 'undefined') {
     .agent-workspace, 
     .agent-workspace > div {
       overscroll-behavior: contain;
+      height: calc(100vh - 4rem);
+      max-height: calc(100vh - 4rem);
     }
     
     /* Custom scrollbar styling */
@@ -105,7 +108,9 @@ if (typeof document !== 'undefined') {
 }
 
 // Export components
-export { AgentWorkspace, AgentLanding };
+export { AgentWorkspace, AgentLanding, WordPressWorkspace };
+// Export WordPress components
+export * from './components/file-explorer';
 
 // Export hooks
 export { useAgentState } from './hooks/useAgentState';
@@ -119,4 +124,10 @@ export { websocketService, WebSocketEventType } from './utils/websocketService';
 export * from './types';
 
 // Export constants
-export * from './constants'; 
+export * from './constants';
+
+// Export WordPress components
+export * from './components/file-explorer';
+
+// Export file utils
+export * from './utils/fileUtils'; 

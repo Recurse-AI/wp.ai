@@ -16,6 +16,9 @@ interface ScrollableMessageContainerProps {
   currentResponse?: string | null;
   isTyping?: boolean;
   currentThinking?: string | null;
+  processingIndicator?: string | null;
+  className?: string;
+  hideCodeInMessages?: boolean;
 }
 
 const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
@@ -30,6 +33,9 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
   currentResponse = null,
   isTyping = false,
   currentThinking = null,
+  processingIndicator = null,
+  className,
+  hideCodeInMessages = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +50,14 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+    
+    // Get the messages container (the div with overflow-y-auto)
+    if (containerRef.current) {
+      const messagesContainer = containerRef.current.querySelector('.overflow-y-auto');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
     }
   };
 
@@ -61,11 +75,13 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
 
   // Auto-scroll on message changes or streaming content
   useEffect(() => {
-    const shouldAutoScroll = !userScroll && !justScrolled;
-    if (shouldAutoScroll) {
+    // Add a slight delay to ensure DOM has updated
+    const scrollTimer = setTimeout(() => {
       scrollToBottom();
-    }
-  }, [messages, userScroll, justScrolled, currentResponse]);
+    }, 100);
+    
+    return () => clearTimeout(scrollTimer);
+  }, [messages.length, currentResponse, currentThinking]);
 
   // Reset the justScrolled flag after a delay
   useEffect(() => {
@@ -154,47 +170,44 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
 
   return (
     <div 
-      ref={containerRef}
-      className={`overflow-y-auto p-3 sm:p-5 ${
-        isDark ? 'bg-gray-950' : 'bg-gray-50'
-      } custom-scrollbar-improved`}
+      className={`${className || ''} font-mono`}
       style={{ 
-        height: maxHeight,
-        maxHeight: maxHeight,
-        flex: '1 1 0%',
-        minHeight: '0',
-        overflowY: 'auto',
-        overflowX: 'hidden' // Prevent horizontal overflow
+        minHeight: '100px', 
+        height: maxHeight || 'auto',
+        overflow: 'hidden'
       }}
+      ref={containerRef}
       onScroll={handleScroll}
     >
       {messages.length === 0 ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center max-w-md px-2 sm:px-4 py-6">
-            <h3 className={`text-base sm:text-lg font-medium ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}>
-              {emptyStateTitle}
-            </h3>
-            <p className={`mt-2 text-xs sm:text-sm ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              {emptyStateDescription}
-            </p>
-            {emptyStateExample && (
-              <div className={`mt-4 sm:mt-5 p-3 sm:p-4 rounded-xl ${
-                isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-100'
-              } shadow-sm transition-colors duration-200 cursor-pointer`}
-                onClick={() => onExampleClick && onExampleClick(emptyStateExample)}
-              >
-                <p className="text-xs sm:text-sm font-medium mb-1">Try asking:</p>
-                <p className="text-xs sm:text-sm italic">{emptyStateExample}</p>
-              </div>
-            )}
-          </div>
+        <div className={`flex flex-col items-center justify-center h-full text-center px-4 py-10 ${
+          isDark ? 'bg-gray-900 text-gray-300' : 'bg-black text-green-400'
+        }`}>
+          <h3 className={`text-base sm:text-lg font-medium ${
+            isDark ? 'text-white' : 'text-green-400'
+          }`}>
+            {emptyStateTitle}
+          </h3>
+          <p className={`mt-2 text-xs sm:text-sm ${
+            isDark ? 'text-gray-400' : 'text-green-300'
+          }`}>
+            {emptyStateDescription}
+          </p>
+          {emptyStateExample && (
+            <div className={`mt-4 sm:mt-5 p-3 sm:p-4 rounded-xl ${
+              isDark ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-gray-900 hover:bg-gray-800 border border-green-800'
+            } shadow-sm transition-colors duration-200 cursor-pointer`}
+              onClick={() => onExampleClick && onExampleClick(emptyStateExample)}
+            >
+              <p className={`text-xs sm:text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-green-400'}`}>Try asking:</p>
+              <p className={`text-xs sm:text-sm italic ${isDark ? 'text-gray-400' : 'text-green-300'}`}>{emptyStateExample}</p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-5 w-full">
+        <div className={`space-y-6 pb-4 overflow-y-auto h-full ${
+          isDark ? 'bg-gray-900' : 'bg-black'
+        }`}>
           {conversationGroups.map((group, index) => (
             <div 
               key={group.user.id}
@@ -203,14 +216,21 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
               <div className="block-content">
                 {/* User message */}
                 <div className="flex justify-end">
-                  <div className={`max-w-[95%] sm:max-w-[85%] ${
+                  <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
                     isDark
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-500 text-white'
-                  } rounded-xl p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                      ? 'bg-blue-900/50 text-white'
+                      : 'bg-blue-900/50 text-white'
+                  } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                    {/* Terminal-style header */}
+                    <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
+                      isDark ? 'text-blue-200' : 'text-blue-100'
+                    }`}>
+                      {isDark ? '┌─' : '┌─'} User Message
+                    </div>
+                    
                     {/* Message header */}
                     <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center bg-blue-500`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center bg-blue-700`}>
                         <User className="w-3.5 h-3.5 text-white" />
                       </div>
                       <span className="text-xs font-medium">You</span>
@@ -224,7 +244,16 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                       <MessageContent 
                         content={group.user.content}
                         isComplete={true}
+                        containerRef={containerRef}
+                        hideCodeInMessages={hideCodeInMessages}
                       />
+                    </div>
+                    
+                    {/* Terminal-style footer */}
+                    <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
+                      isDark ? 'text-blue-200' : 'text-blue-100'
+                    }`}>
+                      {isDark ? '└─' : '└─'} End of message
                     </div>
                   </div>
                 </div>
@@ -232,17 +261,24 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                 {/* AI message or streaming response */}
                 {group.ai ? (
                   <div className="flex justify-start mt-4">
-                    <div className={`max-w-[95%] sm:max-w-[85%] ${
+                    <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
                       isDark
-                        ? 'bg-gray-800 text-gray-200'
-                        : 'bg-white text-gray-800'
-                    } rounded-xl p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                        ? 'bg-gray-800/50 text-gray-200'
+                        : 'bg-gray-900/80 text-green-400'
+                    } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                      {/* Terminal-style header */}
+                      <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
+                        isDark ? 'text-gray-400' : 'text-green-500'
+                      }`}>
+                        {isDark ? '┌─' : '┌─'} Assistant Response
+                      </div>
+                    
                       {/* Message header */}
                       <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          isDark ? 'bg-gray-700' : 'bg-gray-100'
+                          isDark ? 'bg-gray-700' : 'bg-green-900'
                         }`}>
-                          <Bot className="w-3.5 h-3.5" />
+                          <Bot className={`w-3.5 h-3.5 ${isDark ? '' : 'text-green-400'}`} />
                         </div>
                         <span className="text-xs font-medium">WordPress Assistant</span>
                         <span className="text-xs opacity-70 ml-auto">
@@ -253,8 +289,10 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                       {/* Display thinking content if available - Moved to appear before message content */}
                       {group.ai && group.ai.thinking && group.ai.thinking.trim().length > 0 && (
                         <div 
-                          className={`mb-3 p-3 rounded-lg border transition-all duration-300 ${
-                            isDark ? 'bg-indigo-900/20 border-indigo-800/30 text-gray-300' : 'bg-indigo-50 border-indigo-200 text-gray-700'
+                          className={`mb-3 p-3 rounded-md transition-all duration-300 ${
+                            isDark 
+                              ? 'bg-indigo-900/10 text-gray-300' 
+                              : 'bg-gray-800/70 text-green-300'
                           }`}
                           data-message-id={group.ai.id}
                           data-thinking-id={group.ai.id}
@@ -262,7 +300,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <Zap className="h-4 w-4 text-indigo-500" />
+                              <Zap className={`h-4 w-4 ${isDark ? 'text-indigo-500' : 'text-green-500'}`} />
                               <span className="text-xs font-medium">Thinking Process</span>
                             </div>
                             <button 
@@ -283,7 +321,11 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                               group.ai && expandedThinkingIds[group.ai.id] 
                                 ? 'thinking-expanded max-h-[500vh]' 
                                 : 'thinking-collapsed max-h-20 overflow-hidden relative'
-                            } custom-scrollbar-improved bg-indigo-50/20 dark:bg-indigo-900/10 p-2 rounded`}
+                            } custom-scrollbar-improved ${
+                              isDark 
+                                ? 'bg-indigo-900/10 p-2 rounded' 
+                                : 'bg-gray-900/70 p-2 rounded'
+                            }`}
                             style={{ 
                               // Ensure no text truncation within the container
                               whiteSpace: 'pre-wrap',
@@ -297,7 +339,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                             {group.ai.thinking}
                             {group.ai && !expandedThinkingIds[group.ai.id] && (
                               <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${
-                                isDark ? 'from-indigo-900/30 to-transparent' : 'from-indigo-50 to-transparent'
+                                isDark ? 'from-indigo-900/30 to-transparent' : 'from-gray-800/70 to-transparent'
                               }`}></div>
                             )}
                           </div>
@@ -308,7 +350,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                               className={`thinking-toggle text-xs w-full mt-1 py-2 text-center rounded ${
                                 isDark 
                                   ? 'text-indigo-300 bg-indigo-900/30 hover:bg-indigo-800/40' 
-                                  : 'text-indigo-700 bg-indigo-100/60 hover:bg-indigo-200'
+                                  : 'text-green-400 bg-green-900/20 hover:bg-green-900/30'
                               } font-medium flex items-center justify-center gap-1 transition-colors`}
                             >
                               <span>Show full thinking process</span>
@@ -318,13 +360,15 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                         </div>
                       )}
                       
-                      {/* Message content - Moved after thinking process */}
+                      {/* Message content */}
                       <div className={`prose prose-sm max-w-none overflow-hidden ${
-                        isDark ? 'prose-invert' : 'prose-gray'
+                        isDark ? 'prose-invert' : 'prose-green'
                       } ${isMobile ? 'text-sm leading-snug' : ''}`}>
                         <MessageContent 
                           content={group.ai.content}
                           isComplete={true}
+                          containerRef={containerRef}
+                          hideCodeInMessages={hideCodeInMessages}
                         />
                       </div>
                       
@@ -334,15 +378,15 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                           {group.ai.codeBlocks.map((block) => (
                             <div 
                               key={block.id}
-                              className={`rounded-lg overflow-hidden ${
-                                isDark ? 'bg-gray-800' : 'bg-gray-100'
+                              className={`rounded-md overflow-hidden ${
+                                isDark ? 'bg-gray-800/80' : 'bg-gray-900/90'
                               }`}
                             >
                               <div className={`flex items-center justify-between px-4 py-2 text-xs ${
-                                isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                                isDark ? 'bg-gray-700/80 text-gray-300' : 'bg-gray-800/90 text-green-300'
                               }`}>
                                 <span className="font-medium">{block.language || 'code'}</span>
-                                <button className="hover:text-blue-500 p-1 rounded-md hover:bg-opacity-20 hover:bg-gray-500" title="Copy code">
+                                <button className={`hover:text-${isDark ? 'blue' : 'green'}-500 p-1 rounded-md hover:bg-opacity-20 hover:bg-gray-500`} title="Copy code">
                                   <Code className="w-4 h-4" />
                                 </button>
                               </div>
@@ -355,23 +399,37 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                           ))}
                         </div>
                       )}
+                      
+                      {/* Terminal-style footer */}
+                      <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
+                        isDark ? 'text-gray-400' : 'text-green-500'
+                      }`}>
+                        {isDark ? '└─' : '└─'} End of response
+                      </div>
                     </div>
                   </div>
                 ) : (
                   // Show streaming AI response if this is the latest conversation and we have text to stream
                   group.isLatest && hasCurrentResponse && (
                     <div className="flex justify-start mt-4">
-                      <div className={`max-w-[95%] sm:max-w-[85%] ${
+                      <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
                         isDark
-                          ? 'bg-gray-800 text-gray-200'
-                          : 'bg-white text-gray-800'
-                      } rounded-xl p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                          ? 'bg-gray-800/50 text-gray-200'
+                          : 'bg-gray-900/80 text-green-400'
+                      } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                        {/* Terminal-style header */}
+                        <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
+                          isDark ? 'text-gray-400' : 'text-green-500'
+                        }`}>
+                          {isDark ? '┌─' : '┌─'} Live Response
+                        </div>
+                        
                         {/* Message header */}
                         <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            isDark ? 'bg-gray-700' : 'bg-gray-100'
+                            isDark ? 'bg-gray-700' : 'bg-green-900'
                           }`}>
-                            <Bot className="w-3.5 h-3.5" />
+                            <Bot className={`w-3.5 h-3.5 ${isDark ? '' : 'text-green-400'}`} />
                           </div>
                           <span className="text-xs font-medium">WordPress Assistant</span>
                           <span className="text-xs opacity-70 ml-auto">
@@ -381,24 +439,26 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
 
                         {/* Show loader for streaming response inside the container */}
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                          <span className="text-xs text-blue-500 font-medium">Generating response...</span>
+                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`}></div>
+                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`} style={{ animationDelay: '0.2s' }}></div>
+                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`} style={{ animationDelay: '0.4s' }}></div>
+                          <span className={`text-xs ${isDark ? 'text-blue-500' : 'text-green-500'} font-medium`}>Generating response...</span>
                         </div>
                         
                         {/* Display thinking content if available for streaming response */}
                         {isTyping && (
                           <div 
-                            className={`mb-3 p-3 rounded-lg border transition-all duration-300 ${
-                              isDark ? 'bg-indigo-900/20 border-indigo-800/30 text-gray-300' : 'bg-indigo-50 border-indigo-200 text-gray-700'
+                            className={`mb-3 p-3 rounded-md transition-all duration-300 ${
+                              isDark 
+                                ? 'bg-indigo-900/10 text-gray-300' 
+                                : 'bg-gray-800/70 text-green-300'
                             }`}
                             data-thinking-id="streaming"
                             data-thinking-expanded={expandedThinkingIds['streaming'] ? 'true' : 'false'}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <Zap className="h-4 w-4 text-indigo-500" />
+                                <Zap className={`h-4 w-4 ${isDark ? 'text-indigo-500' : 'text-green-500'}`} />
                                 <span className="text-xs font-medium">Thinking Process</span>
                               </div>
                               {currentThinking && (
@@ -421,7 +481,11 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                                 expandedThinkingIds['streaming'] || !currentThinking
                                   ? 'thinking-expanded max-h-[500vh]' 
                                   : 'thinking-collapsed max-h-20 overflow-hidden relative'
-                              } custom-scrollbar-improved bg-indigo-50/20 dark:bg-indigo-900/10 p-2 rounded`}
+                              } custom-scrollbar-improved ${
+                                isDark 
+                                  ? 'bg-indigo-900/10 p-2 rounded' 
+                                  : 'bg-gray-900/70 p-2 rounded'
+                              }`}
                               style={{ 
                                 // Ensure no text truncation within the container
                                 whiteSpace: 'pre-wrap',
@@ -437,7 +501,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                                   {currentThinking}
                                   {!expandedThinkingIds['streaming'] && (
                                     <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${
-                                      isDark ? 'from-indigo-900/30 to-transparent' : 'from-indigo-50 to-transparent'
+                                      isDark ? 'from-indigo-900/30 to-transparent' : 'from-gray-800/70 to-transparent'
                                     }`}></div>
                                   )}
                                 </>
@@ -455,7 +519,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                                 className={`thinking-toggle text-xs w-full mt-1 py-2 text-center rounded ${
                                   isDark 
                                     ? 'text-indigo-300 bg-indigo-900/30 hover:bg-indigo-800/40' 
-                                    : 'text-indigo-700 bg-indigo-100/60 hover:bg-indigo-200'
+                                    : 'text-green-400 bg-green-900/20 hover:bg-green-900/30'
                                 } font-medium flex items-center justify-center gap-1 transition-colors`}
                               >
                                 <span>Show full thinking process</span>
@@ -467,13 +531,22 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                         
                         {/* Message content */}
                         <div className={`prose prose-sm max-w-none overflow-hidden ${
-                          isDark ? 'prose-invert' : 'prose-gray'
+                          isDark ? 'prose-invert' : 'prose-green'
                         } ${isMobile ? 'text-sm leading-snug' : ''}`}>
                           <MessageContent 
                             content={currentResponse || ''}
                             isStreaming={true}
                             isComplete={false}
+                            containerRef={containerRef}
+                            hideCodeInMessages={hideCodeInMessages}
                           />
+                        </div>
+                        
+                        {/* Streaming indicator as footer */}
+                        <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
+                          isDark ? 'text-gray-400' : 'text-green-500'
+                        }`}>
+                          {isDark ? '└─' : '└─'} <span className="terminal-cursor">Typing</span>
                         </div>
                       </div>
                     </div>
@@ -482,7 +555,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} className="h-4" /> {/* Extra space to ensure scrolling works properly */}
+          <div ref={messagesEndRef} className="h-4 mt-4 clear-both" /> {/* Extra space to ensure scrolling works properly */}
         </div>
       )}
       
@@ -492,7 +565,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
           flex-direction: column;
           width: 100%;
           background-color: transparent;
-          padding: 5px 0;
+          padding: 5px 10px;
           border-radius: 0;
           margin-bottom: 10px;
         }
@@ -511,8 +584,8 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         }
         
         .current-block {
-          /* Maintain proper height for latest conversation block */
-          min-height: 60vh;
+          /* Reduced min-height to prevent scrolling issues */
+          min-height: auto;
           display: flex;
           flex-direction: column;
         }
@@ -520,7 +593,6 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         .current-block .block-content {
           align-items: stretch;
           justify-content: flex-start;
-          flex-grow: 1;
         }
         
         /* Fix for expanded thinking process to ensure it shows full content */
@@ -533,6 +605,23 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         
         .thinking-collapsed {
           transition: max-height 0.3s ease-in-out;
+        }
+        
+        /* Terminal cursor blink */
+        @keyframes cursor-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        
+        .terminal-cursor::after {
+          content: '';
+          width: 6px;
+          height: 14px;
+          background: ${isDark ? '#93c5fd' : '#4ade80'};
+          display: inline-block;
+          animation: cursor-blink 1.2s infinite;
+          margin-left: 4px;
+          vertical-align: middle;
         }
       `}</style>
     </div>

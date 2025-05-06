@@ -5,5 +5,4 @@ export { default as HeroSection } from './HeroSection';
 export * from './types';
 export * from './data';
 
-// Note: All other components are now dynamically imported directly in the page component
-// to enable proper lazy loading and code splitting 
+export { default as TreeNavigator } from './TreeNavigator';

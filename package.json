@@ -3,23 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:initiate": "bash scripts/init-environment.sh",
-    "wp:start": "./scripts/run-manager.sh ./wp-next-manager.sh start",
-    "wp:stop": "./scripts/run-manager.sh ./wp-next-manager.sh stop",
-    "wp:list": "./scripts/run-manager.sh ./wp-next-manager.sh list",
-    "wp:create-user": "./scripts/run-manager.sh ./wp-next-manager.sh create-user",
-    "wp:create-user-id": "bash scripts/create-wp-user.sh",
-    "wp:upload-plugin": "./scripts/run-manager.sh ./wp-next-manager.sh upload-plugin",
-    "wp:update-core": "./scripts/run-manager.sh ./wp-next-manager.sh update-core",
-    "wp:fix-ports": "bash scripts/fix-ports.sh",
-    "wp:check": "bash scripts/check-wp-install.sh",
+    "dev": "next dev --turbo",
+    "dev:clean": "rimraf .next && npm cache clean --force && npm run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "env:start": "bash scripts/manage-env.sh start",
-    "env:destroy": "bash scripts/manage-env.sh destroy",
-    "env:status": "bash scripts/manage-env.sh status"
+    "lint": "next lint"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.1",
@@ -43,6 +31,7 @@
     "axios": "^1.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.4.2",
     "install": "^0.13.0",
@@ -86,6 +75,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.6",
     "postcss": "^8",
+    "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3"
   }

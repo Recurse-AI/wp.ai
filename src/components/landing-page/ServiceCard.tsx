@@ -1,15 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, MessageSquare, MessageSquarePlus, Zap } from "lucide-react";
-import { useTheme } from "@/context/ThemeProvider";
 import { ServiceCardProps } from "./types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 
-const ServiceCard = ({ service, index, onChatOpen }: ServiceCardProps) => {
-  const { theme } = useTheme();
-  const [isHovered, setIsHovered] = useState(false);
+const ServiceCard = ({ service, index }: ServiceCardProps) => {
   const { title, description, icon: Icon, example, color } = service;
 
   return (
@@ -37,14 +33,17 @@ const ServiceCard = ({ service, index, onChatOpen }: ServiceCardProps) => {
           
           <Link href={`/chat?service=${encodeURIComponent(title)}`} passHref>
             <Button 
-              className="w-full mt-auto group"
+              className="w-full mt-auto group relative overflow-hidden"
               variant="outline"
               style={{ borderColor: `${color}40` }}
             >
-              <span className="text-foreground group-hover:text-primary transition-colors duration-300 flex items-center">
+              <span className="relative z-10 transition-colors duration-300 text-foreground group-hover:text-white">
                 Try it now
-                <MessageSquarePlus className="ml-2 w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
               </span>
+              <span 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: `linear-gradient(to right, ${color.split(' ')[0].replace('from-', '')}, ${color.split(' ')[1]?.replace('to-', '') || color.split(' ')[0].replace('from-', '')})` }}
+              ></span>
             </Button>
           </Link>
         </div>

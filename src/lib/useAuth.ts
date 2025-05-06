@@ -50,184 +50,39 @@ export default function useAuth() {
 
   useEffect(() => {
     const checkTokenValidity = async () => {
-      const token = TokenManager.getToken();
-      if (!token) return;
-
-      if (TokenManager.isTokenExpired(token)) {
-        try {
-          await TokenManager.refreshAccessToken();
-        } catch (error) {
-          TokenManager.clearTokens();
-          setAuthState({
-            user: null,
-            loading: false,
-            isAuthenticated: false,
-            error: "Session expired. Please login again.",
-          });
-
-          const refreshToken = TokenManager.getRefreshToken();
-          if (
-            refreshToken &&
-            TokenManager.isRefreshTokenExpired(refreshToken)
-          ) {
-            router.push("/signin?reason=expired");
-          } else {
+      try {
+        const token = await TokenManager.getValidToken();
+        if (!token) {
+          if (typeof window !== 'undefined' && 
+              window.location.pathname !== '/' &&
+              !window.location.pathname.includes('/signin') && 
+              !window.location.pathname.includes('/signup')) {
+            TokenManager.clearTokens();
             router.push("/signin?reason=session_expired");
           }
         }
+      } catch (error) {
+        console.error("Token validation error:", error);
       }
     };
-
+    
     checkTokenValidity();
-    const intervalId = setInterval(checkTokenValidity, 5 * 60 * 1000);
+    const intervalId = setInterval(checkTokenValidity, 6 * 60 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [router]);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        // Check if we already have user data in state
-        if (authState.user && authState.user.id && !authState.loading) {
-          // User is already loaded, no need to fetch again
-          return;
-        }
-
-        const token = TokenManager.getToken();
-
-        if (!token) {
-          const userDataString = safeLocalStorage.getItem("userData");
-          const authToken = safeLocalStorage.getItem("token");
-
-          if (userDataString) {
-            try {
-              const userData = JSON.parse(userDataString);
-              setAuthState({
-                user: userData,
-                loading: false,
-                isAuthenticated: true,
-                error: null,
-              });
-              return;
-            } catch (parseError) {}
-          } else if (authToken) {
-            setAuthState({
-              user: { id: 0, email: "", username: "" },
-              loading: false,
-              isAuthenticated: true,
-              error: null,
-            });
-            return;
-          }
-
-          setAuthState({
-            user: null,
-            loading: false,
-            isAuthenticated: false,
-            error: null,
-          });
-          return;
-        }
-
-        // Check if we already have user data in localStorage before making API call
-        const userDataString = safeLocalStorage.getItem("userData");
-        if (userDataString) {
-          try {
-            const userData = JSON.parse(userDataString);
-            // Check if the user data is recent (less than 5 minutes old)
-            const lastFetchTime = safeLocalStorage.getItem("userDataFetchTime");
-            const currentTime = Date.now();
-            if (
-              lastFetchTime &&
-              currentTime - parseInt(lastFetchTime) < 5 * 60 * 1000
-            ) {
-              setAuthState({
-                user: userData,
-                loading: false,
-                isAuthenticated: true,
-                error: null,
-              });
-              return;
-            }
-          } catch (parseError) {
-            // If parsing fails, continue to fetch from API
-          }
-        }
-
-        // Add a debounce to prevent multiple API calls in quick succession
-        const lastApiFetchTime = safeLocalStorage.getItem("lastProfileApiFetch");
-        const currentTime = Date.now();
-        if (lastApiFetchTime && currentTime - parseInt(lastApiFetchTime) < 2000) {
-          // If last API call was less than 2 seconds ago, don't fetch again
-          return;
-        }
-        
-        // Set the last fetch time before making the API call
-        safeLocalStorage.setItem("lastProfileApiFetch", currentTime.toString());
-
-        const user = await AuthService.getUserProfile();
-        setAuthState({
-          user,
-          loading: false,
-          isAuthenticated: true,
-          error: null,
-        });
-
-        safeLocalStorage.setItem("userData", JSON.stringify(user));
-        safeLocalStorage.setItem("userDataFetchTime", Date.now().toString());
-      } catch (error) {
-        const apiError = error as any;
-
-        const userDataString = safeLocalStorage.getItem("userData");
-        const authToken = safeLocalStorage.getItem("token");
-
-        if (apiError.tokenError === "expired_refresh") {
-          TokenManager.clearTokens();
-          safeLocalStorage.removeItem("userData");
-
-          setAuthState({
-            user: null,
-            loading: false,
-            isAuthenticated: false,
-            error: "Session expired. Please login again.",
-          });
-
-          router.push("/signin?reason=expired");
-          return;
-        }
-
-        if (userDataString) {
-          try {
-            const user = JSON.parse(userDataString);
-            setAuthState({
-              user,
-              loading: false,
-              isAuthenticated: true,
-              error: null,
-            });
-            return;
-          } catch (parseError) {}
-        } else if (authToken) {
-          setAuthState({
-            user: { id: 0, email: "", username: "" },
-            loading: false,
-            isAuthenticated: true,
-            error: null,
-          });
-          return;
-        }
-
-        TokenManager.clearTokens();
-        setAuthState({
-          user: null,
-          loading: false,
-          isAuthenticated: false,
-          error: "Session expired. Please login again.",
-        });
-      }
-    };
-
-    loadUser();
-  }, [router]);
+    const userData = localStorage.getItem("userData");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setAuthState({
+        user,
+        loading: false,
+        isAuthenticated: true,
+        error: null,
+      });
+    }
+  }, []);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
@@ -236,25 +91,14 @@ export default function useAuth() {
       try {
         const response = await AuthService.login(credentials);
         TokenManager.storeTokens(response.access, response.refresh);
-        localStorage.setItem("token", response.access);
-
         const user = response.user;
-        console.log("user", user);
         setAuthState({
           user,
           loading: false,
           isAuthenticated: true,
           error: null,
         });
-
-        setTimeout(() => {
-          if (localStorage.getItem("isChat")) {
-            localStorage.removeItem("isChat");
-            router.push("/chat");
-          } else {
-            router.push("/");
-          }
-        }, 500);
+        localStorage.setItem("userData", JSON.stringify(user));
 
         return user;
       } catch (error) {
@@ -305,35 +149,16 @@ export default function useAuth() {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      const currentPath =
-        typeof window !== "undefined" ? window.location.pathname : "";
-      const isProtectedRoute =
-        currentPath.includes("/chat") ||
-        currentPath.includes("/dashboard") ||
-        currentPath.includes("/profile") ||
-        currentPath.includes("/settings");
-
-      TokenManager.clearTokens();
-      safeLocalStorage.removeItem("userData");
-      safeLocalStorage.removeItem("token");
-
       setAuthState({
         user: null,
         loading: false,
         isAuthenticated: false,
         error: null,
       });
-
+      TokenManager.clearTokens();
+      localStorage.removeItem("userData");
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("storage"));
-        safeLocalStorage.setItem("recentLogout", Date.now().toString());
-        setTimeout(() => safeLocalStorage.removeItem("recentLogout"), 1000);
-      }
-
-      if (isProtectedRoute) {
-        router.push("/signin");
-      } else {
-        router.push("/");
       }
     }
   }, [router]);

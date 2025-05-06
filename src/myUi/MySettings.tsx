@@ -19,6 +19,7 @@ import useAuth from "@/lib/useAuth";
 import { useAuthContext } from "@/context/AuthProvider";
 import { signOut, useSession } from "next-auth/react";
 import ClientTooltip from "@/components/ui/ClientTooltip";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
 // Define default settings data
 const DEFAULT_SETTINGS_DATA = [
@@ -39,6 +40,7 @@ interface UserData {
   joinDate?: string;
   subscriptionPlan?: string;
   subscriptionEndDate?: string;
+  name?: string;
 }
 
 interface SettingsPageProps {
@@ -81,105 +83,104 @@ export default function SettingsPage({
   const { logout } = useAuth();
 
   const handleDeleteAllChats = async () => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete all chats? This action cannot be undone."
-      )
-    ) {
+    // Confirm with the user first
+    if (window.confirm("Are you sure you want to delete all chats? This cannot be undone.")) {
       try {
-        const response = await fetch("/api/chats", {
-          method: "DELETE",
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to delete chats");
+        // Use the token from localStorage
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          showErrorToast("You need to be signed in to delete chats");
+          return;
         }
 
-        alert("All chats have been deleted successfully");
+        // Make API call to delete all chats
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/chat/delete-all-chats/`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+        });
+
+        if (response.ok) {
+          // Show success toast
+          showStatusToast('COMPLETED', "All chats have been deleted successfully");
+        } else {
+          // Show error toast
+          showErrorToast("Failed to delete chats. Please try again.");
+        }
       } catch (error) {
         console.error("Failed to delete chats:", error);
-        alert("Failed to delete chats. Please try again.");
+        showErrorToast("Failed to delete chats. Please try again.");
       }
     }
   };
   const handleLogout = async () => {
     try {
-      // 1. Close settings dialog first
+      // 1. Close settings dialog first to prevent UI issues
       onClose();
 
-      // 2. Show loading toast while signing out
-      const loadingToast = toast.loading("Signing out...", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
+      // Small delay to ensure dialog closes properly before toast appears
+      setTimeout(async () => {
+        // 2. Show loading toast while signing out
+        const loadingToastId = showStatusToast('LOADING', 'Signing out...');
 
-      // 2. Clear local storage data
-      <ClearLocalStorage />
+        try {
+          // 3. Clear local storage data
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("userData");
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("isChat");
+            window.dispatchEvent(new Event("storage")); // Notify other components
+          }
 
-      // 3. Reset user state
-      setIsLoggedIn(false);
-      // setUser({
-      //   name: "",
-      //   image:
-      //     "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      // });
+          // 4. Reset user state
+          setIsLoggedIn(false);
 
-      // 4. Call logout functions from auth providers
-      if (contextLogout) await contextLogout();
-      await logout();
+          // 5. Call logout functions from auth providers
+          if (contextLogout) await contextLogout();
+          await logout();
 
-      // 5. Clear NextAuth session if exists
-      if (session) {
-        await signOut({ redirect: false });
-      }
+          // 6. Clear NextAuth session if exists
+          if (session) {
+            await signOut({ redirect: false });
+          }
 
-      // 6. Show success message
-      toast.dismiss(loadingToast);
-      toast.success("Successfully signed out!", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
+          // 7. Show success message
+          toast.dismiss(loadingToastId);
+          showStatusToast('COMPLETED', 'Successfully signed out!');
 
-      // 7. Handle redirect
-      const currentPath = pathname;
-      const isProtectedRoute =
-        currentPath.includes("/chat") ||
-        currentPath.includes("/dashboard") ||
-        currentPath.includes("/profile") ||
-        currentPath.includes("/settings");
+          // 8. Handle redirect
+          const currentPath = pathname;
+          const isProtectedRoute =
+            currentPath.includes("/chat") ||
+            currentPath.includes("/dashboard") ||
+            currentPath.includes("/profile") ||
+            currentPath.includes("/settings");
 
-      // Small delay to ensure state updates are processed
-      setTimeout(() => {
-        if (isProtectedRoute) {
-          router.replace("/signin");
-        } else {
-          router.replace("/");
+          // Small delay to ensure state updates are processed
+          setTimeout(() => {
+            if (isProtectedRoute) {
+              router.replace("/signin");
+            } else {
+              router.replace("/");
+            }
+          }, 1000);
+
+          // After successful logout, force reload the page
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } catch (error) {
+          console.error("Logout failed:", error);
+          toast.dismiss(loadingToastId);
+          showErrorToast('Failed to sign out. Please try again.');
         }
       }, 100);
-
-      // After successful logout, force reload the page
-      window.location.reload();
     } catch (error) {
-      // Handle error cases
-      console.error("Logout failed:", error);
-      toast.error("Failed to sign out. Please try again.", {
-        style: {
-          background: theme === "dark" ? "#1F2937" : "#fff",
-          color: theme === "dark" ? "#fff" : "#000",
-        },
-      });
-
-      // Even if API call fails, clear local state
-      setIsLoggedIn(false);
-      // setUser({
-      //   name: "",
-      //   image:
-      //     "https://media.istockphoto.com/id/2149530993/photo/digital-human-head-concept-for-ai-metaverse-and-facial-recognition-technology.jpg?s=1024x1024&w=is&k=20&c=Ob0ACggwWuFDFRgIc-SM5bLWjNbIyoREeulmLN8dhLs=",
-      // });
+      console.error("Logout process error:", error);
     }
   };
 
@@ -390,7 +391,7 @@ export default function SettingsPage({
                             Join Date
                           </p>
                           <p className="mt-1">
-                            {user?.joinDate
+                            {user?.joinDate && typeof user.joinDate === 'string'
                               ? new Date(user.joinDate).toLocaleDateString()
                               : "Not available"}
                           </p>
@@ -562,12 +563,12 @@ export default function SettingsPage({
                                 <h3 className="font-medium text-gray-900 dark:text-gray-100">
                                   {user?.subscriptionPlan || "Free Plan"}
                                 </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                   {user?.subscriptionPlan
                                     ? "Your subscription will renew on " +
-                                      new Date(
-                                        user?.subscriptionEndDate
-                                      ).toLocaleDateString()
+                                      (user?.subscriptionEndDate 
+                                        ? new Date(user.subscriptionEndDate).toLocaleDateString() 
+                                        : "N/A")
                                     : "Upgrade to access premium features"}
                                 </p>
                               </div>
@@ -647,7 +648,7 @@ export default function SettingsPage({
           ))}
         </div>
         {/* Logout Button */}
-        <div className="fixed bottom-6 right-6">
+        <div className="flex justify-center w-full border-t border-gray-200 dark:border-gray-800 py-4 mt-auto">
           <Button
             variant="destructive"
             className="flex items-center gap-2"

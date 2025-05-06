@@ -6,9 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import OptimizedNavLink from "@/components/OptimizedNavLink";
 
-const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
-  const router = useRouter();
+const HeroSection: React.FC = () => {
   const prefersReducedMotion = useReducedMotion();
   const [isMounted, setIsMounted] = useState(false);
   
@@ -108,108 +108,97 @@ const HeroSection: React.FC<{ onChatOpen: () => void }> = ({ onChatOpen }) => {
             Enhance your content with <span className="font-semibold text-blue-600 dark:text-blue-400">AI-powered analysis</span> and <span className="font-semibold text-purple-600 dark:text-purple-400">smart optimization</span>, making your writing more impactful and engaging.
           </motion.p>
 
-          <motion.div 
-            variants={buttonVariants}
-            className="mt-10 flex justify-center items-center"
-          >
-            {/* Completely redesigned chat button */}
-            <Link href="/chat" passHref className="w-full sm:w-auto">
-              <Button 
-                size="lg"
-                className="relative text-lg px-8 py-6 text-white rounded-xl font-bold overflow-hidden shadow-lg transition-all duration-300 w-full flex items-center justify-center gap-3 bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 hover:from-emerald-600 hover:via-teal-500 hover:to-cyan-600 hover:shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
-              >
-                <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-30 transition-opacity duration-300"></div>
-                
-                <div className="flex items-center justify-center bg-white/20 rounded-full p-1.5">
-                  <MessageCircle size={20} strokeWidth={2.5} className="text-white" />
-                </div>
-                
-                <span className="relative z-10">Chat with AI Assistant</span>
-                
-                <div className="relative flex items-center">
-                  <span className="absolute animate-ping w-2 h-2 rounded-full bg-white/70 opacity-75"></span>
-                  <span className="relative w-2 h-2 rounded-full bg-white"></span>
-                </div>
-                
-                {!prefersReducedMotion && (
-                  <motion.div
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                    animate={{
-                      x: [0, 5, 0],
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1.5,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <ArrowRight className="text-white/80" size={18} />
-                  </motion.div>
-                )}
-              </Button>
-            </Link>
-          </motion.div>
-
-          {/* Added Feature Navigation Cards */}
+          {/* Feature Navigation - Redesigned */}
           <motion.div
             variants={buttonVariants}
-            className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto"
+            className="mt-14 max-w-4xl mx-auto"
           >
-            {/* WordPress Agent Card - Updated to point to agent-workspace */}
-            <Link href="/agent-workspace" passHref>
-              <div className="group p-6 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800/50 dark:to-gray-900/50 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/50 transition-colors">
-                    <Code className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">WordPress Agent</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Build plugins & themes with AI</p>
-                  </div>
-                  <ArrowRight size={20} className="ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                </div>
-              </div>
-            </Link>
+            {/* Main Action Button */}
+            <div className="flex flex-col items-center mb-10">
+              <OptimizedNavLink 
+                href="/agent-workspace" 
+                className="px-6 py-3 text-lg rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                trackPerformance={true}
+                prefetch={true}
+                priority={true}
+              >
+                <Zap className="w-4 h-4" />
+                <span>Get Started</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </OptimizedNavLink>
+              <p className="text-muted-foreground text-sm mt-4">No credit card required • Instant access</p>
+            </div>
 
-            {/* Community Card */}
-            <Link href="/community" passHref>
-              <div className="group p-6 rounded-xl bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-gray-800/50 dark:to-gray-900/50 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Community</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Join discussions & share ideas</p>
-                  </div>
-                  <ArrowRight size={20} className="ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            {/* Navigation Links */}
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+              <OptimizedNavLink 
+                href="/agent-workspace" 
+                className="group relative flex items-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-gray-800/60 dark:to-gray-900/60 shadow-md hover:shadow-lg transition-all duration-300 border border-cyan-200/20 dark:border-cyan-900/20 hover:border-cyan-200/50 dark:hover:border-cyan-900/50"
+                trackPerformance={true}
+                prefetch={true}
+              >
+                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400/80 to-blue-500/80 dark:from-cyan-600/30 dark:to-blue-700/30 text-white dark:text-cyan-400 shadow-inner">
+                  <Code className="w-4 h-4" />
                 </div>
-              </div>
-            </Link>
+                <div className="text-left">
+                  <span className="font-medium text-gray-800 dark:text-gray-100">WordPress Agent</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Build plugins & themes</p>
+                </div>
+                <div className="ml-2 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                  <ArrowRight size={14} className="text-cyan-500 dark:text-cyan-400" />
+                </div>
+              </OptimizedNavLink>
+              
+              <OptimizedNavLink 
+                href="/chat" 
+                className="group relative flex items-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-br from-violet-50/80 to-fuchsia-50/80 dark:from-gray-800/60 dark:to-gray-900/60 shadow-md hover:shadow-lg transition-all duration-300 border border-violet-200/20 dark:border-violet-900/20 hover:border-violet-200/50 dark:hover:border-violet-900/50"
+                trackPerformance={true}
+                prefetch={true}
+              >
+                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-violet-400/80 to-fuchsia-500/80 dark:from-violet-600/30 dark:to-fuchsia-700/30 text-white dark:text-violet-400 shadow-inner">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-gray-800 dark:text-gray-100">AI Chat</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Interact with our AI</p>
+                </div>
+                <div className="ml-2 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                  <ArrowRight size={14} className="text-violet-500 dark:text-violet-400" />
+                </div>
+              </OptimizedNavLink>
+              
+              <Link href="/community" className="group relative flex items-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-gray-800/60 dark:to-gray-900/60 shadow-md hover:shadow-lg transition-all duration-300 border border-purple-200/20 dark:border-purple-900/20 hover:border-purple-200/50 dark:hover:border-purple-900/50">
+                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-purple-400/80 to-pink-500/80 dark:from-purple-600/30 dark:to-pink-700/30 text-white dark:text-purple-400 shadow-inner">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-gray-800 dark:text-gray-100">Community</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Join discussions</p>
+                </div>
+                <div className="ml-2 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                  <ArrowRight size={14} className="text-purple-500 dark:text-purple-400" />
+                </div>
+              </Link>
+            </div>
           </motion.div>
         </motion.div>
       </Container>
 
-      {/* Floating Chat Button for Mobile */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
-        className="sm:hidden fixed bottom-6 right-6 z-50"
-      >
-        <Button
-          onClick={onChatOpen}
-          size="icon"
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg"
-        >
-          <MessageCircle size={24} className="text-white" />
-        </Button>
-      </motion.div>
+      {/* Add animation keyframe for pulse-slow */}
+      <style jsx global>{`
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.1); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 2s infinite;
+        }
+      `}</style>
 
       {/* CSS for Network Grid */}
       <style jsx>{`

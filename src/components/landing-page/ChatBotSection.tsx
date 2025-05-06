@@ -4,9 +4,9 @@ import { MessageSquare, Bot, Zap, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/context/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChatBotSectionProps } from "./types";
+import Link from "next/link";
 
-const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
+const ChatBotSection = () => {
   const { theme } = useTheme();
   const prefersReducedMotion = useReducedMotion();
   const [isMounted, setIsMounted] = useState(false);
@@ -206,12 +206,13 @@ const ChatBotSection: React.FC<ChatBotSectionProps> = ({ onChatOpen }) => {
               </div>
             </div>
             
-            <Button 
-              onClick={onChatOpen}
-              className="mt-6 px-8 py-4 text-white text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg flex items-center gap-2"
-            >
-              <MessageSquare size={20} /> Start Chatting Now
-            </Button>
+            <Link href="/chat" passHref>
+              <Button 
+                className="mt-6 px-8 py-4 text-white text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg flex items-center gap-2"
+              >
+                <MessageSquare size={20} /> Start Chatting Now
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </div>

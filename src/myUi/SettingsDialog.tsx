@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -50,22 +49,18 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       }}
     >
       <DialogContent
-        className="fixed bg-background rounded-3xl p-0 flex flex-col 
-    w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%]  
-    max-w-[800px] h-[65vh]  
-    translate-x-[-50%] translate-y-[-50%] left-1/2 top-1/2 
-    shadow-lg"
+        className="fixed bg-background rounded-2xl p-0 flex flex-col 
+        w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[55%]  
+        max-w-[800px] h-[70vh] sm:h-[75vh] md:h-[80vh]
+        translate-x-[-50%] translate-y-[-50%] left-1/2 top-1/2 
+        shadow-md border border-gray-200 dark:border-gray-800
+        overflow-hidden"
       >
-        {/* Header with Fixed Height */}
-        <DialogHeader className="px-6 pt-4 flex-shrink-0">
-          {/* <DialogTitle className="mb-2 text-center text-2xl font-medium">
-            Settings
-          </DialogTitle>
-          <hr className="m-0 border-border" /> */}
-        </DialogHeader>
+        {/* Minimal header with just a divider */}
+        <DialogHeader className="border-b border-gray-200 dark:border-gray-800 p-0"></DialogHeader>
 
         {/* Main content must scroll instead of resizing the modal */}
-        <div className="flex-1 overflow-y-auto px-6">{content}</div>
+        <div className="flex-1 overflow-y-auto px-6 pt-6">{content}</div>
       </DialogContent>
     </Dialog>
   );

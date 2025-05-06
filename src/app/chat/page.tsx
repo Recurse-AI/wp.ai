@@ -1,7 +1,7 @@
 "use client"
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useTheme } from "@/context/ThemeProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/context/AuthProvider";
 import TokenManager from "@/lib/tokenManager";
 import toast from "react-hot-toast";
@@ -11,13 +11,26 @@ import InfoFooter from "@/components/chat-comp/input-components/InfoFooter";
 import TextAreaInput from "@/components/chat-comp/TextAreaInput";
 import AIProviderSelect from "@/components/chat-comp/input-components/AIProviderSelect";
 import { WordPressIcon, BrainIcon } from "@/components/chat-comp/input-components/EnhancedIcons";
-import { Database, Globe } from "lucide-react";
-import { getToastStyle } from "@/lib/toastConfig";
+import { Database, Globe, Loader2 } from "lucide-react";
 import { useChatSocket } from "@/context/ChatSocketContext";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
-const Page = () => {
+// Loading component for Suspense fallback
+function ChatPageLoading() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+        <p className="text-sm text-gray-500">Loading chat...</p>
+      </div>
+    </div>
+  );
+}
+
+function ChatPageContent() {
   const { theme } = useTheme();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, user, loading: authLoading } = useAuthContext();
   const [authChecking, setAuthChecking] = useState(true);
   const [prompt, setPrompt] = useState("");
@@ -29,7 +42,6 @@ const Page = () => {
   });
   const { connect, connected, connecting, connectionStatus, disconnect } = useChatSocket();
   const [debugInfo, setDebugInfo] = useState<string>('');
-
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -48,8 +60,7 @@ const Page = () => {
         setAuthChecking(false);
       } else {
         console.log("Chat page: No valid authentication found, redirecting to signin");
-        localStorage.setItem('isChat', 'true');
-        router.push('/signin');
+        router.push('/signin?redirect=/chat');
       }
     };
 
@@ -95,14 +106,11 @@ const Page = () => {
     let webSearchEnabled = !do_web_search ? 'true' : 'false';
     setDoWebSearch(!do_web_search);
     localStorage.setItem('webSearchEnabled', webSearchEnabled);
-    toast.success(
+    showStatusToast(
+      'COMPLETED',
       !do_web_search 
         ? "WordPress knowledge base activated" 
-        : "WordPress knowledge base deactivated",
-      {
-        icon: !do_web_search ? '🧠' : '🔍',
-        ...getToastStyle(theme)
-      }
+        : "WordPress knowledge base deactivated"
     );
   };
   // Toggle embedding mode
@@ -110,14 +118,11 @@ const Page = () => {
     let vectorSearchEnabled = !do_vector_search ? 'true' : 'false';
     setDoVectorSearch(!do_vector_search);
     localStorage.setItem('vectorSearchEnabled', vectorSearchEnabled);
-    toast.success(
+    showStatusToast(
+      'COMPLETED',
       !do_vector_search 
         ? "Web Search functionality activated" 
-        : "Web Search functionality deactivated",
-      {
-        icon: !do_vector_search ? '🌐' : '💬',
-        ...getToastStyle(theme)
-      }
+        : "Web Search functionality deactivated"
     );
   };
 
@@ -153,10 +158,7 @@ const Page = () => {
       
     } catch (error) {
       console.error("Error creating new chat:", error);
-      toast.error("Failed to create new chat", {
-        id: 'creating-chat',
-        ...getToastStyle(theme)
-      });
+      showErrorToast("Failed to create new chat");
     }
   };
 
@@ -248,44 +250,49 @@ const Page = () => {
                       {do_web_search ? "Web Search On" : "Web Search Off"}
                     </span>
                   </button>
-
-                  {/* Toggle Search Button */}
+                  
+                  {/* Toggle Vector Search Button */}
                   <button 
                     type="button"
                     onClick={toggleEmbedding}
                     className={`flex items-center gap-1.5 justify-center p-1 rounded-lg transition-all ${
-                      do_vector_search
-                        ? "text-green-500 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800" 
+                      do_vector_search 
+                        ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800" 
                         : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
                     }`}
                   >
-                    <Database className={`w-4 h-4 ${do_vector_search ? "text-green-500" : ""}`} strokeWidth={2} />
-                    <span className={`text-[11px] font-medium ${do_vector_search ? "text-green-600 dark:text-green-400" : ""}`}>
-                      {do_vector_search ? "KB On" : "KB Off"}
+                    <Database className={`w-4 h-4 ${do_vector_search ? "text-blue-500" : ""}`} strokeWidth={2} />
+                    <span className={`text-[11px] font-medium ${do_vector_search ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                      {do_vector_search ? "WordPress KB On" : "WordPress KB Off"}
                     </span>
                   </button>
                 </div>
                 
-                {/* AI Provider Selection */}
+                {/* AI Provider Selector */}
                 <AIProviderSelect 
-                  className="mt-0.5" 
+                  className="mt-0.5"
                   onModelChange={handleModelChange}
                 />
               </div>
             </div>
-
+            
             {/* Send Button */}
             <SendButton isDisabled={!prompt.trim()} />
           </form>
-
-        {/* Info Footer */}
-        <InfoFooter
-          do_web_search={do_web_search}
-          do_vector_search={do_vector_search}
-        />
+          
+          <InfoFooter
+            do_web_search={do_web_search}
+            do_vector_search={do_vector_search}
+          />
       </div>
     </div>
   );
-};
+}
 
-export default Page;
+export default function Page() {
+  return (
+    <Suspense fallback={<ChatPageLoading />}>
+      <ChatPageContent />
+    </Suspense>
+  );
+}

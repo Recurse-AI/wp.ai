@@ -25,7 +25,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
     useEffect(() => {
         if (isClient && !loading && !isAuthenticated) {
-            router.push("/login?redirect=/community");
+            router.push("/signin?redirect=/community");
         }
     }, [isClient, isAuthenticated, loading, router]);
 

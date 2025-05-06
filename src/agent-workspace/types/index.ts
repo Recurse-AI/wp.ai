@@ -34,6 +34,7 @@ export interface AgentMessage {
   metadata?: Record<string, any>;
   thinking?: string;
   status?: "processing" | "completed" | "error";
+  attachments?: Record<string, string[]>;
 }
 
 export interface CodeBlock {
@@ -87,6 +88,8 @@ export interface AgentPanelProps {
 export interface AgentChatProps {
   sessionState: AgentSessionState;
   onSendMessage: (message: string) => Promise<any>;
+  processingFilePath?: string | null;
+  hideCodeInMessages?: boolean;
 }
 
 export interface AgentEditorProps {

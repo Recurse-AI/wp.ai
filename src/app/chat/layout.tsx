@@ -118,7 +118,7 @@ export default function ChatLayout({
                     className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"
                     animate={{
                       backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                    }}
+                    } as any}
                     transition={{
                       duration: 4,
                       repeat: Infinity,
@@ -126,7 +126,7 @@ export default function ChatLayout({
                     }}
                     style={{
                       backgroundSize: "200% 200%",
-                    }}
+                    } as any}
                   >
                     WP.ai
                   </motion.span>

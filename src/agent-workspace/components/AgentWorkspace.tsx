@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAgentState } from '../hooks/useAgentState';
 import { useAgentAPI } from '../hooks/useAgentAPI';
 import { AgentFile, AgentWorkspaceProps, PanelLayout, FileNode, AIService } from '../types';
@@ -8,47 +8,20 @@ import AgentToolbar from './toolbar/AgentToolbar';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '@/context/ThemeProvider';
-import { Resizable } from "re-resizable";
-import FileExplorer from './panels/FileExplorer';
-import AgentEditor from './panels/AgentEditor';
-import AgentPreview from './panels/AgentPreview';
 import AgentChat from './panels/AgentChat';
-import AgentTerminal from './panels/AgentTerminal';
 import AgentLanding from './landing/AgentLanding';
 import AgentHistoryModal from './modals/AgentHistoryModal';
-import { DEFAULT_PLUGIN_STRUCTURE, AGENT_SERVICES } from '../constants';
-import { websocketService } from '../utils/websocketService';
-import WordPressToolbox from './panels/WordPressToolbox';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
-
-// Local storage keys for panel sizes
-const CHAT_SIZE_KEY = 'wp-agent-chat-size';
-const EXPLORER_SIZE_KEY = 'wp-agent-explorer-size';
-const EDITOR_SIZE_KEY = 'wp-agent-editor-size';
-const PREVIEW_SIZE_KEY = 'wp-agent-preview-size';
-const TERMINAL_SIZE_KEY = 'wp-agent-terminal-size';
-const EXPLORER_VISIBLE_KEY = 'wp-agent-explorer-visible';
-const PREVIEW_VISIBLE_KEY = 'wp-agent-preview-visible';
-const TERMINAL_VISIBLE_KEY = 'wp-agent-terminal-visible';
-
-// Function to recursively prepare files for JSZip
-const prepareFilesForZip = (files: Record<string, FileNode>, currentPath = '') => {
-  const result: Record<string, string> = {};
-  
-  Object.entries(files).forEach(([name, node]) => {
-    const filePath = currentPath ? `${currentPath}/${name}` : name;
-    
-    if (node.type === 'file') {
-      result[filePath] = node.content || '';
-    } else if (node.type === 'folder' && node.children) {
-      // Recursively process nested files
-      const childResults = prepareFilesForZip(node.children, filePath);
-      Object.assign(result, childResults);
-    }
-  });
-  
-  return result;
-};
+import { AGENT_SERVICES } from '../constants';
+import { saveFilesToLocalStorage } from '../utils/fileUtils';
+import FileOperationsProvider from '../context/FileOperationsContext';
+import { FileOperationsTracker } from './trackers';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { useWorkspaceOperations } from '../hooks/useWorkspaceOperations';
+import { downloadSourceCode } from '../utils/zipUtils';
+import WorkspaceLayout from './layout/WorkspaceLayout';
+import ConnectionStatus from './status/ConnectionStatus';
+import { ChatPanel } from './layout/ResizablePanels';
+import WorkspaceStyles from './layout/WorkspaceStyles';
 
 const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   preloadedService,
@@ -62,115 +35,40 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const [showLanding, setShowLanding] = useState(!workspaceId);
 
   // Initialize agent API
+  const { createWorkspace, activeTool } = useAgentAPI();
+  
+  // Initialize responsive layout hooks
   const {
-    createWorkspace
-  } = useAgentAPI();
-
-  // Panel size state with localStorage persistence
-  const [chatSize, setChatSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedSize = localStorage.getItem(CHAT_SIZE_KEY);
-      return savedSize ? parseInt(savedSize, 10) : 30;
-    }
-    return 30; // Default 30% width
-  });
-
-  const [explorerSize, setExplorerSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedSize = localStorage.getItem(EXPLORER_SIZE_KEY);
-      return savedSize ? parseInt(savedSize, 10) : 20;
-    }
-    return 20; // Default 20% width
-  });
-  
-  const [editorSize, setEditorSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedSize = localStorage.getItem(EDITOR_SIZE_KEY);
-      return savedSize ? parseInt(savedSize, 10) : 50;
-    }
-    return 50; // Default 50% width for workspace area minus explorer
-  });
-  
-  const [terminalSize, setTerminalSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedSize = localStorage.getItem(TERMINAL_SIZE_KEY);
-      return savedSize ? parseInt(savedSize, 10) : 30;
-    }
-    return 30; // Default 30% height
-  });
-  
-  // Panel visibility state
-  const [showExplorer, setShowExplorer] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedVisible = localStorage.getItem(EXPLORER_VISIBLE_KEY);
-      return savedVisible ? savedVisible === 'true' : false;
-    }
-    return false;
-  });
-  
-  const [showPreview, setShowPreview] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedVisible = localStorage.getItem(PREVIEW_VISIBLE_KEY);
-      return savedVisible ? savedVisible === 'true' : true;
-    }
-    return true;
-  });
-  
-  const [showTerminal, setShowTerminal] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedVisible = localStorage.getItem(TERMINAL_VISIBLE_KEY);
-      return savedVisible ? savedVisible === 'true' : false;
-    }
-    return false;
-  });
+    screenMode,
+    windowWidth,
+    chatSize,
+    explorerSize,
+    editorSize,
+    terminalSize,
+    showExplorer,
+    showPreview,
+    showTerminal,
+    layout,
+    setChatSize,
+    setExplorerSize,
+    setEditorSize,
+    setTerminalSize,
+    setShowExplorer,
+    setShowPreview,
+    setShowTerminal,
+    applyLayoutChange,
+    toggleExplorer,
+    togglePreview,
+    toggleTerminal,
+    desktopBreakpoint,
+    tabletBreakpoint,
+    mobileBreakpoint,
+    isMobile,
+    isTablet
+  } = useResponsiveLayout();
   
   // History modal state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  
-  // Save panel sizes to localStorage when they change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(CHAT_SIZE_KEY, chatSize.toString());
-    }
-  }, [chatSize]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(EXPLORER_SIZE_KEY, explorerSize.toString());
-    }
-  }, [explorerSize]);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(EDITOR_SIZE_KEY, editorSize.toString());
-    }
-  }, [editorSize]);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(TERMINAL_SIZE_KEY, terminalSize.toString());
-    }
-  }, [terminalSize]);
-  
-  // Save panel visibility states
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(EXPLORER_VISIBLE_KEY, showExplorer.toString());
-    }
-  }, [showExplorer]);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(PREVIEW_VISIBLE_KEY, showPreview.toString());
-    }
-  }, [showPreview]);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(TERMINAL_VISIBLE_KEY, showTerminal.toString());
-    }
-  }, [showTerminal]);
   
   // Initialize agent state and API
   const {
@@ -181,28 +79,79 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     createFile,
     updateFile,
     selectFile,
-    reconnect
+    reconnect,
+    currentlyProcessingFile
   } = useAgentState({ workspaceId });
   
-  // Local state for UI layout
-  const [layout, setLayout] = useState<PanelLayout>(PanelLayout.Split);
+  // Wrapper function to adapt sendMessage to the expected interface
+  const handleSendMessageAdapter = useCallback(async (message: string): Promise<boolean> => {
+    const result = await sendMessage(message);
+    // Convert result to boolean
+    return !!result;
+  }, [sendMessage]);
+  
+  // Initialize workspace operations
+  const {
+    handleSaveWorkspace,
+    resetProcessingState,
+    handleFirstPrompt,
+    operationStartTimeRef
+  } = useWorkspaceOperations(handleSendMessageAdapter, reconnect);
+  
+  // Add a state variable to track last processed files
+  const [lastProcessedFiles, setLastProcessedFiles] = useState<Record<string, FileNode>>({});
+
+  // Restore the deleted useEffect for sessionState.files changes
+  useEffect(() => {
+    // When files change (either from user actions or AI responses)
+    // Save to localStorage
+    if (sessionState.id && sessionState.files && 
+        JSON.stringify(sessionState.files) !== JSON.stringify(lastProcessedFiles)) {
+      console.log('Files changed, saving to localStorage');
+      saveFilesToLocalStorage(sessionState.id, sessionState.files);
+      setLastProcessedFiles(sessionState.files);
+    }
+  }, [sessionState.id, sessionState.files, lastProcessedFiles]);
   
   // Handlers
   const handleFileSelect = useCallback((file: AgentFile) => {
+    // Ensure editor is visible when a file is selected
+    if (layout === PanelLayout.Preview) {
+      applyLayoutChange(PanelLayout.Split);
+    }
+    
+    // If preview is not visible, make sure it's in Editor mode
+    if (!showPreview) {
+      applyLayoutChange(PanelLayout.Editor);
+    }
+    
+    // Always select the file
     selectFile(file.id);
-  }, [selectFile]);
+  }, [selectFile, layout, showPreview, applyLayoutChange]);
   
   const handleFileContentChange = useCallback((content: string) => {
     if (sessionState.activeFile) {
       updateFile(sessionState.activeFile.id, content);
+      
+      // If on mobile and in Editor layout, maybe switch to Preview layout
+      // after editing to show changes (but only when we have a preview)
+      if (windowWidth < mobileBreakpoint && layout === PanelLayout.Editor && showPreview) {
+        // Don't auto-switch to preview on mobile for now
+        // This could be a user-configurable preference
+        // applyLayoutChange(PanelLayout.Preview);
+      }
     }
-  }, [sessionState.activeFile, updateFile]);
-  
+  }, [sessionState.activeFile, updateFile, windowWidth, mobileBreakpoint, layout, showPreview, applyLayoutChange]);
+
+  // Restore the handleFilesChange function
   const handleFilesChange = useCallback((files: Record<string, FileNode>) => {
-    // TODO: Add a method to update all files at once in the new API
-    // For now, this won't do anything as we don't have a direct way to update all files
-    console.log("Updating all files at once is not supported in the new API yet");
-  }, []);
+    // Since we don't have direct access to setSessionState from useAgentState,
+    // we'll use the API to update files or save to localStorage
+    if (sessionState.id) {
+      saveFilesToLocalStorage(sessionState.id, files);
+      console.log("Files updated and saved to localStorage");
+    }
+  }, [sessionState.id]);
   
   const handleSendMessage = useCallback(async (message: string) => {
     try {
@@ -223,34 +172,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       return false;
     }
   }, [sendMessage, sessionState.id]);
-
-  const handleSaveWorkspace = useCallback(async () => {
-    // TODO: Implement workspace saving in the new API
-    toast.success("Workspace is automatically saved", {
-      style: {
-        background: theme === 'dark' ? '#333' : '#fff',
-        color: theme === 'dark' ? '#fff' : '#333',
-      }
-    });
-  }, [theme]);
-
-  // Toggle panel visibility
-  const toggleExplorer = useCallback(() => {
-    setShowExplorer(prev => !prev);
-  }, []);
-
-  const togglePreview = useCallback(() => {
-    setShowPreview(prev => !prev);
-    if (showPreview) {
-      setLayout(PanelLayout.Editor);
-    } else {
-      setLayout(PanelLayout.Split);
-    }
-  }, [showPreview, setLayout]);
-
-  const toggleTerminal = useCallback(() => {
-    setShowTerminal(prev => !prev);
-  }, []);
 
   // Toggle history modal visibility
   const toggleHistory = useCallback(() => {
@@ -308,108 +229,163 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       }
     }
   }, [preloadedService, workspaceId]);
-
-  // Calculate window sizes for responsive layout
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 1200
-  );
-
-  // Define breakpoints for different screen sizes
-  const MOBILE_BREAKPOINT = 640;
-  const TABLET_BREAKPOINT = 768;
-  const DESKTOP_BREAKPOINT = 1024;
-  const LARGE_DESKTOP_BREAKPOINT = 1280;
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      
-      // Auto-adjust layout for different screen sizes
-      if (window.innerWidth < MOBILE_BREAKPOINT) {
-        // Mobile optimizations
-        setShowExplorer(false);
-        setShowTerminal(false);
-        
-        // Optimize layout for mobile - full width panels
-        if (layout !== PanelLayout.Editor && layout !== PanelLayout.Preview) {
-          setLayout(PanelLayout.Editor);
-        }
-        
-        // Make chat panel take appropriate space on mobile
-        setChatSize(100);
-      } else if (window.innerWidth < TABLET_BREAKPOINT) {
-        // Tablet optimizations
-        if (showExplorer && showPreview) {
-          // Too many panels for tablet view, prioritize editor
-          setShowExplorer(false);
-        }
-        
-        // Adjust chat panel size for tablet
-        if (chatSize < 40 || chatSize > 60) {
-          setChatSize(40);
-        }
-      } else if (window.innerWidth < DESKTOP_BREAKPOINT) {
-        // Small desktop optimizations
-        // Adjust chat panel to an appropriate size
-        if (chatSize > 40) {
-          setChatSize(30);
-        }
-      } else {
-        // Large desktop - default sizes
-        if (!showExplorer && !showPreview) {
-          // Show at least one panel on large screens
-          setShowPreview(true);
-        }
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      // Call once on mount to set initial responsive layout
-      handleResize();
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, [showExplorer, showPreview, showTerminal, chatSize, layout, setLayout]);
-
-  // Handle downloading source code
-  const handleDownloadSourceCode = useCallback(async () => {
-    try {
-      // Dynamically import JSZip to avoid increasing the initial bundle size
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      
-      // Get all files recursively
-      const flattenedFiles = prepareFilesForZip(sessionState.files);
-      
-      // Add files to zip
-      Object.entries(flattenedFiles).forEach(([path, content]) => {
-        zip.file(path, content);
-      });
-      
-      // Generate the zip file
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      
-      // Create a download link
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(zipBlob);
-      downloadLink.download = `${workspaceName.replace(/\s+/g, '-').toLowerCase()}.zip`;
-      
-      // Trigger download
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      
-      toast.success('Source code downloaded successfully');
-    } catch (error) {
-      console.error('Error downloading source code:', error);
-      toast.error('Failed to download source code');
-    }
-  }, [sessionState.files, workspaceName]);
   
+  // Show active tool notification
+  useEffect(() => {
+    if (activeTool) {
+      const displayName = activeTool.replace(/([A-Z])/g, ' $1').trim();
+      
+      // Show toast for WordPress plugin/theme creation
+      if (activeTool.includes('WordPress') || activeTool.includes('Plugin') || activeTool.includes('Theme')) {
+        toast.success(`Creating ${displayName}...`, {
+          id: `tool-${activeTool}`,
+          duration: 3000,
+          style: {
+            background: theme === 'dark' ? '#333' : '#fff',
+            color: theme === 'dark' ? '#fff' : '#333',
+          }
+        });
+      }
+    }
+  }, [activeTool, theme]);
+
+  // Update the useEffect for connection monitoring
+  useEffect(() => {
+    // Monitor connection status and auto-reconnect
+    if (sessionState.connectionStatus === 'disconnected') {
+      // Wait a short delay before attempting to reconnect
+      const reconnectTimer = setTimeout(async () => {
+        console.log("Connection lost, attempting automatic reconnect...");
+        try {
+          const reconnected = await reconnect();
+          if (reconnected) {
+            // Only show reconnection toast for explicitly triggered reconnects or for critical recoveries
+            // Automatic reconnects shouldn't show toasts unless explicitly requested by user
+            if (operationStartTimeRef.current > 0) {
+              toast.success("Reconnected to server", {
+                duration: 3000,
+                style: {
+                  background: isDark ? '#333' : '#fff',
+                  color: isDark ? '#fff' : '#333',
+                }
+              });
+            }
+          } else {
+            // Only show this error if we don't already have an error state
+            // Avoid duplicate error messages
+            if (!sessionState.error) {
+              toast.error(
+                (t) => (
+                  <div className="flex flex-col">
+                    <p>Couldn't reconnect automatically.</p>
+                    <button 
+                      className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={async () => {
+                        toast.dismiss(t.id);
+                        const success = await reconnect();
+                        if (success) {
+                          toast.success("Reconnected successfully!");
+                        } else {
+                          toast.error("Still unable to connect. Please reload the page.");
+                        }
+                      }}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ),
+                { id: 'reconnect-failed', duration: 10000 }
+              );
+            }
+          }
+        } catch (e) {
+          console.error("Auto-reconnect failed:", e);
+        }
+      }, 3000);
+      
+      return () => clearTimeout(reconnectTimer);
+    }
+    
+    // Add a timeout detector for long-running operations
+    if (sessionState.isProcessing) {
+      // Initialize the operation start time if it's not already set
+      if (operationStartTimeRef.current === 0) {
+        console.log("Operation started, setting start time");
+        operationStartTimeRef.current = Date.now();
+      }
+      
+      const timeoutTimer = setTimeout(() => {
+        // Only show the timeout if we're still in a processing state after the timeout
+        // AND more than 3 minutes (increased from 2 minutes) have passed since we started processing
+        // This reduces frequency of timeout notifications
+        const elapsedTime = Date.now() - operationStartTimeRef.current;
+        if (sessionState.isProcessing && elapsedTime >= 180000) {
+          // Show a timeout message with retry option if still processing after 3 minutes
+          toast.error(
+            (t) => (
+              <div className="flex flex-col">
+                <p>The operation is taking too long.</p>
+                <button 
+                  className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={async () => {
+                    toast.dismiss(t.id);
+                    // Try reconnecting to reset the state
+                    await reconnect();
+                    // Reset the operation start time
+                    operationStartTimeRef.current = 0;
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            ),
+            { id: 'operation-timeout', duration: 600000 }
+          );
+        }
+      }, 180000); // 3 minutes (increased from 2 minutes)
+      
+      return () => {
+        clearTimeout(timeoutTimer);
+        // Reset the operation start time when isProcessing becomes false
+        if (!sessionState.isProcessing) {
+          operationStartTimeRef.current = 0;
+        }
+      };
+    } else {
+      // Reset the operation start time when isProcessing becomes false
+      operationStartTimeRef.current = 0;
+    }
+  }, [sessionState.connectionStatus, sessionState.isProcessing, sessionState.error, reconnect, isDark]);
+  
+  // Handle chat panel resize with proper types
+  const handleChatResize = useCallback((direction: string, delta: { width: number; height: number }, elementRef: HTMLElement) => {
+    if (windowWidth < desktopBreakpoint) {
+      // Handle vertical resize on mobile/tablet
+      const containerHeight = elementRef.parentElement?.clientHeight || 0;
+      if (containerHeight > 0) {
+        const newHeight = 50 + (delta.height / containerHeight * 100);
+        const clampedHeight = Math.max(30, Math.min(70, newHeight));
+        // Save mobile height
+        localStorage.setItem('wp-agent-chat-height-mobile', clampedHeight.toString());
+      }
+    } else {
+      // Handle horizontal resize on desktop
+      const parentWidth = elementRef.parentElement?.clientWidth || windowWidth;
+      if (parentWidth > 0) {
+        // For left side panel, the width increases directly with delta.width
+        const newWidth = chatSize + (delta.width / parentWidth * 100);
+        const clampedWidth = Math.max(20, Math.min(50, newWidth));
+        setChatSize(clampedWidth);
+        // Save immediately
+        localStorage.setItem('wp-agent-chat-size', clampedWidth.toString());
+      }
+    }
+  }, [chatSize, windowWidth, desktopBreakpoint, setChatSize]);
+
   // Set up event listener for download source code
   useEffect(() => {
     const handleDownloadEvent = () => {
-      handleDownloadSourceCode();
+      downloadSourceCode(sessionState.files, workspaceName);
     };
     
     document.addEventListener('download-source-code', handleDownloadEvent);
@@ -417,415 +393,170 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     return () => {
       document.removeEventListener('download-source-code', handleDownloadEvent);
     };
-  }, [handleDownloadSourceCode]);
+  }, [sessionState.files, workspaceName]);
 
-  // Handler for first prompt from landing page
-  const handleFirstPrompt = useCallback(async (prompt: string) => {
-    try {
-      // Check if the backend server is available
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || window.location.origin;
-      console.log(`Checking backend server at: ${baseUrl}`);
-      
-      // First create a new workspace to get a server-generated ID
-      console.log("Attempting to create a new workspace...");
-      const newWorkspaceId = await createWorkspace("New Workspace");
-      
-      // Validate the workspace ID
-      if (!newWorkspaceId) {
-        console.error("No workspace ID returned from createWorkspace function");
-        toast.error("Failed to create workspace: No workspace ID returned");
-        throw new Error("Failed to create workspace: Server did not return a workspace ID");
-      }
-      
-      if (typeof newWorkspaceId !== 'string' || newWorkspaceId.trim() === '') {
-        console.error(`Invalid workspace ID returned: "${newWorkspaceId}"`);
-        toast.error("Failed to create workspace: Invalid workspace ID");
-        throw new Error(`Failed to create workspace: Invalid workspace ID "${newWorkspaceId}"`);
-      }
-      
-      console.log(`Created new workspace with ID: ${newWorkspaceId}`);
-      
-      // Set active workspace in local storage immediately
-      localStorage.setItem('wp-agent-active-workspace', newWorkspaceId);
-      
-      // Hide landing page and show workspace
-      setShowLanding(false);
-      
-      // Update URL with the correct server-generated ID
-      console.log(`Updating URL to: /agent-workspace/${newWorkspaceId}`);
-      router.replace(`/agent-workspace/${newWorkspaceId}`);
-      
-      // Give the system more time to process the workspace creation
-      // before trying to send a message - increased timeout for more reliable connection
-      console.log("Waiting for workspace connection to stabilize before sending message...");
-      setTimeout(async () => {
-        try {
-          // Verify connection is established
-          const isConnected = websocketService.isConnectedToWorkspace(newWorkspaceId);
-          console.log(`Connection status before sending message: ${isConnected ? 'Connected' : 'Not connected'}`);
-          
-          if (!isConnected) {
-            console.log("Attempting to reconnect before sending message...");
-            try {
-              await reconnect();
-              console.log("Reconnection successful");
-            } catch (connErr) {
-              console.error("Reconnection failed:", connErr);
-              // Continue anyway - the message system will retry
-            }
+  // Handle orientation change
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      // Force a layout update when orientation changes
+      setTimeout(() => {
+        // Re-apply current layout to trigger resizing logic
+        applyLayoutChange(layout);
+        
+        // On rotation to landscape, may want to enable more panels
+        if (window.innerWidth > window.innerHeight && !showExplorer) {
+          // Consider showing explorer when rotating to landscape
+          if (window.innerWidth >= tabletBreakpoint) {
+            setShowExplorer(true);
           }
-          
-          // Now send the message to the newly created workspace
-          console.log(`Sending initial message to workspace ${newWorkspaceId}: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
-          await sendMessage(prompt);
-        } catch (err) {
-          console.error("Error sending initial message:", err);
-          toast.error("Failed to send initial message. Please try again.");
         }
-      }, 2000); // Increased from 1000ms to 2000ms
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error("Error handling first prompt:", error);
-      
-      // Provide a more user-friendly error message based on the type of error
-      if (errorMsg.includes("network") || errorMsg.includes("fetch") || errorMsg.includes("connect")) {
-        toast.error("Failed to connect to server. Please check if the backend is running and try again.");
-      } else if (errorMsg.includes("workspace")) {
-        toast.error("Failed to create workspace. Please try again.");
-      } else {
-        toast.error("Failed to process your request. Please try again.");
-      }
-    }
-  }, [sendMessage, createWorkspace, router, reconnect]);
+      }, 150); // Give browser time to complete the rotation
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    return () => window.removeEventListener('orientationchange', handleOrientationChange);
+  }, [applyLayoutChange, layout, showExplorer, setShowExplorer, tabletBreakpoint]);
 
-  // If showing landing page, render only that
-  if (showLanding) {
-    return <AgentLanding onFirstPrompt={handleFirstPrompt} />;
-  }
-
-  return (
-    <div className="flex flex-col h-full min-h-screen overflow-hidden agent-workspace">
-      {/* Toolbar */}
-      <AgentToolbar
-        layout={layout}
-        onLayoutChange={setLayout}
-        workspaceName={workspaceName}
-        isProcessing={sessionState.isProcessing || isLoading}
-        onSaveWorkspace={handleSaveWorkspace}
-        onToggleExplorer={toggleExplorer}
-        onTogglePreview={togglePreview}
-        onToggleTerminal={toggleTerminal}
-        onToggleHistory={toggleHistory}
-        showExplorer={showExplorer}
-        showPreview={showPreview}
-        showTerminal={showTerminal}
-        connectionStatus={sessionState.connectionStatus}
-      />
-      
-      {/* Connection Error Message */}
-      {sessionState.connectionStatus === 'error' || sessionState.connectionStatus === 'disconnected' ? (
-        <div className={`px-4 py-2 text-center text-sm ${
-          isDark ? 'bg-red-900 text-white' : 'bg-red-100 text-red-800'
+  // Render workspace based on screen size
+  const renderWorkspace = () => {
+    // Make sure connectionStatus is never undefined
+    const connectionStatus = sessionState.connectionStatus || 'connecting';
+    
+    return (
+      <FileOperationsProvider>
+        <div className={`flex flex-col h-full w-full overflow-hidden ${
+          isDark ? 'bg-gray-900' : 'bg-white'
         }`}>
-          <span className="flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Connection to agent server lost. 
-            <button 
-              onClick={() => sessionState.id && reconnect()}
-              className={`underline font-medium ${
-                isDark ? 'text-blue-300 hover:text-blue-200' : 'text-blue-700 hover:text-blue-800'
-              }`}
-            >
-              Try reconnecting
-            </button>
-          </span>
-        </div>
-      ) : null}
-      
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-auto">
-        {/* Main horizontal layout */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-visible">
-          {/* AI Chat Panel - Full width on mobile, left side on desktop */}
-          <Resizable
-            size={{ 
-              width: windowWidth < DESKTOP_BREAKPOINT ? '100%' : `${chatSize}%`, 
-              height: windowWidth < DESKTOP_BREAKPOINT ? '50%' : "100%" 
-            }}
-            minWidth={windowWidth < DESKTOP_BREAKPOINT ? '100%' : "20%"}
-            maxWidth={windowWidth < DESKTOP_BREAKPOINT ? '100%' : "50%"}
-            minHeight={windowWidth < DESKTOP_BREAKPOINT ? '30%' : "100%"}
-            maxHeight={windowWidth < DESKTOP_BREAKPOINT ? '70%' : "100%"}
-            enable={{ 
-              right: windowWidth >= DESKTOP_BREAKPOINT, 
-              bottom: windowWidth < DESKTOP_BREAKPOINT
-            }}
-            onResizeStop={(e, direction, ref, d) => {
-              if (windowWidth < DESKTOP_BREAKPOINT) {
-                // Handle vertical resize on mobile/tablet
-                const containerHeight = ref.parentElement?.clientHeight || 0;
-                const newHeight = 50 + (d.height / containerHeight * 100);
-                // We could store this in a separate state variable if needed
-              } else {
-                // Handle horizontal resize on desktop
-                const newWidth = chatSize + (d.width / (windowWidth * 0.01));
-                setChatSize(newWidth);
-              }
-            }}
-            className={`${windowWidth < DESKTOP_BREAKPOINT ? '' : 'border-r'} ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
-          >
-            <AgentChat
-              sessionState={sessionState}
-              onSendMessage={handleSendMessage}
-            />
-          </Resizable>
+          {/* Add FileOperationTracker for monitoring operations */}
+          <FileOperationsTracker files={sessionState.files} />
+          
+          {/* Toolbar */}
+          <AgentToolbar
+            workspaceName={workspaceName}
+            layout={layout}
+            onLayoutChange={applyLayoutChange}
+            isProcessing={isLoading || sessionState.isProcessing}
+            onSaveWorkspace={handleSaveWorkspace}
+            onToggleExplorer={toggleExplorer}
+            onTogglePreview={togglePreview}
+            onToggleTerminal={toggleTerminal}
+            onToggleHistory={toggleHistory}
+            showExplorer={showExplorer}
+            showPreview={showPreview}
+            showTerminal={showTerminal}
+            connectionStatus={connectionStatus}
+          />
 
-          {/* Workspace Area - Right side or bottom on mobile */}
-          <div className={`flex-1 flex flex-col lg:flex-row overflow-auto ${windowWidth < DESKTOP_BREAKPOINT ? 'border-t' : ''} ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-            {/* File Explorer - Conditional */}
-            {showExplorer && (
-              <Resizable
-                size={{ 
-                  width: windowWidth < TABLET_BREAKPOINT ? '100%' : `${explorerSize}%`, 
-                  height: windowWidth < TABLET_BREAKPOINT ? '40%' : "100%"
-                }}
-                minWidth={windowWidth < TABLET_BREAKPOINT ? '100%' : "10%"}
-                maxWidth={windowWidth < TABLET_BREAKPOINT ? '100%' : "30%"}
-                minHeight={windowWidth < TABLET_BREAKPOINT ? '20%' : "100%"}
-                maxHeight={windowWidth < TABLET_BREAKPOINT ? '50%' : "100%"}
-                enable={{ 
-                  right: windowWidth >= TABLET_BREAKPOINT,
-                  bottom: windowWidth < TABLET_BREAKPOINT && windowWidth >= MOBILE_BREAKPOINT
-                }}
-                onResizeStop={(e, direction, ref, d) => {
-                  if (windowWidth < TABLET_BREAKPOINT) {
-                    // Handle height resize on small screens
-                    const containerHeight = ref.parentElement?.clientHeight || 0;
-                    const newHeight = 40 + (d.height / containerHeight * 100);
-                    // Store in a state variable if needed
-                  } else {
-                    // Calculate new size as percentage of parent container (workspace area)
-                    const workspaceWidth = windowWidth * (1 - chatSize / 100);
-                    const newWidth = explorerSize + (d.width / workspaceWidth * 100);
-                    setExplorerSize(newWidth);
-                  }
-                }}
-                className={`${isDark ? 'bg-gray-800' : 'bg-gray-50'} ${
-                  windowWidth < TABLET_BREAKPOINT ? 'border-b' : 'border-r'
-                } ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
-              >
-                <div className="h-full overflow-auto">
-                  <FileExplorer
-                    files={sessionState.files}
-                    selectedFileId={sessionState.activeFile?.id}
-                    onFileSelect={handleFileSelect}
-                    onFilesChange={handleFilesChange}
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col lg:flex-row h-[calc(100%-48px)] overflow-hidden relative">
+            {/* Main layout with panels */}
+            <div className={`flex-1 flex ${
+              windowWidth >= desktopBreakpoint ? 'flex-row' : 'flex-col'
+            } h-full`}>
+              
+              {/* Chat panel - on the left on desktop */}
+              {windowWidth >= desktopBreakpoint ? (
+                <ChatPanel
+                  screenMode={screenMode}
+                  windowWidth={windowWidth}
+                  desktopBreakpoint={desktopBreakpoint}
+                  chatSize={chatSize}
+                  onChatResize={handleChatResize}
+                  isDark={isDark}
+                >
+                  <AgentChat
+                    sessionState={sessionState}
+                    onSendMessage={handleSendMessage}
+                    processingFilePath={currentlyProcessingFile || undefined}
+                    hideCodeInMessages={true}
+                  />
+                </ChatPanel>
+              ) : null}
+            
+              {/* Workspace layout - resizable panels */}
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <WorkspaceLayout
+                  screenMode={screenMode}
+                  windowWidth={windowWidth}
+                  layout={layout}
+                  showExplorer={showExplorer}
+                  showPreview={showPreview}
+                  showTerminal={showTerminal}
+                  isDark={isDark}
+                  chatSize={chatSize}
+                  explorerSize={explorerSize}
+                  editorSize={editorSize}
+                  terminalSize={terminalSize}
+                  setChatSize={setChatSize}
+                  setExplorerSize={setExplorerSize}
+                  setEditorSize={setEditorSize}
+                  setTerminalSize={setTerminalSize}
+                  onFileSelect={handleFileSelect}
+                  onFileContentChange={handleFileContentChange}
+                  onFilesChange={handleFilesChange}
+                  onRunCommand={handleRunCommand}
+                  onToggleTerminal={toggleTerminal}
+                  activeFile={sessionState.activeFile}
+                  files={sessionState.files}
+                  currentService={selectedService}
+                  processingFilePath={currentlyProcessingFile || undefined}
+                  desktopBreakpoint={desktopBreakpoint}
+                  tabletBreakpoint={tabletBreakpoint}
+                  mobileBreakpoint={mobileBreakpoint}
+                />
+              </div>
+              
+              {/* Mobile/tablet chat panel at bottom */}
+              {windowWidth < desktopBreakpoint ? (
+                <div className="w-full border-t border-gray-200 dark:border-gray-700 lg:hidden flex-shrink-0" style={{ maxHeight: '45%', minHeight: '300px' }}>
+                  <AgentChat
+                    sessionState={sessionState}
+                    onSendMessage={handleSendMessage}
+                    processingFilePath={currentlyProcessingFile || undefined}
+                    hideCodeInMessages={true}
                   />
                 </div>
-              </Resizable>
-            )}
-
-            {/* Editor/Preview Area */}
-            <div className="flex-1 flex flex-col overflow-auto">
-              {/* Main content area */}
-              <div className="flex-1 overflow-auto">
-                {layout === PanelLayout.Editor || !showPreview ? (
-                  sessionState.activeFile ? (
-                    <AgentEditor
-                      file={sessionState.activeFile}
-                      onChange={handleFileContentChange}
-                    />
-                  ) : (
-                    <div className={`flex items-center justify-center h-full ${
-                      isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
-                    }`}>
-                      <p className="text-center p-4">Select a file to edit or use the chat to create files</p>
-                    </div>
-                  )
-                ) : layout === PanelLayout.Preview ? (
-                  <div className="h-full bg-card overflow-hidden flex flex-col">
-                    <div className="flex-grow overflow-y-auto custom-scrollbar">
-                      <AgentPreview 
-                        files={sessionState.files} 
-                        activeFile={sessionState.activeFile}
-                        currentService={selectedService || undefined}
-                      />
-                    </div>
-                  </div>
-                ) : layout === PanelLayout.Split && windowWidth >= TABLET_BREAKPOINT ? (
-                  <div className="flex h-full">
-                    <Resizable
-                      size={{ width: `${editorSize}%`, height: "100%" }}
-                      minWidth="30%"
-                      maxWidth="70%"
-                      enable={{ right: true }}
-                      onResizeStop={(e, direction, ref, d) => {
-                        const parentWidth = ref.parentElement?.clientWidth || 0;
-                        const newWidth = editorSize + (d.width / parentWidth * 100);
-                        setEditorSize(newWidth);
-                      }}
-                      className={`border-r ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
-                    >
-                      {sessionState.activeFile ? (
-                        <AgentEditor
-                          file={sessionState.activeFile}
-                          onChange={handleFileContentChange}
-                        />
-                      ) : (
-                        <div className={`flex items-center justify-center h-full ${
-                          isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
-                        }`}>
-                          <p className="text-center p-4">Select a file to edit</p>
-                        </div>
-                      )}
-                    </Resizable>
-                    <div className="flex-1">
-                      <AgentPreview 
-                        files={sessionState.files}
-                        activeFile={sessionState.activeFile}
-                        currentService={selectedService || undefined}
-                      />
-                    </div>
-                  </div>
-                ) : layout === PanelLayout.Split && windowWidth < TABLET_BREAKPOINT ? (
-                  // On small screens, stack editor and preview instead of side by side
-                  <div className="flex flex-col h-full">
-                    <div className="h-1/2 border-b overflow-auto transition-all duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'}">
-                      {sessionState.activeFile ? (
-                        <AgentEditor
-                          file={sessionState.activeFile}
-                          onChange={handleFileContentChange}
-                        />
-                      ) : (
-                        <div className={`flex items-center justify-center h-full ${
-                          isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
-                        }`}>
-                          <p className="text-center p-4">Select a file to edit</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="h-1/2 overflow-auto">
-                      <AgentPreview 
-                        files={sessionState.files}
-                        activeFile={sessionState.activeFile}
-                        currentService={selectedService || undefined}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  sessionState.activeFile ? (
-                    <AgentEditor
-                      file={sessionState.activeFile}
-                      onChange={handleFileContentChange}
-                    />
-                  ) : (
-                    <div className={`flex items-center justify-center h-full ${
-                      isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'
-                    }`}>
-                      <p className="text-center p-4">Select a file to edit</p>
-                    </div>
-                  )
-                )}
-              </div>
-
-              {/* Terminal - Conditional */}
-              {showTerminal && (
-                <Resizable
-                  size={{ width: "100%", height: `${terminalSize}%` }}
-                  minHeight="10%"
-                  maxHeight={windowWidth < TABLET_BREAKPOINT ? "60%" : "50%"}
-                  enable={{ top: true }}
-                  onResizeStop={(e, direction, ref, d) => {
-                    const containerHeight = ref.parentElement?.clientHeight || 0;
-                    const newHeight = terminalSize - (d.height / containerHeight * 100);
-                    setTerminalSize(newHeight);
-                  }}
-                  className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200`}
-                >
-                  <AgentTerminal 
-                    onRunCommand={handleRunCommand} 
-                    onToggleTerminal={toggleTerminal}
-                    showTerminal={showTerminal}
-                  />
-                </Resizable>
-              )}
+              ) : null}
             </div>
+            
+            {/* Connection status indicator */}
+            <ConnectionStatus
+              connectionStatus={connectionStatus}
+              error={error || undefined}
+              onReconnect={reconnect}
+              processingTime={operationStartTimeRef.current > 0 ? Date.now() - operationStartTimeRef.current : undefined}
+              onResetProcessing={resetProcessingState}
+              isDark={isDark}
+            />
           </div>
+          
+          {/* History modal */}
+          {showHistoryModal && (
+            <AgentHistoryModal
+              isOpen={showHistoryModal}
+              onClose={toggleHistory}
+              sessionId={sessionState.id}
+            />
+          )}
+          
+          {/* Add global CSS for responsive workspace */}
+          <WorkspaceStyles />
         </div>
+      </FileOperationsProvider>
+    );
+  };
+  
+  if (showLanding && !workspaceId) {
+    return (
+      <div className="flex-1 h-full">
+        <AgentLanding
+          onFirstPrompt={handleFirstPrompt}
+        />
       </div>
-
-      {/* History Modal */}
-      <AgentHistoryModal
-        isOpen={showHistoryModal}
-        onClose={toggleHistory}
-        sessionId={sessionState.id}
-      />
-
-      {/* CSS for resize handles */}
-      <style jsx global>{`
-        .react-resizable-handle {
-          position: absolute;
-          width: 5px;
-          height: 100%;
-          background-clip: padding-box;
-          border-right: 1px solid transparent;
-          cursor: col-resize;
-          z-index: 10;
-          transition: background-color 0.2s;
-        }
-        
-        .react-resizable-handle-e {
-          right: 0;
-          top: 0;
-        }
-        
-        .react-resizable-handle-s {
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 5px;
-          cursor: row-resize;
-        }
-        
-        .react-resizable-handle:hover {
-          background-color: #3b82f6;
-        }
-        
-        .react-resizable-handle-e:hover {
-          width: 7px;
-        }
-        
-        .react-resizable-handle-s:hover {
-          height: 7px;
-        }
-
-        /* Improved mobile touch targets */
-        @media (max-width: 768px) {
-          .react-resizable-handle {
-            width: 10px;
-            height: 10px;
-          }
-          
-          .react-resizable-handle-e {
-            width: 12px;
-          }
-          
-          .react-resizable-handle-s {
-            height: 12px;
-          }
-        }
-
-        /* Smooth transitions for responsive layout changes */
-        .agent-workspace * {
-          transition: padding 0.3s, margin 0.3s, width 0.3s, height 0.3s;
-        }
-      `}</style>
-    </div>
-  );
+    );
+  }
+  
+  return renderWorkspace();
 };
 
 export default AgentWorkspace; 

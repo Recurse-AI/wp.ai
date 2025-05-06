@@ -3,14 +3,13 @@
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import useAuth from "@/lib/useAuth";
-import ClientOnly from "@/lib/client-only";
 import Link from "next/link";
-import { getToastStyle } from "@/lib/toastConfig";
 import { useAuthContext } from "@/context/AuthProvider";
+import toast from "react-hot-toast";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
 // Interface for form data
 interface SignInFormData {
@@ -43,6 +42,7 @@ export default function SignIn() {
   const { login, isAuthenticated, socialAuth } = useAuth();
   const { setUserData } = useAuthContext();
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<SignInFormData>({
@@ -56,7 +56,18 @@ export default function SignIn() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const callbackExecuted = useRef(false);
+
+  useEffect(() => {
+    if (!mounted && isAuthenticated) {
+      router.push("/");
+    }
+  }, [mounted, isAuthenticated]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check URL parameters for session messages
   useEffect(() => {
@@ -69,21 +80,12 @@ export default function SignIn() {
         switch (reason) {
           case "expired":
             setSessionMessage(VALIDATION_MESSAGES.REFRESH_TOKEN_EXPIRED);
-            toast.error(
-              VALIDATION_MESSAGES.REFRESH_TOKEN_EXPIRED,
-              getToastStyle(theme)
-            );
             break;
           case "session_expired":
             setSessionMessage(VALIDATION_MESSAGES.SESSION_EXPIRED);
-            toast.error(
-              VALIDATION_MESSAGES.SESSION_EXPIRED,
-              getToastStyle(theme)
-            );
             break;
           case "auth_failed":
             setSessionMessage(VALIDATION_MESSAGES.AUTH_FAILED);
-            toast.error(VALIDATION_MESSAGES.AUTH_FAILED, getToastStyle(theme));
             break;
           // Remove login_required case as it's not needed for normal signouts
         }
@@ -98,18 +100,7 @@ export default function SignIn() {
     }
   }, [theme]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      if (localStorage.getItem("isChat")) {
-        localStorage.removeItem("isChat");
-        router.push("/chat");
-      } else {
-        router.push("/");
-      }
-    }
-  }, [isAuthenticated]);
-
-  // Handle Social Authentication Callback
+  // Add Social Authentication Callback
   useEffect(() => {
     const handleSocialCallback = async () => {
       if (callbackExecuted.current) {
@@ -125,6 +116,9 @@ export default function SignIn() {
 
       callbackExecuted.current = true;
       setLoading(true);
+
+      // Show loading toast
+      const loadingToastId = showStatusToast('LOADING', `Signing in with ${authProvider}...`);
 
       try {
         // Call the appropriate social auth method based on the provider
@@ -155,26 +149,26 @@ export default function SignIn() {
         localStorage.removeItem("socialAuthInitiated");
         localStorage.removeItem("authProvider");
 
-        // Show success message
-        toast.success(
-          `Successfully signed in with ${authProvider}!`,
-          getToastStyle(theme)
-        );
+        // Dismiss loading toast and show success
+        toast.dismiss(loadingToastId);
+        showStatusToast('COMPLETED', `Successfully signed in with ${authProvider}!`);
 
         // Redirect
-        if (localStorage.getItem("isChat")) {
-          localStorage.removeItem("isChat");
-          router.push("/chat");
-        } else {
+        setTimeout(() => {
           router.push("/");
-        }
+        }, 1500);
       } catch (error: unknown) {
         console.error("Social authentication error:", error);
         const errorMessage =
           error instanceof Error
             ? error.message.replace(/^Error:\s*/, "")
             : "Failed to complete authentication";
-        toast.error(errorMessage, getToastStyle(theme));
+        
+        // Dismiss loading toast and show error
+        toast.dismiss(loadingToastId);
+        showErrorToast(errorMessage);
+        
+        setErrors({ general: errorMessage });
         localStorage.removeItem("socialAuthInitiated");
         localStorage.removeItem("authProvider");
       } finally {
@@ -225,18 +219,22 @@ export default function SignIn() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormSubmitted(true);
+    setSuccessMessage(null);
 
     // Validate form
     if (!validateForm()) {
-      // Display first error as toast
-      const firstError = Object.values(errors).find((error) => error);
+      // Show first validation error as toast
+      const firstError = Object.values(errors).find(error => error);
       if (firstError) {
-        toast.error(firstError, getToastStyle(theme));
+        showErrorToast(firstError);
       }
       return;
     }
 
     setLoading(true);
+    
+    // Show loading toast
+    const loadingToastId = showStatusToast('LOADING', 'Signing in...');
 
     try {
       // Using the auth service for login
@@ -244,28 +242,29 @@ export default function SignIn() {
         login: formData.login,
         password: formData.password,
       });
+      setUserData(user);
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToastId);
+      showStatusToast('COMPLETED', VALIDATION_MESSAGES.LOGIN_SUCCESS);
+      
+      setSuccessMessage(VALIDATION_MESSAGES.LOGIN_SUCCESS);
+      setErrors({});
 
-      // Save user data to localStorage for immediate access across components
-      if (user) {
-        localStorage.setItem("userData", JSON.stringify(user));
-        // Update the auth context with the new user data
-        setUserData(user);
-      }
-
-      toast.success(VALIDATION_MESSAGES.LOGIN_SUCCESS, getToastStyle(theme));
-
-      if (localStorage.getItem("isChat")) {
-        localStorage.removeItem("isChat");
-        router.push("/chat");
-      } else {
+      setTimeout(() => {
         router.push("/");
-      }
+      }, 1500);
+
     } catch (error: unknown) {
       let errorMessage = VALIDATION_MESSAGES.INVALID_CREDENTIALS;
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      toast.error(errorMessage, getToastStyle(theme));
+      
+      // Dismiss loading toast and show error
+      toast.dismiss(loadingToastId);
+      showErrorToast(errorMessage);
+      
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
@@ -285,7 +284,6 @@ export default function SignIn() {
   };
 
   return (
-    <ClientOnly>
       <>
         <div className="fixed inset-0 overflow-hidden">
           {/* Base Gradient */}
@@ -485,7 +483,7 @@ export default function SignIn() {
                     >
                       <path
                         fillRule="evenodd"
-                        d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v-1l1-1 1-1-0.257-0.257A6 6 0 1118 8zm-6-4a1 1 0 100 2h2a1 1 0 100-2h-2z"
+                        d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v-1l1-1 1-1-0.257-0.257A6 6 0 0118 8zm-6-4a1 1 0 100 2h2a1 1 0 100-2h-2z"
                         clipRule="evenodd"
                       />
                     </svg>
@@ -510,14 +508,50 @@ export default function SignIn() {
 
               {/* Main form */}
               <form onSubmit={handleSignIn} className="space-y-5">
+                {successMessage && (
+                  <div
+                    className={`p-3 rounded-md ${
+                      theme === "dark"
+                        ? "bg-green-900/30 text-green-200"
+                        : "bg-green-50 text-green-600"
+                    } text-sm flex items-center`}
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-5 w-5 mr-2" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path 
+                        fillRule="evenodd" 
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
+                        clipRule="evenodd" 
+                      />
+                    </svg>
+                    {successMessage}
+                  </div>
+                )}
+
                 {(errors.general && formSubmitted) || sessionMessage ? (
                   <div
                     className={`p-3 rounded-md ${
                       theme === "dark"
                         ? "bg-red-900/30 text-red-200"
                         : "bg-red-50 text-red-600"
-                    } text-sm`}
+                    } text-sm flex items-center`}
                   >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-5 w-5 mr-2" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path 
+                        fillRule="evenodd" 
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
+                        clipRule="evenodd" 
+                      />
+                    </svg>
                     {errors.general || sessionMessage}
                   </div>
                 ) : null}
@@ -752,7 +786,6 @@ export default function SignIn() {
           </div>
         </div>
       </>
-    </ClientOnly>
   );
 }
 

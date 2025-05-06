@@ -4,15 +4,14 @@
 "use client";
 
 import { signIn, getSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useTheme } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
 import { useAuthContext } from "@/context/AuthProvider";
-import ClientOnly from "@/lib/client-only";
 import Link from 'next/link';
-import { getToastStyle } from "@/lib/toastConfig";
+import { showStatusToast, showErrorToast } from '@/components/ui/StatusToast';
 
 // Add ExtendedSession type
 interface ExtendedSession {
@@ -147,7 +146,7 @@ export default function SignUp() {
       // Display first error as toast
       const firstError = Object.values(errors).find(error => error);
       if (firstError) {
-        toast.error(firstError, getToastStyle(theme));
+        showErrorToast(firstError);
       }
       return;
     }
@@ -155,15 +154,20 @@ export default function SignUp() {
     try {
       setLoading(true);
       
+      // Show loading toast
+      const loadingToastId = showStatusToast('LOADING', 'Creating your account...');
+      
       // Register user
       await register({
         username: formData.username,
         email: formData.email,
-        password: formData.password,
-        password_confirm: formData.confirmPassword
+        password: formData.password
       });
       
-      toast.success(VALIDATION_MESSAGES.SIGNUP_SUCCESS, getToastStyle(theme));
+      // Dismiss loading toast and show success toast
+      toast.dismiss(loadingToastId);
+      showStatusToast('COMPLETED', VALIDATION_MESSAGES.SIGNUP_SUCCESS);
+      
       setTimeout(() => router.push("/signin"), 2000);
     } catch (error) {
       const errorObj = error as any;
@@ -194,15 +198,7 @@ export default function SignUp() {
         errorMessage = Object.values(errorObj.data).join('\n');
       }
 
-      toast.error(errorMessage, {
-        duration: 5000,
-        icon: '🚨',
-        style: {
-          backgroundColor: theme === "dark" ? "#333" : "#fff",
-          color: theme === "dark" ? "#fff" : "#333",
-        },
-        position: 'bottom-right',
-      });
+      showErrorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -216,7 +212,7 @@ export default function SignUp() {
       await signIn(provider, { callbackUrl: '/signup' });
     } catch (error: unknown) {
       console.error('Social sign-in error:', error);
-      toast.error('Failed to initiate social sign-in', getToastStyle(theme));
+      showErrorToast('Failed to initiate social sign-in');
     }
   };
 
@@ -230,6 +226,9 @@ export default function SignUp() {
 
       if (extendedSession?.user && socialAuthInitiated === 'true' && authProvider) {
         setLoading(true);
+        
+        // Show loading toast
+        const loadingToastId = showStatusToast('LOADING', 'Completing authentication...');
         
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/auth/google/`, {
@@ -255,17 +254,28 @@ export default function SignUp() {
           localStorage.removeItem('authProvider');
 
           localStorage.setItem("token", userData.access);
-          // Redirect without showing success toast (since handleSignUp will show it)
-          if(localStorage.getItem("isChat")){
-            localStorage.removeItem("isChat");
-            router.push("/chat");
-          } else {
-            router.push("/");
-          }
+          
+          // Dismiss loading toast and show success toast
+          toast.dismiss(loadingToastId);
+          showStatusToast('COMPLETED', 'Successfully authenticated!');
+          
+          // Redirect after toast
+          setTimeout(() => {
+            if(localStorage.getItem("isChat")){
+              localStorage.removeItem("isChat");
+              router.push("/chat");
+            } else {
+              router.push("/");
+            }
+          }, 1500);
         } catch (error: unknown) {
           console.error('Social authentication error:', error);
           const errorMessage = error instanceof Error ? error.message.replace(/^Error:\s*/, '') : 'Failed to complete authentication';
-          toast.error(errorMessage, getToastStyle(theme));
+          
+          // Dismiss loading toast and show error toast
+          toast.dismiss(loadingToastId);
+          showErrorToast(errorMessage);
+          
           localStorage.removeItem('socialAuthInitiated');
           localStorage.removeItem('authProvider');
         } finally {
@@ -278,7 +288,6 @@ export default function SignUp() {
   }, [router, theme]);
 
   return (
-    <ClientOnly>
       <>
         <div className="fixed inset-0 overflow-hidden">
           {/* Base Gradient */}
@@ -617,6 +626,5 @@ export default function SignUp() {
           </div>
         </div>
       </>
-    </ClientOnly>
   );
 }

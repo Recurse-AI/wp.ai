@@ -104,14 +104,6 @@ class TokenManager {
       
       // Add a 60-second buffer to ensure refresh happens before expiration
       const isExpired = decoded.exp < currentTime + 60;
-      
-      // Log expiration details
-      console.log("🕒 Token expiration check:", {
-        expiresAt: new Date(decoded.exp * 1000).toISOString(),
-        currentTime: new Date(currentTime * 1000).toISOString(),
-        timeLeft: Math.round(decoded.exp - currentTime),
-        isExpired,
-      });
 
       return isExpired;
     } catch (error) {
@@ -150,13 +142,6 @@ class TokenManager {
       // Add a small buffer to ensure we don't cut it too close
       const isExpired = decoded.exp < currentTime + 10;
       
-      console.log('🕒 Refresh token expiration check:', {
-        expiresAt: new Date(decoded.exp * 1000).toISOString(),
-        currentTime: new Date(currentTime * 1000).toISOString(),
-        timeLeft: Math.round(decoded.exp - currentTime),
-        isExpired,
-      });
-
       return isExpired;
     } catch (error) {
       console.error("❌ Error checking refresh token expiration:", error);
@@ -232,13 +217,9 @@ class TokenManager {
     this.isRefreshing = true;
     this.refreshPromise = new Promise<string>(async (resolve, reject) => {
       try {
-        console.log('🔄 Attempting to refresh access token with refresh token');
         const response = await AuthService.refreshToken(refreshToken);
         
-        console.log('✅ Refresh token response:', response);
-        
         if (!response || !response.access) {
-          console.error('❌ Invalid response from refresh token API', response);
           throw new Error('Invalid response from refresh token API');
         }
         
@@ -246,18 +227,6 @@ class TokenManager {
         
         // Save the new access token (keeping the same refresh token)
         this.setToken(newAccessToken);
-        
-        // Log token details
-        try {
-          const decoded = jwtDecode<DecodedToken>(newAccessToken);
-          console.log('✅ Successfully refreshed access token:', {
-            userId: decoded.user_id,
-            expiresAt: new Date(decoded.exp * 1000).toISOString(),
-            tokenType: decoded.token_type
-          });
-        } catch (decodeError) {
-          console.error('❌ Error decoding refreshed token:', decodeError);
-        }
         
         resolve(newAccessToken);
       } catch (error: any) {
@@ -286,7 +255,6 @@ class TokenManager {
             !window.location.pathname.includes('/signup')) {
           
           const reason = isRefreshTokenInvalid ? 'token_expired' : 'refresh_failed';
-          console.log(`🔄 Redirecting to login page after refresh failure: ${reason}`);
           window.location.href = `/signin?reason=${reason}`;
         }
         
@@ -307,33 +275,24 @@ class TokenManager {
     // Get the current token
     const token = this.getToken();
 
-    console.log("🔄 TokenManager.getValidToken called, token exists:", !!token);
-
-    // If we're on the signup or signin page, we shouldn't show the "no valid tokens" error
-    // since users are expected to not have tokens yet
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const isAuthPage = window.location.pathname.includes('/signin') || 
                         window.location.pathname.includes('/signup') ||
                         window.location.pathname.includes('/forgot-password') ||
                         window.location.pathname.includes('/reset-password');
       
       if (isAuthPage && !token) {
-        console.log("🔒 On auth page with no token - expected behavior");
         return null;
       }
     }
 
-    // If no token, check if there's a refresh token we can use
+    // If no token or token is expired, check if there's a refresh token we can use
     if (!token) {
       const refreshToken = this.getRefreshToken();
       if (refreshToken && !this.isRefreshTokenExpired(refreshToken)) {
-        console.log(
-          "🔄 No access token, but refresh token exists. Attempting refresh..."
-        );
         try {
           return await this.refreshAccessToken();
         } catch (refreshError) {
-          console.error('❌ Failed to refresh token when none existed:', refreshError);
           this.clearTokens(); // Ensure tokens are cleared on failure
           // Redirect to login if not already there
           if (typeof window !== 'undefined' && 
@@ -344,38 +303,25 @@ class TokenManager {
           return null;
         }
       }
-      // No valid tokens available
-      console.error('❌ No valid tokens available');
       return null;
     }
 
-    // Check if the current token is expired
+    // If we have a token but it's expired, try to refresh it
     try {
-      const isExpired = this.isTokenExpired(token);
-      if (isExpired) {
-        console.log("🔄 Access token expired, attempting refresh...");
+      if (this.isTokenExpired(token)) {
         try {
           const newToken = await this.refreshAccessToken();
-          console.log('✅ Successfully refreshed access token:', !!newToken);
           return newToken;
         } catch (refreshError) {
-          console.error('❌ Failed to refresh expired token:', refreshError);
-          // Don't need to redirect here as refreshAccessToken will handle it
           return null;
         }
       } else {
-        console.log("✅ Access token is valid, no refresh needed");
         return token;
       }
     } catch (error) {
-      console.error("❌ Error validating token:", error);
-      // Try to refresh if token validation fails
       try {
-        console.log("🔄 Token validation failed, attempting refresh...");
         return await this.refreshAccessToken();
       } catch (refreshError) {
-        console.error('❌ Failed to refresh after validation error:', refreshError);
-        // Don't need to redirect here as refreshAccessToken will handle it
         return null;
       }
     }
@@ -385,8 +331,6 @@ class TokenManager {
    * Store both access and refresh tokens
    */
   static storeTokens(accessToken: string, refreshToken: string): void {
-    console.log("🔐 TokenManager: Storing both tokens...");
-
     if (!accessToken || !refreshToken) {
       console.error("❌ TokenManager: Invalid tokens provided", {
         accessToken: !!accessToken,
@@ -395,9 +339,7 @@ class TokenManager {
       return;
     }
     
-    // Validate tokens are properly formatted JWTs before storing
     try {
-      // Check if tokens can be decoded
       const decodedAccess = jwtDecode<DecodedToken>(accessToken);
       const decodedRefresh = jwtDecode<DecodedToken>(refreshToken);
       
@@ -406,34 +348,10 @@ class TokenManager {
         return;
       }
       
-      // Store the tokens
       this.setToken(accessToken);
       this.setRefreshToken(refreshToken);
-      
-      // Verify tokens were stored correctly
-      setTimeout(() => {
-        const storedAccessToken = this.getToken();
-        const storedRefreshToken = this.getRefreshToken();
-        
-        console.log('✅ TokenManager: Token storage verification', {
-          accessTokenStored: !!storedAccessToken,
-          refreshTokenStored: !!storedRefreshToken,
-          accessTokenMatches: storedAccessToken === accessToken,
-          refreshTokenMatches: storedRefreshToken === refreshToken
-        });
-        
-        // Try to decode the access token to verify it's valid
-        try {
-          const decoded = this.getDecodedToken();
-          console.log('🔍 TokenManager: Decoded token', {
-            userId: decoded?.user_id,
-            expiresAt: decoded ? new Date(decoded.exp * 1000).toISOString() : null,
-            tokenType: decoded?.token_type
-          });
-        } catch (error) {
-          console.error('❌ TokenManager: Failed to decode token', error);
-        }
-      }, 100);
+
+      console.log("✅ TokenManager: Tokens stored successfully");
     } catch (error) {
       console.error('❌ TokenManager: Failed to validate tokens', error);
       // Don't store invalid tokens

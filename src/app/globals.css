@@ -160,8 +160,388 @@ body {
   scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
 }
 
-/* Import AI Response styles */
-@import '../styles/ai-response.css';
+/* AI Response styles - Moved directly into globals.css */
+/* AI Response Visibility Styles */
+
+/* When the AI response is ready, ensure it's visible */
+.ai-response-ready .ai-response,
+.thinking-search-complete + .ai-response,
+[data-processing-complete="true"] + .ai-response,
+[data-main-content-ready="true"] + .ai-response,
+.ai-response {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force visibility for all message containers for backward compatibility */
+.message-container,
+.user-message-container,
+.ai-message-container {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure action buttons are visible */
+.ai-response-actions {
+  opacity: 0.9 !important;
+  visibility: visible !important;
+  display: flex !important;
+}
+
+/* Still allow hover for better visibility */
+.group:hover .ai-response-actions {
+  opacity: 1 !important;
+}
+
+/* Ensure the response indicator is always visible */
+.response-indicator {
+  position: relative;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Ensure the main content container has proper spacing */
+.thinking-search-complete {
+  margin-bottom: 2rem;
+}
+
+/* Sequential streaming phases styling */
+.search-results-container,
+.thinking-container {
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+  position: relative;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.search-results-container[data-complete="true"],
+.thinking-container[data-complete="true"] {
+  opacity: 0.85;
+}
+
+/* Enhanced thinking container styling */
+.thinking-container {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Ensure thinking content doesn't overflow horizontally */
+.thinking-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Phase transition animations */
+@keyframes phaseTransition {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.phase-transition {
+  animation: phaseTransition 0.5s ease-out forwards;
+}
+
+/* Message animation styles */
+@keyframes messageSlideUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+@keyframes messageSlideIn {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.message-slide-up {
+  animation: messageSlideUp 0.5s ease forwards;
+}
+
+.message-slide-in {
+  animation: messageSlideIn 0.5s ease forwards;
+}
+
+/* Adding scroll container class */
+.auto-scroll-container {
+  transition: all 0.5s ease;
+}
+
+/* Extra space for message animations */
+.message-enter-active {
+  animation: messageSlideIn 0.4s ease-out forwards;
+}
+
+.message-exit-active {
+  animation: messageSlideUp 0.4s ease-in forwards;
+}
+
+/* Styling for sequential streaming components */
+.ai-response-section {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.ai-response-section.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ai-response-section.completed {
+  opacity: 0.85;
+}
+
+/* Expanded thinking transition */
+.thinking-expanded {
+  max-height: 50vh;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.thinking-collapsed {
+  max-height: 100px;
+  transition: max-height 0.3s ease-in-out;
+}
+
+/* Thinking toggle button styles */
+.thinking-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+/* Cursor animation for streaming text */
+.streaming-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  background-color: currentColor;
+  animation: cursorBlink 1s infinite;
+  vertical-align: middle;
+  margin-left: 0.2em;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* Markdown styling for lists and paragraphs */
+.markdown-content,
+.ai-response-text {
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Consistent paragraph spacing */
+.markdown-p {
+  margin: 0.75rem 0;
+}
+
+/* Properly styled unordered lists */
+.markdown-ul {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* Properly styled ordered lists */
+.markdown-ol {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* List item spacing */
+.markdown-li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Make sure the lists are visible with proper indentation */
+.ai-response-text ul,
+.markdown-content ul {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.ai-response-text ol,
+.markdown-content ol {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.ai-response-text li,
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Fix for nested lists */
+.ai-response-text ul ul,
+.markdown-content ul ul,
+.ai-response-text ol ol,
+.markdown-content ol ol,
+.ai-response-text ul ol,
+.markdown-content ul ol,
+.ai-response-text ol ul,
+.markdown-content ol ul {
+  margin: 0.5rem 0;
+}
+
+/* Generated lists from transformations */
+ul.generated-list {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+ol.generated-list {
+  list-style-type: decimal;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+/* Fix for dash-bullet points */
+.bullet-point {
+  display: inline-block;
+  margin-right: 0.5em;
+  width: 0.5em;
+}
+
+/* Make sure list transformation works properly */
+.list-item-dash,
+.numbered-list-item {
+  position: relative;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+}
+
+/* Task list styling */
+.task-list-item {
+  display: flex;
+}
+
+.task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
+  margin-top: 0.25em;
+}
+
+/* Table styling */
+.markdown-content table,
+.ai-response-text table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.markdown-content th,
+.ai-response-text th {
+  background-color: rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.markdown-content td, 
+.ai-response-text td {
+  padding: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode table */
+.dark .markdown-content td,
+.dark .ai-response-text td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Image styling */
+.markdown-content img,
+.ai-response-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  margin: 1rem 0;
+}
+
+/* Link styling */
+.markdown-content a,
+.ai-response-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.markdown-content a:hover,
+.ai-response-text a:hover {
+  text-decoration: none;
+}
+
+.dark .markdown-content a,
+.dark .ai-response-text a {
+  color: #3b82f6;
+}
+
+/* Horizontal rule */
+.markdown-content hr,
+.ai-response-text hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+}
+
+.dark .markdown-content hr,
+.dark .ai-response-text hr {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Inline code */
+.inline-code {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+}
+
+.dark .inline-code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
 
 /* Inline code styling for markdown */
 code.inline-code {

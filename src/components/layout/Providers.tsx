@@ -2,68 +2,51 @@
 
 import { ThemeProvider } from '@/context/ThemeProvider';
 import { SessionProvider } from 'next-auth/react';
-import ToasterProvider from '@/components/ToasterProvider';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import AuthProvider from '@/context/AuthProvider';
-import { useEffect, useState } from 'react';
+import { usePathname } from "next/navigation";
+import { Toaster } from "react-hot-toast";
 
 const excludedPaths = [
-  '/signin', 
-  '/login', 
-  '/signup', 
-  '/register', 
-  '/reset-password', 
-  '/forgot-password', 
-  '/chat',
-  '/verify-email',
-  '/verify-email/:uidb64',
-  '/verify-email/:uidb64/:token',
-  '/community',
+  '/chat', 
+  '/chat/*',
   '/agent-workspace',
+  '/agent-workspace/*',
+  '/signin', 
+  '/signup',
+  '/login',
+  '/register',
+  '/reset-password',
+  '/forgot-password',
 ];
 
+// Simple ToasterProvider component
+function ToasterProvider() {
+  return <Toaster position="top-right" />;
+}
+
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    try {
-      setMounted(true);
-    } catch (err) {
-      console.error("Error during mounting:", err);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    }
-  }, []);
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <h1 className="text-2xl text-red-500 mb-4">Something went wrong</h1>
-        <p className="text-sm mb-2">Please try refreshing the page</p>
-        <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto max-w-full">{error.message}</pre>
-      </div>
-    );
-  }
-
-  if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  // Get current path for conditional rendering
+  const currentPath = usePathname();
+  
+  // Set main classes based on current path
+  const mainClasses = currentPath === "/chat" || currentPath === "/agent-workspace" 
+    ? "flex-1 relative" 
+    : "flex-1";
 
   return (
     <SessionProvider>
-      <ThemeProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ThemeProvider>
           <ToasterProvider />
           <div className="flex flex-col min-h-screen">
             <Header excludedPaths={excludedPaths} />
-            <main className="flex-1 relative">{children}</main>
+            <main className={`flex-grow ${mainClasses}`}>{children}</main>
+            <Footer excludedPaths={excludedPaths}/>
           </div>
-        </AuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </SessionProvider>
   );
-} 
+}

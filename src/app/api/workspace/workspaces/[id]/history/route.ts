@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { getToken } from 'next-auth/jwt';
 
 // API endpoint to get workspace history
 export async function GET(
@@ -9,7 +7,7 @@ export async function GET(
 ) {
   try {
     // Get the workspace ID from the URL
-    const workspaceId = params.id;
+    const workspaceId = await params.id;
     
     // Validate the workspace ID
     if (!workspaceId || workspaceId === 'undefined') {

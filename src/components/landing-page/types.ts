@@ -53,7 +53,6 @@ export interface ChatBotSectionProps {
 export interface ServiceCardProps {
   service: AIService;
   index: number;
-  onChatOpen: () => void;
 }
 
 export interface ServicesSectionProps {
