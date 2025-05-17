@@ -1,5 +1,4 @@
 import { Code, Database, Eye, Layout, Palette, PlugZap, Upload } from "lucide-react";
-import { AIService, PanelLayout, FileNode } from "../types";
 
 // WordPress Plugin Templates
 export const PLUGIN_TEMPLATES = {
@@ -21,7 +20,7 @@ export const THEME_TEMPLATES = {
 };
 
 // Default Agent Services
-export const AGENT_SERVICES: AIService[] = [
+export const AGENT_SERVICES: any[] = [
   {
     id: "plugins",
     title: "Plugin Development",
@@ -79,114 +78,3 @@ export const AGENT_SERVICES: AIService[] = [
     color: "from-yellow-500 to-amber-600",
   },
 ];
-
-// Default Panel Layouts
-export const DEFAULT_PANEL_LAYOUT = PanelLayout.Editor;
-
-// Default Plugin Structure
-export const DEFAULT_PLUGIN_STRUCTURE: Record<string, FileNode> = {
-  "my-plugin": {
-    type: "folder" as const,
-    children: {
-      "my-plugin.php": {
-        type: "file" as const,
-        content: `<?php
-/*
-Plugin Name: My Plugin
-Description: A custom WordPress plugin created with WP.ai
-Version: 1.0
-Author: WordPress AI Assistant
-*/
-
-// Prevent direct access to this file
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-// Plugin initialization
-function my_plugin_init() {
-    // Your plugin initialization code here
-}
-
-add_action('init', 'my_plugin_init');
-`,
-        language: "php",
-      },
-      "readme.txt": {
-        type: "file" as const,
-        content: `=== My Plugin ===
-Contributors: wp.ai
-Tags: wordpress, plugin
-Requires at least: 5.0
-Tested up to: 6.4
-Stable tag: 1.0
-License: GPLv2 or later
-
-A custom WordPress plugin created with WordPress AI Assistant.
-
-== Description ==
-This plugin was created using the WordPress AI Assistant. Add your plugin description here.
-
-== Installation ==
-1. Upload the plugin files to the \`/wp-content/plugins/my-plugin\` directory.
-2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Use the plugin features as configured.
-
-== Frequently Asked Questions ==
-= How do I customize this plugin? =
-You can modify the source code according to your requirements.
-
-== Changelog ==
-= 1.0 =
-* Initial release
-`,
-        language: "text",
-      },
-      "assets": {
-        type: "folder" as const,
-        children: {
-          "css": {
-            type: "folder" as const,
-            children: {
-              "style.css": {
-                type: "file" as const,
-                content: `/* Main plugin styles */
-.my-plugin-container {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    margin-bottom: 20px;
-}
-
-.my-plugin-heading {
-    font-size: 24px;
-    margin-bottom: 15px;
-    color: #23282d;
-}
-`,
-                language: "css",
-              },
-            },
-          },
-          "js": {
-            type: "folder" as const,
-            children: {
-              "script.js": {
-                type: "file" as const,
-                content: `/**
- * Main plugin JavaScript
- */
-document.addEventListener('DOMContentLoaded', function() {
-    // Plugin initialization code
-    console.log('My Plugin initialized');
-});
-`,
-                language: "javascript",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-}; 

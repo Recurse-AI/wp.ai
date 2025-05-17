@@ -1,13 +1,14 @@
+// Service factory to create and manage service instances
 import { agentAPI } from './apiService';
 import { websocketService } from './websocketService';
 
-// Define a function to get the API service
-export const getApiService = () => {
+// Get API service instance (singleton)
+export function getApiService() {
   return agentAPI;
-};
+}
 
-// Define a function to get the socket service
-export const getSocketService = () => {
+// Get WebSocket service instance (singleton)
+export function getSocketService() {
   return websocketService;
-};
+}
 

@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-unused-vars */
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAgentState } from '../hooks/useAgentState';
-import { useAgentAPI } from '../hooks/useAgentAPI';
-import { AgentFile, AgentWorkspaceProps, PanelLayout, FileNode, AIService } from '../types';
+import {  PanelLayout, FileNode } from '../types';
 import AgentToolbar from './toolbar/AgentToolbar';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -19,23 +19,47 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { useWorkspaceOperations } from '../hooks/useWorkspaceOperations';
 import { downloadSourceCode } from '../utils/zipUtils';
 import WorkspaceLayout from './layout/WorkspaceLayout';
-import ConnectionStatus from './status/ConnectionStatus';
 import { ChatPanel } from './layout/ResizablePanels';
 import WorkspaceStyles from './layout/WorkspaceStyles';
+import { getSocketService, WebSocketEventType } from '../utils/websocketService';
+import { v4 as uuidv4 } from 'uuid';
+
+interface AgentWorkspaceProps {
+  preloadedService: string;
+  workspaceId: string;
+}
+
+// Define proper types for messages and session state
+interface Message {
+  id?: string;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
+interface SessionState {
+  messages: Message[];
+  files: Record<string, FileNode>;
+  activeFile: FileNode | null;
+  isProcessing: boolean;
+}
 
 const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   preloadedService,
-  workspaceId,
+  workspaceId = '',
 }) => {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [workspaceName, setWorkspaceName] = useState('My WordPress Project');
-  const [selectedService, setSelectedService] = useState<AIService | null>(null);
-  const [showLanding, setShowLanding] = useState(!workspaceId);
+  const socketService = getSocketService();
+  const [sessionState, setSessionState] = useState<SessionState>({
+    messages: [],
+    files: {},
+    activeFile: null,
+    isProcessing: false
+  });
 
-  // Initialize agent API
-  const { createWorkspace, activeTool } = useAgentAPI();
   
   // Initialize responsive layout hooks
   const {
@@ -69,109 +93,89 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   
   // History modal state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedService, setSelectedService] = useState(preloadedService || '');
+
+
+  // Send message to the websocket
+  const sendMessage = useCallback(async (message: string): Promise<boolean> => {
+    if (!workspaceId) {
+      console.error("Cannot send message: No workspace ID");
+      return false;
+    }
+    
+    try {
+      // Ensure connection is established
+      if (!socketService.isConnectedToWorkspace(workspaceId)) {
+        console.log(`Connecting to workspace ${workspaceId} before sending message`);
+        await socketService.connect(workspaceId);
+      }
+      
+      console.log(`Sending message to workspace ${workspaceId}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`);
+      
+      // Send message to the server
+      const success = socketService.send({
+        type: 'query_agent',
+        query: message,
+        workspace_id: workspaceId,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (success) {
+        // Add the user message to our local state
+        setSessionState(prev => ({
+          ...prev,
+          messages: [...prev.messages, {
+            role: 'user',
+            content: message,
+            timestamp: new Date().toISOString()
+          }],
+          isProcessing: true
+        }));
+        console.log(`Message sent successfully to workspace ${workspaceId}`);
+      } else {
+        console.error(`Failed to send message to workspace ${workspaceId}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error("Error sending message:", error);
+      return false;
+    }
+  }, [workspaceId, socketService, setSessionState]);
   
-  // Initialize agent state and API
-  const {
-    sessionState,
-    isLoading,
-    error,
-    sendMessage,
-    createFile,
-    updateFile,
-    selectFile,
-    reconnect,
-    currentlyProcessingFile
-  } = useAgentState({ workspaceId });
-  
-  // Wrapper function to adapt sendMessage to the expected interface
-  const handleSendMessageAdapter = useCallback(async (message: string): Promise<boolean> => {
-    const result = await sendMessage(message);
-    // Convert result to boolean
-    return !!result;
-  }, [sendMessage]);
-  
-  // Initialize workspace operations
+  // Reconnect to websocket
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    if (!workspaceId) {
+      console.error("Cannot reconnect: No workspace ID");
+      return false;
+    }
+    
+    try {
+      await socketService.connect(workspaceId);
+      return socketService.isConnectedToWorkspace(workspaceId);
+    } catch (error) {
+      console.error("Error reconnecting:", error);
+      return false;
+    }
+  }, [workspaceId, socketService]);
+
+  // Initialize workspace operations with required functions
   const {
     handleSaveWorkspace,
     resetProcessingState,
     handleFirstPrompt,
     operationStartTimeRef
-  } = useWorkspaceOperations(handleSendMessageAdapter, reconnect);
-  
-  // Add a state variable to track last processed files
-  const [lastProcessedFiles, setLastProcessedFiles] = useState<Record<string, FileNode>>({});
+  } = useWorkspaceOperations(sendMessage, reconnect);
 
-  // Restore the deleted useEffect for sessionState.files changes
-  useEffect(() => {
-    // When files change (either from user actions or AI responses)
-    // Save to localStorage
-    if (sessionState.id && sessionState.files && 
-        JSON.stringify(sessionState.files) !== JSON.stringify(lastProcessedFiles)) {
-      console.log('Files changed, saving to localStorage');
-      saveFilesToLocalStorage(sessionState.id, sessionState.files);
-      setLastProcessedFiles(sessionState.files);
-    }
-  }, [sessionState.id, sessionState.files, lastProcessedFiles]);
-  
-  // Handlers
-  const handleFileSelect = useCallback((file: AgentFile) => {
-    // Ensure editor is visible when a file is selected
-    if (layout === PanelLayout.Preview) {
-      applyLayoutChange(PanelLayout.Split);
-    }
-    
-    // If preview is not visible, make sure it's in Editor mode
-    if (!showPreview) {
-      applyLayoutChange(PanelLayout.Editor);
-    }
-    
-    // Always select the file
-    selectFile(file.id);
-  }, [selectFile, layout, showPreview, applyLayoutChange]);
-  
-  const handleFileContentChange = useCallback((content: string) => {
-    if (sessionState.activeFile) {
-      updateFile(sessionState.activeFile.id, content);
-      
-      // If on mobile and in Editor layout, maybe switch to Preview layout
-      // after editing to show changes (but only when we have a preview)
-      if (windowWidth < mobileBreakpoint && layout === PanelLayout.Editor && showPreview) {
-        // Don't auto-switch to preview on mobile for now
-        // This could be a user-configurable preference
-        // applyLayoutChange(PanelLayout.Preview);
-      }
-    }
-  }, [sessionState.activeFile, updateFile, windowWidth, mobileBreakpoint, layout, showPreview, applyLayoutChange]);
-
-  // Restore the handleFilesChange function
-  const handleFilesChange = useCallback((files: Record<string, FileNode>) => {
-    // Since we don't have direct access to setSessionState from useAgentState,
-    // we'll use the API to update files or save to localStorage
-    if (sessionState.id) {
-      saveFilesToLocalStorage(sessionState.id, files);
-      console.log("Files updated and saved to localStorage");
-    }
-  }, [sessionState.id]);
-  
   const handleSendMessage = useCallback(async (message: string) => {
     try {
-      // Check if we have a session ID before trying to send message
-      if (!sessionState.id || sessionState.id === 'undefined' || sessionState.id === 'null') {
-        console.error(`Cannot send message: Invalid session ID ${sessionState.id}`);
-        toast.error("Cannot send message: No valid workspace ID");
-        return false;
-      }
-      
-      console.log(`Sending message to workspace ID: ${sessionState.id}`);
-      
-      await sendMessage(message);
-      return true;
+      // Use the sendMessage function we defined above
+      return await sendMessage(message);
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
       return false;
     }
-  }, [sendMessage, sessionState.id]);
+  }, [sendMessage]);
 
   // Toggle history modal visibility
   const toggleHistory = useCallback(() => {
@@ -197,19 +201,414 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     }
   }, []);
 
-  // Handle service change
-  const handleServiceChange = useCallback((service: AIService) => {
-    setSelectedService(service);
-    setWorkspaceName(`${service.title} Project`);
-    
-    // Display a toast notification instead of adding a system message
-    toast.success(`Switched to ${service.title} service`, {
-      style: {
-        background: theme === 'dark' ? '#333' : '#fff',
-        color: theme === 'dark' ? '#fff' : '#333',
+  // Setup WebSocket event listeners
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    // Helper function to determine language from file path
+    const getLanguageFromPath = (path: string): string => {
+      const extension = path.split('.').pop()?.toLowerCase() || '';
+      const languageMap: Record<string, string> = {
+        'js': 'javascript',
+        'jsx': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'py': 'python',
+        'php': 'php',
+        'css': 'css',
+        'html': 'html',
+        'json': 'json',
+        'md': 'markdown'
+      };
+      return languageMap[extension] || '';
+    };
+
+    // Set up message handlers for different WebSocket events
+    const messageHandler = (data: any) => {
+      console.log('WebSocket message received:', data);
+      
+      // Handle new_message type explicitly - this is how the backend responds to query_agent
+      if (data.type === 'new_message') {
+        // Extract the message content and sender
+        const messageContent = data.text || '';
+        const messageSender = data.sender || 'assistant';
+        const messageId = data.message_id || uuidv4();
+        
+        // Add the message to our state
+        setSessionState(prev => {
+          // Check for duplicates - either by ID, or by content+role+timestamp
+          const isDuplicate = prev.messages.some(m => 
+            (m.id && m.id === messageId) || 
+            (m.content === messageContent && 
+             m.role === messageSender &&
+             Math.abs(new Date(m.timestamp).getTime() - new Date(data.timestamp || 0).getTime()) < 10000)
+          );
+          
+          if (isDuplicate) {
+            console.log('Duplicate message detected, not adding:', messageId);
+            return prev;
+          }
+          
+          // If this is a standalone new message (not a stream-built one), filter out any fragments
+          const filteredMessages = messageSender === 'assistant' 
+            ? prev.messages.filter(m => {
+                // Remove recent fragments that might be part of this consolidated message
+                if (m.role === 'assistant' && 
+                    new Date(m.timestamp).getTime() > Date.now() - 10000 &&
+                    messageContent.includes(m.content)) {
+                  return false;
+                }
+                return true;
+              })
+            : prev.messages;
+          
+          const updatedMessages = [
+            ...filteredMessages,
+            {
+              id: messageId,
+              role: messageSender,
+              content: messageContent,
+              timestamp: data.timestamp || new Date().toISOString(),
+              workspace_id: data.workspace_id || workspaceId || null
+            }
+          ];
+          
+          console.log('Updated messages:', updatedMessages);
+          
+          return {
+            ...prev,
+            messages: updatedMessages,
+            // If this is a message from the assistant, we're no longer processing
+            isProcessing: messageSender === 'assistant' ? false : prev.isProcessing
+          };
+        });
+        
+        return; // We've handled this message, so return
       }
-    });
-  }, [theme]);
+      
+      // Handle stream_complete events - use the consolidated message
+      if (data.type === 'stream_complete') {
+        console.log('Received stream_complete:', data);
+        
+        // Add the complete message to our state, replacing any fragments
+        setSessionState(prev => {
+          const messageId = data.message_id || uuidv4();
+          const role = data.content_type === 'thinking' ? 'thinking' : 'assistant';
+          
+          // Check if this message already exists to avoid duplicates
+          const messageExists = prev.messages.some(m => 
+            (m.id && m.id === messageId) || 
+            (m.content === data.content && m.role === role)
+          );
+          
+          if (messageExists) return prev;
+          
+          // Filter out any stream fragments that might have been added
+          const filteredMessages = prev.messages.filter(m => {
+            // Keep messages that aren't fragments of the same response 
+            if (m.role === role && new Date(m.timestamp).getTime() > Date.now() - 10000) {
+              // Check if this fragment is contained in our complete message
+              return !data.content.includes(m.content);
+            }
+            return true;
+          });
+          
+          return {
+            ...prev,
+            messages: [
+              ...filteredMessages,
+              {
+                id: messageId,
+                role: role,
+                content: data.content,
+                timestamp: data.timestamp || new Date().toISOString(),
+                status: 'completed',
+                workspace_id: data.workspace_id || workspaceId || null
+              }
+            ],
+            isProcessing: false
+          };
+        });
+        
+        return; // We've handled this message, so return
+      }
+      
+      // Handle error updates
+      if (data.type === WebSocketEventType.ERROR_UPDATE) {
+        setSessionState(prev => ({
+          ...prev,
+          messages: [...prev.messages, {
+            id: data.message_id || uuidv4(),
+            role: 'error',
+            content: data.error || 'An unknown error occurred',
+            timestamp: data.timestamp || new Date().toISOString()
+          }],
+          isProcessing: false
+        }));
+        return;
+      }
+      
+      // Skip individual text fragments to avoid adding each chunk as a separate message
+      if (data.type === 'text' || data.type === WebSocketEventType.TEXT_UPDATE) {
+        // Don't add these as individual messages - they'll be collected by the stream_complete handler
+        return;
+      }
+      
+      // Update session state based on message type, still handling non-stream messages
+      if (data.type === WebSocketEventType.AGENT_RESPONSE ||
+          data.type === WebSocketEventType.THINKING_UPDATE ||
+          data.type === WebSocketEventType.ASSISTANT_RESPONSE ||
+          data.type === WebSocketEventType.MESSAGE_UPDATE ||
+          data.type === WebSocketEventType.USER_MESSAGE ||
+          data.type === WebSocketEventType.THINKING) {
+        // Update messages
+        setSessionState(prev => {
+          // Extract content based on message type
+          let content = '';
+          let role = 'assistant';
+          
+          if (data.type === WebSocketEventType.ASSISTANT_RESPONSE) {
+            // Process structured assistant response
+            if (data.data && typeof data.data === 'object') {
+              if (data.data.type === 'text') {
+                content = data.data.content || '';
+              } else if (data.data.type === 'thinking') {
+                content = data.data.content || '';
+                role = 'thinking';
+              } else {
+                // Other types like tool calls - just stringify for now
+                content = JSON.stringify(data.data);
+              }
+            } else {
+              content = data.data || '';
+            }
+          } else {
+            // Handle other message types
+            content = data.content || data.text || data.thinking || data.message || '';
+            role = data.role || data.sender || (data.type === WebSocketEventType.THINKING_UPDATE ? 'thinking' : 'assistant');
+          }
+          
+          // Don't add empty messages
+          if (!content.trim()) {
+            return prev;
+          }
+          
+          // Don't add duplicate messages
+          const messageExists = prev.messages.some(
+            msg => (msg.id && data.message_id && msg.id === data.message_id) || 
+                  (msg.content === content && msg.role === role)
+          );
+          
+          if (messageExists) {
+            return prev;
+          }
+          
+          return {
+            ...prev,
+            messages: [...prev.messages, {
+              id: data.message_id || data.id || uuidv4(),
+              role: role,
+              content: content,
+              timestamp: data.timestamp || new Date().toISOString()
+            }],
+            // If this is a final message from the assistant, we're no longer processing
+            isProcessing: data.type === 'message_status' && data.status === 'complete' ? false : prev.isProcessing
+          };
+        });
+      }
+      
+      // Handle file updates
+      if (data.type === WebSocketEventType.FILE_UPDATE && data.file) {
+        setSessionState(prev => {
+          const updatedFiles = {...prev.files};
+          if (data.file.path && data.file.content !== undefined) {
+            updatedFiles[data.file.path] = {
+              type: 'file',
+              content: data.file.content,
+              language: data.file.language || getLanguageFromPath(data.file.path)
+            };
+          }
+          return {
+            ...prev,
+            files: updatedFiles
+          };
+        });
+      }
+      
+      // Handle file action broadcasts from backend
+      if (data.type === 'file_action_broadcast') {
+        // For file actions, we may need to request the file content
+        handleFileActionBroadcast(data);
+      }
+      
+      // Handle processing status updates
+      if (data.type === WebSocketEventType.PROCESSING_STATUS || 
+          data.type === 'processing_status' || 
+          data.type === 'message_status') {
+        console.log('Processing status update received:', data);
+        
+        // Determine if we're processing based on the status field
+        const isProcessing = data.status === 'processing' || data.is_processing === true;
+        
+        // If status is 'complete', make sure we're no longer processing
+        if (data.status === 'complete') {
+          setSessionState(prev => ({
+            ...prev,
+            isProcessing: false
+          }));
+          console.log('Processing completed');
+        } else {
+          // Update processing state in our session
+          setSessionState(prev => ({
+            ...prev,
+            isProcessing: isProcessing
+          }));
+        }
+        
+        return; // We've handled this message
+      }
+      
+      // Handle tool requests from backend
+      if (data.type === 'tool_request') {
+        handleToolRequest(data);
+      }
+    };
+    
+    // Handler for tool requests
+    const handleToolRequest = async (data: any) => {
+      console.log('Tool request received:', data);
+      
+      if (!data.tool_name || !data.tool_id) {
+        console.error('Invalid tool request: missing tool_name or tool_id');
+        return;
+      }
+      
+      // Handle different tool types
+      switch (data.tool_name) {
+        case 'get_project_structure':
+          // Send project structure back
+          sendToolResponse(data.tool_id, {
+            type: 'project_structure',
+            files: sessionState.files
+          });
+          break;
+          
+        case 'read_file':
+          if (data.params?.path) {
+            const filePath = data.params.path;
+            const fileContent = sessionState.files[filePath]?.content || '';
+            sendToolResponse(data.tool_id, {
+              path: filePath,
+              content: fileContent,
+              exists: !!sessionState.files[filePath]
+            });
+          } else {
+            sendToolResponse(data.tool_id, {
+              error: 'Missing file path'
+            });
+          }
+          break;
+          
+        case 'write_file':
+          if (data.params?.path && data.params?.content !== undefined) {
+            const filePath = data.params.path;
+            // Update our state with the new file
+            setSessionState(prev => {
+              const updatedFiles = {...prev.files};
+              updatedFiles[filePath] = {
+                type: 'file',
+                content: data.params.content,
+                language: getLanguageFromPath(filePath)
+              };
+              return {
+                ...prev,
+                files: updatedFiles
+              };
+            });
+            
+            // Send success response
+            sendToolResponse(data.tool_id, {
+              path: filePath,
+              success: true
+            });
+          } else {
+            sendToolResponse(data.tool_id, {
+              error: 'Missing file path or content'
+            });
+          }
+          break;
+          
+        default:
+          console.warn(`Unhandled tool request: ${data.tool_name}`);
+          sendToolResponse(data.tool_id, {
+            error: `Tool not implemented: ${data.tool_name}`
+          });
+      }
+    };
+    
+    // Helper function to send tool response back to the server
+    const sendToolResponse = (toolId: string, result: any) => {
+      socketService.sendToolResponse(toolId, result);
+    };
+    
+    // Handle file action broadcasts
+    const handleFileActionBroadcast = (data: any) => {
+      console.log('File action broadcast received:', data);
+      
+      const actionType = data.action_type;
+      const path = data.path;
+      
+      if (!path) return;
+      
+      switch (actionType) {
+        case 'create':
+        case 'update':
+          // Request file content if we don't have it
+          socketService.send({
+            type: 'request_file_content',
+            workspace_id: workspaceId,
+            path: path,
+            timestamp: new Date().toISOString()
+          });
+          break;
+          
+        case 'delete':
+          // Remove file from our state
+          setSessionState(prev => {
+            const updatedFiles = {...prev.files};
+            delete updatedFiles[path];
+            return {
+              ...prev,
+              files: updatedFiles
+            };
+          });
+          break;
+      }
+    };
+
+    // Register event listeners
+    socketService.on('message', messageHandler);
+    
+    // Connect to the workspace if not already connected
+    if (!socketService.isConnectedToWorkspace(workspaceId)) {
+      console.log(`Connecting to workspace ${workspaceId} on component mount`);
+      socketService.connect(workspaceId)
+        .then(() => {
+          console.log('Successfully connected to workspace, sending heartbeat');
+          // Send a heartbeat to ensure the connection is active
+          socketService.sendHeartbeat();
+        })
+        .catch(console.error);
+    } else {
+      // Connection already exists, send heartbeat to ensure it's still active
+      socketService.sendHeartbeat();
+    }
+    
+    // Clean up event listeners when component unmounts
+    return () => {
+      socketService.removeListener('message', messageHandler);
+    };
+  }, [workspaceId, socketService, sessionState.files]);
 
   // Initialize workspace from service if provided
   useEffect(() => {
@@ -221,7 +620,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       );
       
       if (service) {
-        setSelectedService(service);
         setWorkspaceName(`${service.title} Project`);
       } else {
         // Default service message if no match found
@@ -230,133 +628,8 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     }
   }, [preloadedService, workspaceId]);
   
-  // Show active tool notification
-  useEffect(() => {
-    if (activeTool) {
-      const displayName = activeTool.replace(/([A-Z])/g, ' $1').trim();
-      
-      // Show toast for WordPress plugin/theme creation
-      if (activeTool.includes('WordPress') || activeTool.includes('Plugin') || activeTool.includes('Theme')) {
-        toast.success(`Creating ${displayName}...`, {
-          id: `tool-${activeTool}`,
-          duration: 3000,
-          style: {
-            background: theme === 'dark' ? '#333' : '#fff',
-            color: theme === 'dark' ? '#fff' : '#333',
-          }
-        });
-      }
-    }
-  }, [activeTool, theme]);
 
-  // Update the useEffect for connection monitoring
-  useEffect(() => {
-    // Monitor connection status and auto-reconnect
-    if (sessionState.connectionStatus === 'disconnected') {
-      // Wait a short delay before attempting to reconnect
-      const reconnectTimer = setTimeout(async () => {
-        console.log("Connection lost, attempting automatic reconnect...");
-        try {
-          const reconnected = await reconnect();
-          if (reconnected) {
-            // Only show reconnection toast for explicitly triggered reconnects or for critical recoveries
-            // Automatic reconnects shouldn't show toasts unless explicitly requested by user
-            if (operationStartTimeRef.current > 0) {
-              toast.success("Reconnected to server", {
-                duration: 3000,
-                style: {
-                  background: isDark ? '#333' : '#fff',
-                  color: isDark ? '#fff' : '#333',
-                }
-              });
-            }
-          } else {
-            // Only show this error if we don't already have an error state
-            // Avoid duplicate error messages
-            if (!sessionState.error) {
-              toast.error(
-                (t) => (
-                  <div className="flex flex-col">
-                    <p>Couldn't reconnect automatically.</p>
-                    <button 
-                      className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                      onClick={async () => {
-                        toast.dismiss(t.id);
-                        const success = await reconnect();
-                        if (success) {
-                          toast.success("Reconnected successfully!");
-                        } else {
-                          toast.error("Still unable to connect. Please reload the page.");
-                        }
-                      }}
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                ),
-                { id: 'reconnect-failed', duration: 10000 }
-              );
-            }
-          }
-        } catch (e) {
-          console.error("Auto-reconnect failed:", e);
-        }
-      }, 3000);
-      
-      return () => clearTimeout(reconnectTimer);
-    }
-    
-    // Add a timeout detector for long-running operations
-    if (sessionState.isProcessing) {
-      // Initialize the operation start time if it's not already set
-      if (operationStartTimeRef.current === 0) {
-        console.log("Operation started, setting start time");
-        operationStartTimeRef.current = Date.now();
-      }
-      
-      const timeoutTimer = setTimeout(() => {
-        // Only show the timeout if we're still in a processing state after the timeout
-        // AND more than 3 minutes (increased from 2 minutes) have passed since we started processing
-        // This reduces frequency of timeout notifications
-        const elapsedTime = Date.now() - operationStartTimeRef.current;
-        if (sessionState.isProcessing && elapsedTime >= 180000) {
-          // Show a timeout message with retry option if still processing after 3 minutes
-          toast.error(
-            (t) => (
-              <div className="flex flex-col">
-                <p>The operation is taking too long.</p>
-                <button 
-                  className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={async () => {
-                    toast.dismiss(t.id);
-                    // Try reconnecting to reset the state
-                    await reconnect();
-                    // Reset the operation start time
-                    operationStartTimeRef.current = 0;
-                  }}
-                >
-                  Try Again
-                </button>
-              </div>
-            ),
-            { id: 'operation-timeout', duration: 600000 }
-          );
-        }
-      }, 180000); // 3 minutes (increased from 2 minutes)
-      
-      return () => {
-        clearTimeout(timeoutTimer);
-        // Reset the operation start time when isProcessing becomes false
-        if (!sessionState.isProcessing) {
-          operationStartTimeRef.current = 0;
-        }
-      };
-    } else {
-      // Reset the operation start time when isProcessing becomes false
-      operationStartTimeRef.current = 0;
-    }
-  }, [sessionState.connectionStatus, sessionState.isProcessing, sessionState.error, reconnect, isDark]);
-  
+
   // Handle chat panel resize with proper types
   const handleChatResize = useCallback((direction: string, delta: { width: number; height: number }, elementRef: HTMLElement) => {
     if (windowWidth < desktopBreakpoint) {
@@ -385,15 +658,27 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   // Set up event listener for download source code
   useEffect(() => {
     const handleDownloadEvent = () => {
-      downloadSourceCode(sessionState.files, workspaceName);
+      // downloadSourceCode(sessionState.files, workspaceName);
+    };
+    
+    const handleReconnectEvent = () => {
+      socketService.connect(workspaceId).catch(console.error);
+    };
+    
+    const handleResetProcessingEvent = () => {
+      resetProcessingState();
     };
     
     document.addEventListener('download-source-code', handleDownloadEvent);
+    document.addEventListener('reconnect-agent', handleReconnectEvent);
+    document.addEventListener('reset-processing', handleResetProcessingEvent);
     
     return () => {
       document.removeEventListener('download-source-code', handleDownloadEvent);
+      document.removeEventListener('reconnect-agent', handleReconnectEvent);
+      document.removeEventListener('reset-processing', handleResetProcessingEvent);
     };
-  }, [sessionState.files, workspaceName]);
+  }, [workspaceName, resetProcessingState, socketService, workspaceId]);
 
   // Handle orientation change
   useEffect(() => {
@@ -420,13 +705,14 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   // Render workspace based on screen size
   const renderWorkspace = () => {
     // Make sure connectionStatus is never undefined
-    const connectionStatus = sessionState.connectionStatus || 'connecting';
+    const connectionStatus = socketService.getConnectionStatus() || 'connecting';
     
     return (
       <FileOperationsProvider>
         <div className={`flex flex-col h-full w-full overflow-hidden ${
           isDark ? 'bg-gray-900' : 'bg-white'
-        }`}>
+          }`}>
+          
           {/* Add FileOperationTracker for monitoring operations */}
           <FileOperationsTracker files={sessionState.files} />
           
@@ -435,7 +721,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             workspaceName={workspaceName}
             layout={layout}
             onLayoutChange={applyLayoutChange}
-            isProcessing={isLoading || sessionState.isProcessing}
+            isProcessing={false}
             onSaveWorkspace={handleSaveWorkspace}
             onToggleExplorer={toggleExplorer}
             onTogglePreview={togglePreview}
@@ -454,24 +740,23 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
               windowWidth >= desktopBreakpoint ? 'flex-row' : 'flex-col'
             } h-full`}>
               
-              {/* Chat panel - on the left on desktop */}
-              {windowWidth >= desktopBreakpoint ? (
-                <ChatPanel
-                  screenMode={screenMode}
-                  windowWidth={windowWidth}
-                  desktopBreakpoint={desktopBreakpoint}
-                  chatSize={chatSize}
-                  onChatResize={handleChatResize}
-                  isDark={isDark}
-                >
-                  <AgentChat
-                    sessionState={sessionState}
-                    onSendMessage={handleSendMessage}
-                    processingFilePath={currentlyProcessingFile || undefined}
-                    hideCodeInMessages={true}
-                  />
-                </ChatPanel>
-              ) : null}
+              {/* Chat panel - always render it but conditionally style/position */}
+              <ChatPanel
+                screenMode={screenMode}
+                windowWidth={windowWidth}
+                desktopBreakpoint={desktopBreakpoint}
+                chatSize={chatSize}
+                onChatResize={handleChatResize}
+                isDark={isDark}
+              >
+                <AgentChat
+                  sessionState={sessionState}
+                  onSendMessage={handleSendMessage}
+                  processingFilePath={undefined}
+                  hideCodeInMessages={true}
+                  setSessionState={setSessionState}
+                />
+              </ChatPanel>
             
               {/* Workspace layout - resizable panels */}
               <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -491,43 +776,36 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
                   setExplorerSize={setExplorerSize}
                   setEditorSize={setEditorSize}
                   setTerminalSize={setTerminalSize}
-                  onFileSelect={handleFileSelect}
-                  onFileContentChange={handleFileContentChange}
-                  onFilesChange={handleFilesChange}
+                  onFileSelect={() => {}}
+                  onFileContentChange={() => {}}
+                  onFilesChange={() => {}}
                   onRunCommand={handleRunCommand}
                   onToggleTerminal={toggleTerminal}
-                  activeFile={sessionState.activeFile}
+                  activeFile={sessionState.activeFile || undefined}
                   files={sessionState.files}
                   currentService={selectedService}
-                  processingFilePath={currentlyProcessingFile || undefined}
+                  processingFilePath={undefined}
                   desktopBreakpoint={desktopBreakpoint}
                   tabletBreakpoint={tabletBreakpoint}
                   mobileBreakpoint={mobileBreakpoint}
                 />
               </div>
               
-              {/* Mobile/tablet chat panel at bottom */}
-              {windowWidth < desktopBreakpoint ? (
-                <div className="w-full border-t border-gray-200 dark:border-gray-700 lg:hidden flex-shrink-0" style={{ maxHeight: '45%', minHeight: '300px' }}>
-                  <AgentChat
-                    sessionState={sessionState}
-                    onSendMessage={handleSendMessage}
-                    processingFilePath={currentlyProcessingFile || undefined}
-                    hideCodeInMessages={true}
-                  />
-                </div>
-              ) : null}
+              {/* Mobile/tablet chat panel at bottom - remove conditional rendering for hydration consistency */}
+              <div className="w-full border-t border-gray-200 dark:border-gray-700 lg:hidden flex-shrink-0" 
+                   style={{ 
+                     maxHeight: '45%', 
+                     minHeight: '300px',
+                     display: windowWidth < desktopBreakpoint ? 'block' : 'none' 
+                   }}>
+                <AgentChat
+                  sessionState={sessionState}
+                  onSendMessage={handleSendMessage}
+                  processingFilePath={undefined}
+                  hideCodeInMessages={true}
+                />
+              </div>
             </div>
-            
-            {/* Connection status indicator */}
-            <ConnectionStatus
-              connectionStatus={connectionStatus}
-              error={error || undefined}
-              onReconnect={reconnect}
-              processingTime={operationStartTimeRef.current > 0 ? Date.now() - operationStartTimeRef.current : undefined}
-              onResetProcessing={resetProcessingState}
-              isDark={isDark}
-            />
           </div>
           
           {/* History modal */}
@@ -535,7 +813,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             <AgentHistoryModal
               isOpen={showHistoryModal}
               onClose={toggleHistory}
-              sessionId={sessionState.id}
+              sessionId={workspaceId}
             />
           )}
           
@@ -546,7 +824,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     );
   };
   
-  if (showLanding && !workspaceId) {
+  if (!workspaceId) {
     return (
       <div className="flex-1 h-full">
         <AgentLanding

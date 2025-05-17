@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { AgentFile, FileNode } from '../../types';
+import { FileNode } from '../../types';
 import { FiFolder, FiFile, FiFolderPlus, FiFilePlus, FiChevronDown, FiChevronRight, FiTrash2, FiLoader, FiCheck } from 'react-icons/fi';
 import { useTheme } from '@/context/ThemeProvider';
 
 interface FileExplorerProps {
   files: Record<string, FileNode>;
   selectedFileId?: string;
-  onFileSelect: (file: AgentFile) => void;
+  onFileSelect: (file: FileNode) => void;
   onFilesChange?: (files: Record<string, FileNode>) => void;
   processingFilePath?: string | null;
 }
@@ -23,7 +23,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    'my-plugin': true // Default expanded root folder
   });
 
   // Toggle folder expand/collapse
@@ -150,7 +149,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   };
 
   // Convert file to AgentFile
-  const fileNodeToAgentFile = (name: string, node: FileNode, path: string): AgentFile => {
+  const fileNodeToAgentFile = (name: string, node: FileNode, path: string): FileNode & { id: string, name: string, path: string, lastModified: Date } => {
     const fullPath = path ? `${path}/${name}` : name;
     return {
       id: `file-${fullPath}`,
@@ -158,7 +157,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       path: fullPath,
       content: node.content || '',
       language: node.language || 'text',
-      lastModified: new Date()
+      lastModified: new Date(),
+      type: node.type,
+      children: node.children
     };
   };
 
@@ -242,16 +243,22 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     return { files, folders };
   };
 
-  // Sort files and folders separately
+  // Sort files by type to keep a consistent order
   const sortFilesByType = (files: Record<string, FileNode>): [string, FileNode][] => {
-    return Object.entries(files).sort((a, b) => {
-      // First sort by type (folder first, then file)
-      if (a[1].type === 'folder' && b[1].type === 'file') return -1;
-      if (a[1].type === 'file' && b[1].type === 'folder') return 1;
-      
-      // Then sort alphabetically within each type
-      return a[0].localeCompare(b[0]);
-    });
+    return Object.entries(files)
+      .sort((a, b) => {
+        // Folders first, then files
+        const isAFolder = a[1].type === 'folder';
+        const isBFolder = b[1].type === 'folder';
+        
+        // If both are the same type, sort alphabetically
+        if (isAFolder === isBFolder) {
+          return a[0].localeCompare(b[0]);
+        }
+        
+        // Otherwise, folders first
+        return isAFolder ? -1 : 1;
+      });
   };
 
   // Render file or folder item
@@ -291,7 +298,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             </span>
             
             {/* Folder icon */}
-            <FiFolder className={`mr-2 ${isDark ? 'text-blue-400' : 'text-green-500'} flex-shrink-0`} />
+            <FiFolder className="mr-2 text-green-500 flex-shrink-0" />
             
             {/* Folder name */}
             <span className="flex-1 truncate text-sm font-medium">{name}</span>
@@ -469,25 +476,27 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     }
   };
 
+  // The isDark variable should be computed when component renders, not inside JSX
+  const containerBgClass = isDark ? 'bg-gray-900 text-gray-200' : 'bg-black text-green-400';
+  const headerBgClass = isDark ? 'bg-gray-800' : 'bg-gray-900';
+  const fileTreeConnectorClass = isDark ? 'bg-gray-700' : 'bg-green-900/50';
+  const emptyContentClass = isDark ? 'text-gray-500' : 'text-green-500/70';
+  
   return (
-    <div className={`h-full p-2 font-mono ${
-      isDark ? 'bg-gray-900 text-gray-200' : 'bg-black text-green-400'
-    }`}>
-      <div className={`flex items-center justify-between mb-2 px-2 py-1.5 rounded ${
-        isDark ? 'bg-gray-800' : 'bg-gray-900'
-      }`}>
-        <div className="flex items-center">
-          <FiFolder className={`mr-2 ${isDark ? 'text-blue-400' : 'text-green-500'} flex-shrink-0`} />
-          <h3 className="font-medium text-sm">
+    <div className={`jsx-3993940779 h-full p-2 font-mono overflow-auto ${containerBgClass}`}>
+      <div className={`jsx-3993940779 flex items-center justify-between mb-2 px-2 py-1.5 rounded ${headerBgClass}`}>
+        <div className="jsx-3993940779 flex items-center">
+          <FiFolder className="mr-2 text-green-500 flex-shrink-0" />
+          <h3 className="jsx-3993940779 font-medium text-sm">
             {/* Change title based on content */}
-            {Object.keys(files).some(key => key.includes('wordpress') || key.includes('contact-form')) 
+            {Object.keys(files).length > 0 && Object.keys(files).some(key => key.includes('wordpress') || key.includes('contact-form')) 
               ? 'WordPress Files' 
               : 'Project Files'}
           </h3>
           
           {/* File count */}
           {Object.keys(files).length > 0 && (
-            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+            <span className={`jsx-3993940779 ml-2 text-xs px-1.5 py-0.5 rounded-full ${
               isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-800 text-green-300'
             }`}>
               {countFilesAndFolders(files).folders} folders, {countFilesAndFolders(files).files} files
@@ -497,39 +506,36 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         
         {/* Processing status indicator in header if any file is being processed */}
         {processingFilePath && (
-          <div className="flex items-center text-xs text-emerald-500">
-            <div className="flex items-center bg-emerald-100 dark:bg-emerald-900/30 p-1 rounded-full mr-1">
+          <div className="jsx-3993940779 flex items-center text-xs text-emerald-500">
+            <div className="jsx-3993940779 flex items-center bg-emerald-100 dark:bg-emerald-900/30 p-1 rounded-full mr-1">
               <FiCheck className="w-3 h-3" />
             </div>
-            <span className="truncate max-w-[150px]">
+            <span className="jsx-3993940779 truncate max-w-[150px]">
               {processingFilePath.split('/').pop() || processingFilePath} available
             </span>
           </div>
         )}
       </div>
       
-      <div className={`space-y-0.5 overflow-auto file-explorer-scrollbar ${
-        isDark ? 'bg-gray-800/30' : 'bg-gray-900/70'
-      }`} style={{ maxHeight: 'calc(100% - 42px)' }}>
+      <div className="jsx-3993940779 space-y-0.5 overflow-auto file-explorer-scrollbar" style={{ maxHeight: 'calc(100% - 42px)' }}>
         {Object.keys(files).length > 0 && (
-          <div className="px-1 py-0.5 border-b border-gray-700 mb-1">
-            <span className="text-xs opacity-70">
+          <div className="jsx-3993940779 px-1 py-0.5 border-b border-gray-700 mb-1">
+            <span className="jsx-3993940779 text-xs opacity-70">
               {isDark ? '╭─' : '┌─'} File Tree
             </span>
           </div>
         )}
         
-        <div className="progress-container">
+        <div className="jsx-3993940779 progress-container">
           {sortFilesByType(files)
             // Filter out any unwanted "<PROJECT_STRUCTURE>" folders
             .filter(([name]) => name !== "<PROJECT_STRUCTURE>" && name !== "PROJECT_STRUCTURE")
             .map(([name, node], index, array) => (
-              <div key={name} className="relative">
+              <div key={name} className="jsx-3993940779 relative">
                 {index < array.length - 1 && (
                   <div 
-                    className={`absolute left-4 top-8 bottom-0 w-0.5 ${
-                      isDark ? 'bg-gray-700' : 'bg-green-900/50'
-                    } progress-line`}
+                    className="jsx-3993940779 absolute left-4 top-8 bottom-0 w-0.5 progress-line"
+                    style={{ backgroundColor: isDark ? 'rgba(75, 85, 99, 0.7)' : 'rgba(20, 83, 45, 0.5)' }}
                   ></div>
                 )}
                 {renderItem(name, node, '', 0)}
@@ -539,20 +545,18 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         </div>
         
         {Object.keys(files).length > 0 && (
-          <div className="px-1 py-0.5 mt-1">
-            <span className="text-xs opacity-70">
+          <div className="jsx-3993940779 px-1 py-0.5 mt-1">
+            <span className="jsx-3993940779 text-xs opacity-70">
               {isDark ? '╰─' : '└─'} End of File Tree
             </span>
           </div>
         )}
         
         {Object.keys(files).length === 0 && (
-          <div className={`flex flex-col items-center justify-center py-8 px-4 text-center text-sm ${
-            isDark ? 'text-gray-500' : 'text-green-500/70'
-          }`}>
+          <div className="jsx-3993940779 flex flex-col items-center justify-center py-8 px-4 text-center text-sm" style={{ color: isDark ? 'rgba(156, 163, 175, 1)' : 'rgba(34, 197, 94, 0.7)' }}>
             <FiFolder className="w-10 h-10 mb-2 opacity-30" />
-            <p>No files yet</p>
-            <p className="text-xs mt-1">Files will appear here when created</p>
+            <p className="jsx-3993940779">No files yet</p>
+            <p className="jsx-3993940779 text-xs mt-1">Files will appear here when created</p>
           </div>
         )}
       </div>

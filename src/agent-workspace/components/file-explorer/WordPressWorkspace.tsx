@@ -1,13 +1,12 @@
 import { FC, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import ProjectFiles from './ProjectFiles';
-import { useAgentState } from '../../hooks/useAgentState';
-import { useAgentAPI } from '../../hooks/useAgentAPI';
 import { 
   extractFilesFromMessage, 
   saveFilesToLocalStorage, 
   loadFilesFromLocalStorage,
-  processAttachedFolders
+  processAttachedFolders,
+  extractProjectFilesFromResponse
 } from '../../utils/fileUtils';
 
 interface FileNode {
@@ -50,8 +49,6 @@ const WordPressWorkspace: FC = () => {
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   
-  // Use the hooks with proper imported names
-  const { sessionState, selectFile } = useAgentState();
   
   // Rename these local functions to avoid conflicts
   const getAgentState = () => {
@@ -74,7 +71,18 @@ const WordPressWorkspace: FC = () => {
     // Extract files from messages
     if (messages && messages.length > 0) {
       console.log('Processing messages for file extraction:', messages.length);
-      const extractedFiles = extractFilesFromMessages(messages);
+      
+      // Use our improved parser to extract files
+      const extractedFilesObj = messages.reduce((acc, message) => {
+        if (message.role === 'assistant' && message.content) {
+          // Process each message with our comprehensive parser
+          return extractProjectFilesFromResponse(message.content, acc);
+        }
+        return acc;
+      }, {});
+      
+      // Convert the object structure to array format expected by the component
+      const extractedFiles = convertToArrayFormat(extractedFilesObj);
       console.log('Extracted files count:', extractedFiles.length);
       
       if (extractedFiles.length > 0) {
@@ -90,7 +98,7 @@ const WordPressWorkspace: FC = () => {
   useEffect(() => {
     try {
       // Check if we can access window.currentApiFiles (assuming it might be set by another component)
-      // @ts-ignore - TS will complain about accessing window.currentApiFiles
+      // @ts-expect-error - TS will complain about accessing window.currentApiFiles
       const apiFiles = window.currentApiFiles;
       if (apiFiles) {
         console.log('Found API files in window object:', apiFiles);
@@ -622,10 +630,8 @@ const WordPressWorkspace: FC = () => {
     setFileContent(file.content || '');
     
     // Only attempt to call selectFile if we have a valid file id (UUID)
-    if (file.id && !file.id.includes('/') && sessionState?.id) {
-      selectFile(file.id).catch((err: Error) => {
-        console.error('Error selecting file:', err);
-      });
+    if (file.id && !file.id.includes('/')) {
+     // TODO: call selectFile
     } else {
       console.warn('File has no valid ID or it contains path separators:', file.path);
     }
@@ -644,13 +650,79 @@ const WordPressWorkspace: FC = () => {
   // Expose file structure to window for debugging
   useEffect(() => {
     try {
-      // @ts-ignore
+      // @ts-expect-error - TS will complain about adding property to window
       window.wpWorkspaceFiles = files;
       console.log('Exposed file structure to window.wpWorkspaceFiles for debugging');
     } catch (e) {
       console.error('Failed to expose files to window:', e);
     }
   }, [files]);
+
+  // Helper function to convert object structure to array format
+  const convertToArrayFormat = (filesObj: Record<string, any>): FileNode[] => {
+    const result: FileNode[] = [];
+    
+    for (const [name, node] of Object.entries(filesObj)) {
+      const nodeObj = node as any;
+      const fileNode: FileNode = {
+        id: uuidv4(),
+        name,
+        path: name,
+        type: nodeObj.type === 'folder' ? 'directory' : 'file',
+        content: nodeObj.content,
+      };
+      
+      if (nodeObj.type === 'folder' && nodeObj.children) {
+        // Process children recursively
+        const processChildren = (
+          children: Record<string, any>, 
+          parentPath: string
+        ): FileNode[] => {
+          const childNodes: FileNode[] = [];
+          
+          for (const [childName, childNode] of Object.entries(children)) {
+            const childObj = childNode as any;
+            const childPath = `${parentPath}/${childName}`;
+            const child: FileNode = {
+              id: uuidv4(),
+              name: childName,
+              path: childPath,
+              type: childObj.type === 'folder' ? 'directory' : 'file',
+              content: childObj.content,
+            };
+            
+            if (childObj.type === 'folder' && childObj.children) {
+              child.children = processChildren(childObj.children, childPath);
+            }
+            
+            childNodes.push(child);
+          }
+          
+          return childNodes;
+        };
+        
+        fileNode.children = processChildren(nodeObj.children, name);
+      }
+      
+      result.push(fileNode);
+    }
+    
+    return result;
+  };
+
+  // Handle downloading all files as ZIP
+  const handleDownloadZip = () => {
+    try {
+      // Try to use window.downloadAllFiles function if it exists
+      // @ts-expect-error - TS will complain about accessing window.downloadAllFiles
+      if (typeof window.downloadAllFiles === 'function') {
+        // @ts-expect-error - TS will complain about accessing window.downloadAllFiles
+        window.downloadAllFiles();
+      }
+    } catch (error) {
+      console.error('Error downloading files:', error);
+    }
+  };
 
   return (
     <div className="wordpress-workspace flex flex-col h-full">

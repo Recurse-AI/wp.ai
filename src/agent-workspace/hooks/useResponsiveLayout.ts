@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { PanelLayout } from '../types';
 import { useScreenSize, MOBILE_BREAKPOINT, TABLET_BREAKPOINT, DESKTOP_BREAKPOINT } from './useScreenSize';
 import { usePanelState } from './usePanelState';
@@ -154,7 +154,7 @@ export function useResponsiveLayout(): ResponsiveLayoutHook {
         setShowPreview(true);
       }
     }
-  }, [screenSize.windowWidth, screenSize.screenMode]);
+  }, [screenSize.windowWidth, screenSize.screenMode, screenSize.isMobile, screenSize.isTablet, screenSize.isDesktop, screenSize.isLargeDesktop])
   
   // Add a resize event listener for handling orientation changes
   useEffect(() => {

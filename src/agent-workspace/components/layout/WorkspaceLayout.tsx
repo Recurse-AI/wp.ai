@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { PanelLayout, AgentFile, FileNode } from '../../types';
+import { PanelLayout, FileNode } from '../../types';
 import { ChatPanel, EditorPanel, ExplorerPanel, TerminalPanel, ResizablePanelsCSS } from './ResizablePanels';
 import AgentEditor from '../panels/AgentEditor';
 import AgentPreview from '../panels/AgentPreview';
@@ -29,14 +29,14 @@ interface WorkspaceLayoutProps {
   setTerminalSize: (size: number) => void;
   
   // Handlers
-  onFileSelect: (file: AgentFile) => void;
+  onFileSelect: (file: FileNode) => void;
   onFileContentChange: (content: string) => void;
   onFilesChange: (files: Record<string, FileNode>) => void;
   onRunCommand: (command: string) => Promise<string>;
   onToggleTerminal: () => void;
   
   // Data
-  activeFile?: AgentFile;
+  activeFile?: FileNode;
   files: Record<string, FileNode>;
   currentService?: any;
   processingFilePath?: string;
@@ -204,22 +204,20 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
             setExplorerSize={setExplorerSize}
             isDark={isDark}
           >
-            <div className="h-full overflow-auto">
-              <FileExplorer
-                files={files}
-                selectedFileId={activeFile?.id}
-                onFileSelect={onFileSelect}
-                onFilesChange={onFilesChange}
-                processingFilePath={processingFilePath}
-              />
-            </div>
+            <FileExplorer
+              files={files}
+              selectedFileId={activeFile ? (activeFile as any).id : undefined}
+              onFileSelect={onFileSelect}
+              onFilesChange={onFilesChange}
+              processingFilePath={processingFilePath}
+            />
           </ExplorerPanel>
         )}
 
         {/* Editor/Preview Area */}
-        <div className="flex-1 flex flex-col overflow-hidden min-h-[250px]">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Main content area */}
-          <div className="flex-1 overflow-hidden min-h-[250px]">
+          <div className="flex-1 overflow-hidden">
             {renderEditorContent()}
           </div>
 

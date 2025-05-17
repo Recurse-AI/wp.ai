@@ -41,12 +41,16 @@ const FileTreeNode: FC<{
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onFileEdit && onFileEdit(node);
+    if (onFileEdit) {
+      onFileEdit(node);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onFileDelete && onFileDelete(node);
+    if (onFileDelete) {
+      onFileDelete(node);
+    }
   };
 
   return (

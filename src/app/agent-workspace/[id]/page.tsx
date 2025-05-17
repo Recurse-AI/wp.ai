@@ -1,47 +1,41 @@
 "use client";
 
-import React, { use } from 'react';
-import AgentWorkspace from '@/agent-workspace/components/AgentWorkspace';
-import { useAuthContext } from '@/context/AuthProvider';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import AgentWorkspace from '@/agent-workspace/components/AgentWorkspace';
+import { AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
-export default function AgentWorkspaceWithIdPage({
-  params,
-}: {
-  params: any;
-}) {
-  // Unwrap params with React.use() as required by Next.js 15+
-  const unwrappedParams = use(params) as { id: string };
-  const { id } = unwrappedParams;
-  const { isAuthenticated, loading } = useAuthContext();
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const router = useRouter();
+export default function WorkspacePage() {
+  const params = useParams();
+  const workspaceId = params.id as string;
+  const [error, setError] = useState<string | null>(null);
 
-  // Check authentication
   useEffect(() => {
-    if (loading) return;
-    
-    if (!isAuthenticated) {
-      // Redirect to sign in if not authenticated
-      router.push(`/signin?callbackUrl=/agent-workspace/${id}`);
-      return;
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(workspaceId)) {
+      setError('Invalid workspace ID format');
     }
-    
-    setIsAuthChecking(false);
-  }, [isAuthenticated, loading, router, id]);
+  }, [workspaceId]);
 
-  if (isAuthChecking) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex min-h-screen flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+          <h2 className="mt-4 text-xl font-semibold">Workspace Error</h2>
+          <p className="mt-2 text-muted-foreground">{error}</p>
+          <Link 
+            href="/"
+            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground"
+          >
+            Return Home
+          </Link>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="h-screen">
-      <AgentWorkspace workspaceId={id} />
-    </div>
-  );
+  return <AgentWorkspace workspaceId={workspaceId} />;
 } 
