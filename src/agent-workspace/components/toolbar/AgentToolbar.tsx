@@ -6,6 +6,7 @@ import { PanelLayout, AgentToolbarProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import Link from 'next/link';
 import type { PlaygroundClient } from "@wp-playground/client";
+import ConnectionStatus from "../status/ConnectionStatus";
 
 const AgentToolbar: React.FC<AgentToolbarProps> = ({
   layout,
@@ -20,8 +21,8 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
   showExplorer = true,
   showPreview = true,
   showTerminal = true,
-  connectionStatus = 'connected',
-  onToggleHistory
+  onToggleHistory,
+  connectionStatus
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -162,6 +163,27 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
     return `${paddingClasses} rounded ${baseClasses}`;
   };
   
+  // Add a function to handle reconnect
+  const handleReconnect = async () => {
+    // Dispatch an event to the parent component to handle reconnection
+    const event = new CustomEvent('reconnect-agent', {
+      bubbles: true,
+      composed: true
+    });
+    document.dispatchEvent(event);
+    return true;
+  };
+
+  // Add a function to handle reset processing
+  const handleResetProcessing = () => {
+    // Dispatch an event to the parent component to handle reset
+    const event = new CustomEvent('reset-processing', {
+      bubbles: true,
+      composed: true
+    });
+    document.dispatchEvent(event);
+  };
+
   return (
     <div className={`flex items-center justify-between px-2 sm:px-4 py-2 border-b ${
       isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
@@ -182,6 +204,16 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         {isProcessing && (
           <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
         )}
+        {/* Connection status indicator - ensure it's always visible */}
+        <div className="ml-2 flex-shrink-0"> 
+          <ConnectionStatus 
+            connectionStatus={connectionStatus}
+            error={undefined}
+            isDark={isDark}
+            onReconnect={handleReconnect}
+            onResetProcessing={handleResetProcessing}
+          />
+        </div>
       </div>
       
       {/* Center controls area - hidden on small screens */}
@@ -224,16 +256,26 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         }`}>
           {/* File Explorer toggle */}
           <button
-            onClick={onToggleExplorer}
-            className={getButtonClassName(showExplorer)}
-            title={showExplorer ? "Hide file explorer" : "Show file explorer"}
+            onClick={() => {
+              if (onToggleExplorer) {
+                onToggleExplorer();
+              }
+              setMenuOpen(false);
+            }}
+            className={`${getButtonClassName(showExplorer)} p-1.5 rounded`}
+            title="Toggle file explorer"
           >
             <Sidebar className="w-4 h-4" />
           </button>
           
           {/* Terminal toggle */}
           <button
-            onClick={onToggleTerminal}
+            onClick={() => {
+              if (onToggleTerminal) {
+                onToggleTerminal();
+              }
+              setMenuOpen(false);
+            }}
             className={`${getButtonClassName(showTerminal)} ml-2`}
             title={showTerminal ? "Hide terminal" : "Show terminal"}
           >
@@ -335,7 +377,9 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                   
                   <button
                     onClick={() => {
-                      onToggleExplorer && onToggleExplorer();
+                      if (onToggleExplorer) {
+                        onToggleExplorer();
+                      }
                       setMenuOpen(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm flex items-center ${
@@ -354,7 +398,9 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                   
                   <button
                     onClick={() => {
-                      onToggleTerminal && onToggleTerminal();
+                      if (onToggleTerminal) {
+                        onToggleTerminal();
+                      }
                       setMenuOpen(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm flex items-center ${
@@ -387,6 +433,24 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
                     <Download className="w-4 h-4 mr-2" />
                     Download Code
                   </button>
+                  
+                  {/* Add reconnect option - especially useful for mobile */}
+                  {connectionStatus === 'disconnected' || connectionStatus === 'error' ? (
+                    <button
+                      onClick={() => {
+                        handleReconnect();
+                        setMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center
+                        ${isDark 
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reconnect
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </>
@@ -396,17 +460,26 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         
       {/* Action buttons */}
       <div className="flex items-center">
-        {/* Connection status indicator - always show */}
-        <div 
-          className={`flex items-center p-1.5 mr-2 sm:mr-3 rounded-md ${
-            isDark ? 'bg-gray-800' : 'bg-gray-100'
-          }`}
-          title={connectionInfo.title}
-        >
-          <ConnectionIcon 
-            className={`w-4 h-4 ${connectionInfo.color} ${connectionInfo.animate ? 'animate-spin' : ''}`} 
-          />
-        </div>
+        {/* Connection status icon - show only on desktop */}
+        {screenSize === 'desktop' && (
+          <div 
+            className={`flex items-center p-1.5 mr-2 sm:mr-3 rounded-md ${
+              isDark ? 'bg-gray-800' : 'bg-gray-100'
+            } ${(connectionStatus === 'disconnected' || connectionStatus === 'error') ? 'cursor-pointer hover:opacity-80' : ''}`}
+            title={connectionStatus === 'disconnected' || connectionStatus === 'error' 
+              ? `${connectionInfo.title} - Click to reconnect` 
+              : connectionInfo.title}
+            onClick={() => {
+              if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
+                handleReconnect();
+              }
+            }}
+          >
+            <ConnectionIcon 
+              className={`w-4 h-4 ${connectionInfo.color} ${connectionInfo.animate ? 'animate-spin' : ''}`} 
+            />
+          </div>
+        )}
 
         {/* History button - always visible */}
         {onToggleHistory && (
@@ -437,6 +510,9 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
           <Save className="w-4 h-4" />
           <span className={`ml-1 text-sm ${screenSize === 'mobile' ? 'hidden' : 'inline'}`}>Save</span>
         </button>
+
+        
+       
       </div>
 
       {/* Add smooth transitions for any layout changes */}

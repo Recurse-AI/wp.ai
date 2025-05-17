@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { AgentWorkspace } from '@/agent-workspace';
 import { useAuthContext } from '@/context/AuthProvider';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 
 function AgentWorkspaceContent() {

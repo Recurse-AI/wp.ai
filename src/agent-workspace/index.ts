@@ -113,8 +113,7 @@ export { AgentWorkspace, AgentLanding, WordPressWorkspace };
 export * from './components/file-explorer';
 
 // Export hooks
-export { useAgentState } from './hooks/useAgentState';
-export { useAgentAPI } from './hooks/useAgentAPI';
+export { default as useFileExtractor } from './hooks/useFileExtractor';
 
 // Export services
 export { agentAPI } from './utils/apiService';

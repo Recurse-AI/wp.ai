@@ -449,7 +449,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
            activeFile ? `Preview: ${activeFile.name}` : 'Preview'}
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex h-[120px] items-center space-x-2">
           <Select
             value={previewMode}
             onValueChange={(value: 'code' | 'wordpress') => {
@@ -460,7 +460,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
             <SelectTrigger className="h-7 text-xs w-[120px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="h-20 text-xs w-[120px]">
               <SelectItem value="code">Code</SelectItem>
               <SelectItem value="wordpress">WordPress</SelectItem>
             </SelectContent>

@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AgentSessionState, AgentMessage, AgentChatProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
-import { Send, RefreshCw, ExternalLink, Code } from 'lucide-react';
+import { Send } from 'lucide-react';
 import ScrollableMessageContainer from './ScrollableMessageContainer';
 import { toast } from 'react-hot-toast';
-import { FiMessageSquare, FiTrash2 } from 'react-icons/fi';
+import { FiMessageSquare } from 'react-icons/fi';
 import { v4 as uuidv4 } from 'uuid';
 import ProcessingStatusIndicator from './ProcessingStatusIndicator';
 import { 
@@ -22,7 +21,8 @@ import {
 } from '../../utils/fileUtils';
 import FileOperationNotification from '../notifications/FileOperationNotification';
 import { useFileOperations } from '../../context/FileOperationsContext';
-import MessageContent from './MessageContent';
+import { FaRobot, FaUser, FaSpinner, FaLightbulb } from 'react-icons/fa';
+import { websocketService } from '../../utils/websocketService';
 
 // Extend the ReactMarkdown types to include inline property
 declare module 'react-markdown' {
@@ -31,11 +31,42 @@ declare module 'react-markdown' {
   }
 }
 
+// Update AgentChatProps and related types
+interface AgentChatProps {
+  sessionState: {
+    messages: any[];
+    files: Record<string, any>;
+    isProcessing: boolean;
+    id?: string;
+    selectedService?: {
+      title?: string;
+      description?: string;
+      example?: string;
+    };
+  };
+  onSendMessage: (message: string) => Promise<boolean>;
+  processingFilePath?: string | null;
+  hideCodeInMessages?: boolean;
+  setSessionState?: React.Dispatch<React.SetStateAction<any>>;
+}
+
+// Type definition for messages
+interface AgentMessage {
+  id?: string;
+  role: string;
+  content: string;
+  timestamp: Date | string;
+  codeBlocks?: any[];
+  thinking?: string | null;
+  status?: string;
+}
+
 const AgentChat: React.FC<AgentChatProps> = ({
   sessionState,
   onSendMessage,
   processingFilePath,
-  hideCodeInMessages = false
+  hideCodeInMessages = false,
+  setSessionState
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -48,8 +79,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
   const [processingIndicator, setProcessingIndicator] = useState<string | null>(null); 
   const { operations } = useFileOperations();
   
- 
-  
   // Check for mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -61,39 +90,31 @@ const AgentChat: React.FC<AgentChatProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-
-  // Auto-resize textarea with improved handling
+  // Auto-resize textarea
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
-      // Reset height before calculating new height to avoid cumulative growth
       textarea.style.height = '0px';
-      const maxHeight = isMobile ? 120 : 180; // Increased max height values
+      const maxHeight = isMobile ? 120 : 180;
       const newHeight = Math.min(textarea.scrollHeight, maxHeight);
       textarea.style.height = `${newHeight}px`;
-      
-      // If we're at max height, ensure the textarea is scrollable
-      if (newHeight === maxHeight) {
-        textarea.style.overflowY = 'auto';
-      } else {
-        textarea.style.overflowY = 'hidden';
-      }
+      textarea.style.overflowY = newHeight === maxHeight ? 'auto' : 'hidden';
     }
   };
   
   // Readjust textarea when mobile state changes
   useEffect(() => {
     adjustTextareaHeight();
-  }, [isMobile]);
+  }, [isMobile, message]);
   
   // Focus input when conversation is empty
   useEffect(() => {
     if (sessionState.messages.length === 0 && textareaRef.current && !isMobile) {
       textareaRef.current.focus();
     }
-  }, [sessionState.messages.length, isMobile]);
+  }, [sessionState.messages.length, isMobile, message]);
   
-  // Handle input change with improved resize handling
+  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     adjustTextareaHeight();
@@ -107,239 +128,8 @@ const AgentChat: React.FC<AgentChatProps> = ({
     }
   };
   
-  // Function to send a message to the agent
-  const processUserMessage = async (userMessage: string) => {
-    if (!userMessage.trim()) return;
-    
-    setMessage('');
-    setIsTyping(true);
-    
-    // Remove processing indicator completely
-    setProcessingIndicator(null);
-    
-    // Check for manual file structure commands
-    if (userMessage.toLowerCase().includes('/parse-tree') || 
-        userMessage.toLowerCase().includes('/parse structure')) {
-      try {
-        // Extract the tree structure text
-        const treeMatch = userMessage.match(/```([\s\S]+?)```/);
-        if (treeMatch && treeMatch[1]) {
-          // Get the structure text
-          const treeText = treeMatch[1];
-          
-          // Try parsing as JSON first
-          try {
-            const jsonObj = JSON.parse(treeText);
-            if (jsonObj && typeof jsonObj === 'object') {
-              // Check if it looks like our file structure format
-              const hasFolder = Object.values(jsonObj).some(
-                (val: any) => val && val.type === 'folder'
-              );
-              
-              if (hasFolder && sessionState.id) {
-                // Merge with existing files
-                const updatedFiles = { ...sessionState.files, ...jsonObj };
-                
-                // Save to localStorage
-                saveFilesToLocalStorage(sessionState.id, updatedFiles);
-                
-                // Add user message
-                const userMessageObj: AgentMessage = {
-                  id: uuidv4(),
-                  role: 'user',
-                  content: userMessage,
-                  timestamp: new Date(),
-                  codeBlocks: []
-                };
-                
-                // Add system response
-                const assistantMessageObj: AgentMessage = {
-                  id: uuidv4(),
-                  role: 'assistant',
-                  content: `I've parsed your JSON structure and created the following structure:\n\n${Object.keys(jsonObj).map(root => `- ${root}/`).join('\n')}`,
-                  timestamp: new Date(),
-                  codeBlocks: [],
-                  status: 'completed'
-                };
-                
-                // Update messages in the state
-                sessionState.messages.push(userMessageObj);
-                sessionState.messages.push(assistantMessageObj);
-                
-                setIsTyping(false);
-                return;
-              }
-            }
-          } catch (jsonError) {
-            // Not a valid JSON, continue with tree parsing
-            console.log('Not a valid JSON structure, falling back to tree parsing');
-          }
-          
-          // Check if this looks like a tree structure
-          if (treeText.includes('/') || /[├└─│]/.test(treeText)) {
-            const parsedFiles = parseDirectoryTree(treeText);
-            
-            if (parsedFiles && Object.keys(parsedFiles).length > 0 && sessionState.id) {
-              // Merge with existing files
-              const updatedFiles = { ...(sessionState.files || {}), ...parsedFiles };
-              
-              // Save to localStorage
-              saveFilesToLocalStorage(sessionState.id, updatedFiles);
-              
-              // Add user message
-              const userMessageObj: AgentMessage = {
-                id: uuidv4(),
-                role: 'user',
-                content: userMessage,
-                timestamp: new Date(),
-                codeBlocks: []
-              };
-              
-              // Add system response
-              const assistantMessageObj: AgentMessage = {
-                id: uuidv4(),
-                role: 'assistant',
-                content: `I've parsed your directory structure and created the following structure:\n\n${Object.keys(parsedFiles || {}).map(root => `- ${root}/`).join('\n')}`,
-                timestamp: new Date(),
-                codeBlocks: [],
-                status: 'completed'
-              };
-              
-              // Update messages in the state
-              sessionState.messages.push(userMessageObj);
-              sessionState.messages.push(assistantMessageObj);
-              
-              setIsTyping(false);
-              return;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing structure:', error);
-      }
-    }
-    
-    try {
-      // Import websocket service to directly work with the service
-      const { websocketService } = await import('../../utils/websocketService');
-      
-      // Add user message to state
-      if (onSendMessage) {
-        // Let the parent handle message addition if callback exists
-        await onSendMessage(userMessage);
-      } else {
-        // Otherwise, add it directly to the session state
-        const userMessageObj: AgentMessage = {
-          id: uuidv4(),
-          role: 'user',
-          content: userMessage,
-          timestamp: new Date(),
-          codeBlocks: []
-        };
-        
-        // Add a placeholder for the assistant's response
-        const assistantMessageObj: AgentMessage = {
-          id: uuidv4(),
-          role: 'assistant',
-          content: 'Thinking...',
-          timestamp: new Date(),
-          codeBlocks: [],
-          thinking: '',
-          status: 'processing'
-        };
-        
-        // Update messages in the state
-        sessionState.messages.push(userMessageObj);
-        sessionState.messages.push(assistantMessageObj);
-      }
-      
-      // Basic detection for common operation patterns
-      const lowerMessage = userMessage.toLowerCase();
-      
-      // Check if the message matches any of the workspace operations
-      if (lowerMessage.includes('create workspace') || lowerMessage.includes('new workspace')) {
-        // Extract workspace name
-        const workspaceName = extractNameFromMessage(userMessage) || 'New Workspace';
-        
-        // Send create workspace command
-        websocketService.send(JSON.stringify({
-          type: 'create_workspace',
-          name: workspaceName
-        }));
-        return;
-      }
-      
-      // Check if it's a tool execution request
-      if (lowerMessage.includes('plugin template') || lowerMessage.includes('create plugin')) {
-        // Parse for plugin details
-        const templateType = extractTemplateType(userMessage) || 'basic';
-        const pluginName = extractNameFromMessage(userMessage) || 'New Plugin';
-        const description = extractDescriptionFromMessage(userMessage) || 'Plugin created from chat';
-        
-        // Send tool execution command
-        websocketService.send(JSON.stringify({
-          type: 'execute_tool',
-          tool_name: 'create_plugin_template',
-          params: {
-            template_type: templateType,
-            plugin_name: pluginName,
-            description: description
-          }
-        }));
-        return;
-      }
-      
-      // Check if it's requesting theme template
-      if (lowerMessage.includes('theme template') || lowerMessage.includes('create theme')) {
-        // Parse for theme details
-        const templateType = extractTemplateType(userMessage) || 'basic';
-        const themeName = extractNameFromMessage(userMessage) || 'New Theme';
-        const description = extractDescriptionFromMessage(userMessage) || 'Theme created from chat';
-        
-        // Send tool execution command
-        websocketService.send(JSON.stringify({
-          type: 'execute_tool',
-          tool_name: 'create_theme_template',
-          params: {
-            template_type: templateType,
-            theme_name: themeName,
-            description: description
-          }
-        }));
-        return;
-      }
-      
-      // Default: Send as a query to the agent
-      // Remove the processing indicator completely
-      
-      // Determine the appropriate mode based on content
-      const mode = lowerMessage.includes('theme') ? 'theme' : 'plugin';
-      
-      websocketService.send(JSON.stringify({
-        type: 'query_agent',
-        query: userMessage,
-        mode: mode
-      }));
-    } catch (error) {
-      console.error('Error processing message:', error);
-      setIsTyping(false);
-      setProcessingIndicator(null);
-      
-      // Show a more helpful error message without exposing backend details
-      toast.error('Failed to process your message. Check that the backend server is properly configured.', {
-        duration: 5000
-      });
-      
-      // If onSendMessage is available, use as fallback
-      if (typeof onSendMessage === 'function') {
-        await onSendMessage(userMessage);
-      }
-    }
-  };
-  
   // Helper functions to extract information from message
   const extractNameFromMessage = (message: string): string | null => {
-    // Look for patterns like "called X" or "named X" or "with name X"
     const namedPatterns = [
       /(?:called|named)\s+["']?([^"']+)["']?/i,
       /(?:with name|with the name)\s+["']?([^"']+)["']?/i,
@@ -358,7 +148,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
   };
   
   const extractTemplateType = (message: string): string | null => {
-    // Common plugin/theme template types
     const templateTypes = ['blank', 'basic', 'settings_page', 'shortcode', 'custom_post_type', 'dashboard_widget', 'ecommerce', 'blog', 'portfolio'];
     
     for (const type of templateTypes) {
@@ -371,7 +160,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
   };
   
   const extractDescriptionFromMessage = (message: string): string | null => {
-    // Look for description patterns
     const descriptionPatterns = [
       /description\s+(?:is|should be)\s+["']([^"']+)["']/i,
       /with\s+(?:the\s+)?description\s+["']([^"']+)["']/i,
@@ -388,29 +176,164 @@ const AgentChat: React.FC<AgentChatProps> = ({
     return null;
   };
   
-  // Enhanced send message function
-  const handleSendMessage = async () => {
-    if (!message.trim() || sessionState.isProcessing || isTyping) return;
+  // Function to process tree structure in user message
+  const processTreeStructure = (userMessage: string, treeText: string): boolean => {
+    try {
+      // Try parsing as JSON first
+      try {
+        const jsonObj = JSON.parse(treeText);
+        if (jsonObj && typeof jsonObj === 'object') {
+          const hasFolder = Object.values(jsonObj).some(
+            (val: any) => val && val.type === 'folder'
+          );
+          
+          if (hasFolder && sessionState.id) {
+            const updatedFiles = { ...sessionState.files, ...jsonObj };
+            saveFilesToLocalStorage(sessionState.id, updatedFiles);
+            return true;
+          }
+        }
+      } catch (jsonError) {
+        console.log('Not a valid JSON structure, falling back to tree parsing');
+      }
+      
+      // Check if this looks like a tree structure
+      if (treeText.includes('/') || /[├└─│]/.test(treeText)) {
+        const parsedFiles = parseDirectoryTree(treeText);
+        
+        if (parsedFiles && Object.keys(parsedFiles).length > 0 && sessionState.id) {
+          const updatedFiles = { ...(sessionState.files || {}), ...parsedFiles };
+          saveFilesToLocalStorage(sessionState.id, updatedFiles);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing structure:', error);
+    }
+    return false;
+  }
+  
+  // Function to send a message to the agent
+  const processUserMessage = async (userMessage: string) => {
+    if (!userMessage.trim()) return;
     
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      // Focus back on input after sending for continuous conversation
-      textareaRef.current.focus();
+    setMessage('');
+    setIsTyping(true);
+    setProcessingIndicator(null);
+    
+    // Generate a message ID that will be consistent for the client and server
+    const messageId = uuidv4();
+    
+    // Add the user message to the session state immediately
+    if (setSessionState) {
+      setSessionState((prev: any) => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            id: messageId,
+            role: 'user',
+            content: userMessage,
+            timestamp: new Date().toISOString(),
+            workspace_id: prev.id || null // Add workspace_id to user messages
+          }
+        ],
+        isProcessing: true
+      }));
     }
     
-    // Call the new message processor
-    await processUserMessage(message);
+    // Check for manual file structure commands
+    if (userMessage.toLowerCase().includes('/parse-tree') || 
+        userMessage.toLowerCase().includes('/parse structure')) {
+      try {
+        const treeMatch = userMessage.match(/```([\s\S]+?)```/);
+        if (treeMatch && treeMatch[1]) {
+          if (processTreeStructure(userMessage, treeMatch[1])) {
+            setIsTyping(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing structure:', error);
+      }
+    }
+    
+    try {
+      // Check for specific command patterns
+      const lowerMessage = userMessage.toLowerCase();
+      
+      // Create workspace command
+      if (lowerMessage.includes('create workspace') || lowerMessage.includes('new workspace')) {
+        const workspaceName = extractNameFromMessage(userMessage) || 'New Workspace';
+        websocketService.send(JSON.stringify({
+          type: 'create_workspace',
+          name: workspaceName
+        }));
+        return;
+      }
+      
+      // Plugin template command
+      if (lowerMessage.includes('plugin template') || lowerMessage.includes('create plugin')) {
+        const templateType = extractTemplateType(userMessage) || 'basic';
+        const pluginName = extractNameFromMessage(userMessage) || 'New Plugin';
+        const description = extractDescriptionFromMessage(userMessage) || 'Plugin created from chat';
+        
+        websocketService.send(JSON.stringify({
+          type: 'execute_tool',
+          tool_name: 'create_plugin_template',
+          params: {
+            template_type: templateType,
+            plugin_name: pluginName,
+            description: description
+          }
+        }));
+        return;
+      }
+      
+      // Theme template command
+      if (lowerMessage.includes('theme template') || lowerMessage.includes('create theme')) {
+        const templateType = extractTemplateType(userMessage) || 'basic';
+        const themeName = extractNameFromMessage(userMessage) || 'New Theme';
+        const description = extractDescriptionFromMessage(userMessage) || 'Theme created from chat';
+        
+        websocketService.send(JSON.stringify({
+          type: 'execute_tool',
+          tool_name: 'create_theme_template',
+          params: {
+            template_type: templateType,
+            theme_name: themeName,
+            description: description
+          }
+        }));
+        return;
+      }
+      
+      // Default: Send as a query to the agent
+      console.log("Sending query_agent message:", userMessage);
+      const sent = websocketService.send(JSON.stringify({
+        type: 'query_agent',
+        query: userMessage,
+        workspace_id: sessionState.id || undefined,  // Include workspace ID
+        message_id: messageId,  // Send the generated message ID
+        timestamp: new Date().toISOString()  // Add timestamp
+      }));
+      console.log("Message sent successfully:", sent);
+    } catch (error) {
+      console.error('Error processing message:', error);
+      setIsTyping(false);
+      setProcessingIndicator(null);
+      
+      toast.error('Failed to process your message. Check that the backend server is properly configured.', {
+        duration: 5000
+      });
+      
+      // If onSendMessage is available, use as fallback
+      if (typeof onSendMessage === 'function') {
+        await onSendMessage(userMessage);
+      }
+    }
   };
   
-  // Handle example click from empty state
-  const handleExampleClick = (exampleText: string) => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      setMessage(exampleText);
-      adjustTextareaHeight();
-    }
-  };
-
   // Function to format file paths for display
   const formatFilePath = (path: string) => {
     if (!path) return {
@@ -420,12 +343,10 @@ const AgentChat: React.FC<AgentChatProps> = ({
       emoji: "📄 "
     };
     
-    // Extract the file name and directory
     const parts = path.split('/');
     const fileName = parts.pop() || "";
     const directory = parts.join('/');
     
-    // Get the file extension to determine emoji
     const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
     const fileEmoji = 
       fileExt === 'php' ? '🐘 ' : 
@@ -457,111 +378,247 @@ const AgentChat: React.FC<AgentChatProps> = ({
     return formattedContent;
   };
 
-  // Update the setupWebSocketListeners implementation
-  const setupWebSocketListeners = async () => {
-    const { websocketService } = await import('../../utils/websocketService');
+  // Enhanced send message function
+  const handleSendMessage = async () => {
+    if (!message.trim() || sessionState.isProcessing || isTyping) return;
     
-    if (!websocketService) return;
-    
-    // Set a higher max listeners limit to avoid memory leak warnings
-    if (typeof websocketService.setMaxListeners === 'function') {
-      websocketService.setMaxListeners(100);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
     }
     
-    // Reset processing state handler
-    const resetProcessingHandler = () => {
-      setCurrentResponse(null);
-      setCurrentThinking(null);
-      setProcessingIndicator(null);
-      setIsTyping(false);
+    await processUserMessage(message);
+  };
+  
+  // Handle example click from empty state
+  const handleExampleClick = (exampleText: string) => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      setMessage(exampleText);
+      adjustTextareaHeight();
+    }
+  };
+
+  // Reset processing states
+  const resetProcessingState = () => {
+    setCurrentResponse(null);
+    setCurrentThinking(null);
+    setProcessingIndicator(null);
+    setIsTyping(false);
+  };
+
+  // Process files from messages
+  const processFilesFromMessage = (content: string) => {
+    if (sessionState.id) {
+      // Start with current files
+      let updatedFiles = { ...(sessionState.files || {}) };
+      
+      // Apply each extraction function in sequence
+      const extractionFunctions = [
+        (content: string) => extractJSONStructureFromContent(content) || {},
+        (content: string) => extractTextTreeFormat(content) || {},
+        extractFormattedStructureFromChat,
+        (content: string) => extractFileTreeFromContent(content, updatedFiles),
+        extractFilesFromMessage,
+        (content: string) => extractWordPressPlugin(content, updatedFiles)
+      ];
+      
+      // Process with each extraction method
+      extractionFunctions.forEach(extractFn => {
+        try {
+          const result = extractFn(content);
+          if (result && typeof result === 'object' && Object.keys(result).length > 0) {
+            updatedFiles = { ...updatedFiles, ...result };
+          }
+        } catch (error) {
+          console.error(`Error in extraction function:`, error);
+        }
+      });
+      
+      // Only save if we found files to save
+      if (Object.keys(updatedFiles).length > 0) {
+        saveFilesToLocalStorage(sessionState.id, updatedFiles);
+      }
+    }
+  };
+
+  // Add a handler for the accumulated stream complete event
+  const handleStreamComplete = (data: any) => {
+    console.log('Stream complete event:', data);
+    
+    if (data && data.content && setSessionState) {
+      // Generate a stable ID for this message
+      const messageId = data.message_id || uuidv4();
+      
+      // Determine the role based on content_type
+      const role = data.content_type === 'thinking' ? 'thinking' : 'assistant';
+      
+      // When a complete stream is received, add it as a single message
+      setSessionState((prev: any) => {
+        // Check if this message already exists to avoid duplicates
+        const messageExists = prev.messages.some((msg: any) => 
+          msg.id === messageId || 
+          (msg.role === role && msg.content === data.content)
+        );
+        
+        if (messageExists) return prev;
+        
+        // Create a new message from the accumulated stream content
+        const newMessage = {
+          id: messageId,
+          role: role,
+          content: data.content,
+          timestamp: data.timestamp || new Date().toISOString(),
+          // For assistant messages, include thinking content
+          ...(role === 'assistant' && { thinking: currentThinking }),
+          status: 'completed',
+          // Include workspace ID for tracking
+          workspace_id: data.workspace_id || prev.id || null
+        };
+        
+        // Filter out any existing fragments of this same response
+        const filteredMessages = prev.messages.filter((msg: any) => {
+          // Keep messages that aren't fragments of this message
+          if (msg.role === role && new Date(msg.timestamp).getTime() > Date.now() - 10000) {
+            return !data.content.includes(msg.content);
+          }
+          return true;
+        });
+        
+        return {
+          ...prev,
+          messages: [...filteredMessages, newMessage],
+          isProcessing: false
+        };
+      });
+      
+      // For assistant messages, process files
+      if (role === 'assistant') {
+        processFilesFromMessage(data.content);
+        resetProcessingState();
+      } else if (role === 'thinking') {
+        // For thinking, just store the content but don't reset entirely
+        setCurrentThinking(data.content);
+      }
+    }
+  };
+
+  // Setup WebSocket listeners
+  useEffect(() => {
+    // Handle agent responses
+    const handleAgentResponse = (data: any) => {
+      resetProcessingState();
+      
+      // Process completed responses for file extraction
+      if (data.status === 'completed' && data.content) {
+        processFilesFromMessage(data.content);
+      }
+    };
+    
+    // Handle new message events (especially important for assistant responses)
+    const handleNewMessage = (data: any) => {
+      console.log('Handling new_message event:', data);
+      
+      // If this is a user message but we already have it in the state, skip
+      if (data.sender === 'user' && setSessionState) {
+        const messageExists = sessionState.messages.some((msg: any) => 
+          msg.id === data.message_id || 
+          (msg.role === 'user' && msg.content === data.text && 
+           new Date(msg.timestamp).getTime() > Date.now() - 10000)
+        );
+        
+        if (messageExists) {
+          console.log('User message already exists in state, skipping');
+          return;
+        }
+      }
+      
+      // When receiving a new message, reset any current streaming state
+      if (data.sender === 'assistant') {
+        // For assistant messages, keep any accumulated content but add complete message to state
+        if (setSessionState && data.text) {
+          setSessionState((prev: any) => {
+            // Check if message already exists to avoid duplicates
+            const messageExists = prev.messages.some((msg: any) => 
+              msg.id === data.message_id || 
+              (msg.role === 'assistant' && msg.content === data.text && 
+               new Date(msg.timestamp).getTime() > Date.now() - 10000)
+            );
+            
+            if (messageExists) return prev;
+            
+            // Create a new message object with workspace_id included
+            const newMessage = {
+              id: data.message_id || uuidv4(),
+              role: 'assistant',
+              content: data.text,
+              timestamp: data.timestamp || new Date().toISOString(),
+              thinking: currentThinking, // Add any thinking we've accumulated
+              status: 'completed',
+              workspace_id: data.workspace_id || sessionState.id || null // Track workspace ID
+            };
+            
+            return {
+              ...prev,
+              messages: [...prev.messages, newMessage],
+              isProcessing: false
+            };
+          });
+          
+          // Process files from this message
+          processFilesFromMessage(data.text);
+        }
+        
+        // Reset streaming state but preserve thinking content
+        setCurrentResponse(null);
+        setProcessingIndicator(null);
+        setIsTyping(false);
+      } else {
+        // For non-assistant messages, reset all state
+        resetProcessingState();
+      }
     };
     
     // Handle API errors
     const handleApiError = (data: any) => {
       console.error("AI Error:", data);
-      resetProcessingHandler();
-      toast.error(
-        data.message || "An error occurred with the AI service. Please try again.",
-        { duration: 5000 }
-      );
-    };
-    
-    // Handle agent responses
-    const handleAgentResponse = (data: any) => {
-      resetProcessingHandler();
-      if (data.content && (
-        data.content.includes("Create a WordPress plugin") || 
-        data.content.includes("Let's create a WordPress plugin"))) {
-        
-        // Extract plugin details when finished
-        if (data.status === 'completed') {
-          extractWordPressPlugin(data.content);
+      resetProcessingState();
+      
+      // Extract error message
+      let errorMessage = "An error occurred with the AI service. Please try again.";
+      
+      // Check if it's a model-related error
+      if (data.error && typeof data.error === 'string') {
+        if (data.error.includes("Model") && data.error.includes("not found")) {
+          errorMessage = data.error;
+        } else {
+          errorMessage = data.error || data.message || errorMessage;
         }
+      } else if (data.message) {
+        errorMessage = data.message;
       }
       
-      // Extract file structure from messages
-      if (data.status === 'completed' && data.content && data.content.includes('Here is the file structure')) {
-        extractFormattedStructureFromChat(data.content);
-      }
+      // Create an error message to display
+      setCurrentResponse(null);
+      setCurrentThinking(null);
+      setCurrentResponse(`Error: ${errorMessage}`);
       
-      // Extract file tree from directories
-      if (data.status === 'completed' && data.content && 
-          (data.content.includes('directory structure') || 
-           data.content.includes('file structure'))) {
-        extractFileTreeFromContent(data.content);
-      }
-      
-      // Parse JSON descriptions of file structures
-      if (data.status === 'completed' && data.content && 
-          data.content.includes('{') && 
-          data.content.includes('}')) {
-        extractJSONStructureFromContent(data.content);
-      }
-      
-      // Parse text-based tree format
-      if (data.status === 'completed' && data.content && 
-          (data.content.includes('└──') || 
-           data.content.includes('├──') || 
-           data.content.includes('│'))) {
-        extractTextTreeFormat(data.content);
-      }
-      
-      // Parse file attachments
-      if (data.status === 'completed' && data.content) {
-        try {
-          const filesResult = extractFilesFromMessage(data.content);
-          if (sessionState?.id) {
-            saveFilesToLocalStorage(sessionState.id, filesResult);
-          }
-        } catch (error) {
-          console.error('Error extracting files:', error);
-        }
-      }
+      toast.error(errorMessage, { duration: 5000 });
     };
     
-    // Handle tool results (usually file operations)
-    const handleToolResult = (data: any) => {
-      resetProcessingHandler();
-    };
+    // Handle tool results
+    const handleToolResult = resetProcessingState;
+    const handleWorkspaceHistory = resetProcessingState;
+    const handleWorkspaceCreated = resetProcessingState;
     
-    // Handle workspace history events
-    const handleWorkspaceHistory = (data: any) => {
-      resetProcessingHandler();
-    };
-    
-    // Handle workspace creation events
-    const handleWorkspaceCreated = (data: any) => {
-      resetProcessingHandler();
-    };
-    
-    // Handle thinking updates during processing
+    // Handle thinking updates
     const handleThinkingUpdate = (data: any) => {
       if (data && data.thinking) {
         setCurrentThinking(data.thinking);
       }
     };
     
-    // Handle text updates during streaming responses
+    // Handle text updates
     const handleTextUpdate = (data: any) => {
       if (data && data.text) {
         setCurrentResponse(data.text);
@@ -569,117 +626,202 @@ const AgentChat: React.FC<AgentChatProps> = ({
         // If the processing path changes during a response
         if (data.processing_file) {
           const formattedPath = formatFilePath(data.processing_file);
-          // Use only the string portion for the indicator
           setProcessingIndicator(formattedPath.fullPath);
         }
       }
     };
     
-    // Handle available tools notification (typically not used directly in UI)
-    const handleAvailableTools = (data: any) => {
-      // This is mainly for debugging, could be used to show available actions
-      console.log('Available tools:', data);
+    // Handler for block_start events
+    const handleBlockStart = (data: any) => {
+      console.log('Block start event:', data);
+      // If we're starting a thinking block, initialize the thinking state
+      if (data.content_type === 'thinking') {
+        setCurrentThinking(''); // Initialize with empty string
+        setIsTyping(true);
+      }
+      // If we're starting a text block, initialize the response state
+      else if (data.content_type === 'text') {
+        setCurrentResponse(''); // Initialize with empty string
+        setIsTyping(true);
+      }
     };
     
-    // Add all event listeners
+    // Handler for block_stop events
+    const handleBlockStop = (data: any) => {
+      console.log('Block stop event:', data);
+      // We don't need to do anything special here, just log it
+    };
+    
+    // Handler for thinking content
+    const handleThinking = (data: any) => {
+      console.log('Thinking content:', data);
+      if (data && data.content) {
+        // Append to current thinking content
+        setCurrentThinking((prev) => {
+          return prev ? prev + data.content : data.content;
+        });
+      }
+    };
+    
+    // Handler for text content
+    const handleText = (data: any) => {
+      console.log('Text content:', data);
+      if (data && data.content) {
+        // Append to current response content
+        setCurrentResponse((prev) => {
+          const updatedContent = prev ? prev + data.content : data.content;
+          console.log('Updated accumulated text:', updatedContent.substring(0, 50) + (updatedContent.length > 50 ? '...' : ''));
+          return updatedContent;
+        });
+      }
+    };
+    
+    // Handler for complete message
+    const handleComplete = (data: any) => {
+      console.log('Complete event:', data);
+      
+      // When we receive the complete event, add the built response to the session state
+      if (setSessionState && currentResponse) {
+        // Generate a stable message ID for this complete response
+        const messageId = data.message_id || uuidv4();
+        
+        setSessionState((prev: any) => {
+          // Check if a message with this content already exists
+          const messageExists = prev.messages.some((msg: any) => 
+            msg.id === messageId || 
+            (msg.role === 'assistant' && msg.content === currentResponse)
+          );
+          
+          if (messageExists) return prev;
+          
+          // Create a new message object for the assistant response
+          const newMessage = {
+            id: messageId, // Use consistent ID
+            role: 'assistant',
+            content: currentResponse,
+            timestamp: data.timestamp || new Date().toISOString(),
+            thinking: currentThinking,
+            status: 'completed',
+            workspace_id: data.workspace_id || prev.id || null // Add workspace_id to track responses
+          };
+          
+          // Filter out any text fragments that might have been added
+          const filteredMessages = prev.messages.filter((msg: any) => {
+            if (msg.role === 'assistant' && new Date(msg.timestamp).getTime() > Date.now() - 10000) {
+              return !currentResponse.includes(msg.content);
+            }
+            return true;
+          });
+          
+          return {
+            ...prev,
+            messages: [...filteredMessages, newMessage],
+            isProcessing: false
+          };
+        });
+        
+        // Process files after adding message
+        if (currentResponse) {
+          processFilesFromMessage(currentResponse);
+        }
+      }
+      
+      resetProcessingState();
+    };
+    
+    // Add the stream_complete handler
+    websocketService.addListener('stream_complete', handleStreamComplete);
+    
+    // Add all event listeners with handlers that include workspace_id
     websocketService.addListener('agent_response', handleAgentResponse);
+    websocketService.addListener('new_message', handleNewMessage);
     websocketService.addListener('ai_error', handleApiError);
     websocketService.addListener('tool_result', handleToolResult);
     websocketService.addListener('workspace_history', handleWorkspaceHistory);
     websocketService.addListener('workspace_created', handleWorkspaceCreated);
     websocketService.addListener('thinking_update', handleThinkingUpdate);
     websocketService.addListener('text_update', handleTextUpdate);
-    websocketService.addListener('available_tools', handleAvailableTools);
     
-    // Return cleanup function to remove listeners
+    // Add listeners for Anthropic-specific events
+    websocketService.addListener('block_start', handleBlockStart);
+    websocketService.addListener('block_stop', handleBlockStop);
+    websocketService.addListener('thinking', handleThinking);
+    websocketService.addListener('text', handleText);
+    websocketService.addListener('complete', handleComplete);
+    websocketService.addListener('thinking_start', handleBlockStart);
+    websocketService.addListener('text_start', handleBlockStart);
+    
+    // Return cleanup function
     return () => {
+      websocketService.removeListener('stream_complete', handleStreamComplete);
       websocketService.removeListener('agent_response', handleAgentResponse);
+      websocketService.removeListener('new_message', handleNewMessage);
       websocketService.removeListener('ai_error', handleApiError);
       websocketService.removeListener('tool_result', handleToolResult);
       websocketService.removeListener('workspace_history', handleWorkspaceHistory);
       websocketService.removeListener('workspace_created', handleWorkspaceCreated);
       websocketService.removeListener('thinking_update', handleThinkingUpdate);
       websocketService.removeListener('text_update', handleTextUpdate);
-      websocketService.removeListener('available_tools', handleAvailableTools);
+      
+      // Remove Anthropic-specific event listeners
+      websocketService.removeListener('block_start', handleBlockStart);
+      websocketService.removeListener('block_stop', handleBlockStop);
+      websocketService.removeListener('thinking', handleThinking);
+      websocketService.removeListener('text', handleText);
+      websocketService.removeListener('complete', handleComplete);
+      websocketService.removeListener('thinking_start', handleBlockStart);
+      websocketService.removeListener('text_start', handleBlockStart);
     };
-  };
+  }, [sessionState?.id]);
 
-  // Set up event listeners on component mount and clean up on unmount
+  // Process latest message for file extraction
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    
-    const initListeners = async () => {
-      cleanup = await setupWebSocketListeners();
-    };
-    
-    initListeners();
-    
-    // Clean up listeners when component unmounts
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [sessionState?.id]); // Only re-attach listeners if workspace ID changes
-
-  // Add a new useEffect to process attached folders when messages change
-  useEffect(() => {
-    // Check for attached folders in the latest message
     if (sessionState.messages && sessionState.messages.length > 0) {
       const latestMessage = sessionState.messages[sessionState.messages.length - 1];
       
-      // Only process assistant messages that are completed
       if (latestMessage && 
           latestMessage.role === 'assistant' && 
           latestMessage.status === 'completed' && 
           latestMessage.content) {
-        
-        // Use the enhanced file extraction functions to process the message content
-        if (sessionState.id) {
-          // Start with current files
-          let updatedFiles = { ...(sessionState.files || {}) };
-          
-          // Apply each extraction function in sequence
-          const extractionFunctions = [
-            // Try extracting JSON structure first (highest priority)
-            (content: string) => extractJSONStructureFromContent(content) || {},
-            // Try extracting text tree format
-            (content: string) => extractTextTreeFormat(content) || {},
-            // Then try the other formats
-            extractFormattedStructureFromChat,
-            (content: string) => extractFileTreeFromContent(content, updatedFiles),
-            extractFilesFromMessage,
-            (content: string) => extractWordPressPlugin(content, updatedFiles)
-          ];
-          
-          // Process with each extraction method
-          extractionFunctions.forEach(extractFn => {
-            try {
-              // Only update if we got new files and result is valid
-              const result = extractFn(latestMessage.content);
-              if (result && typeof result === 'object' && Object.keys(result).length > 0) {
-                updatedFiles = { ...updatedFiles, ...result };
-              }
-            } catch (error) {
-              console.error(`Error in extraction function:`, error);
-            }
-          });
-          
-          // Only save if we found files to save
-          if (Object.keys(updatedFiles).length > 0) {
-            // Save to localStorage
-            saveFilesToLocalStorage(sessionState.id, updatedFiles);
-            console.log('Processed and saved file structure from chat response');
-          }
-        }
+        processFilesFromMessage(latestMessage.content);
       }
     }
   }, [sessionState.messages, sessionState.id, sessionState.files]);
+
+  // Add the stream_complete handler
+  useEffect(() => {
+    const debugHandler = (data: any) => {
+      console.log('SESSION STATE:', sessionState);
+    };
+    
+    // Debug current session state when messages change
+    if (sessionState.messages.length > 0) {
+      console.log(`Current message count: ${sessionState.messages.length}`, 
+        sessionState.messages.map(m => `${m.role}:${m.id?.substring(0, 6) || 'no-id'}`));
+    }
+    
+    // For stream_complete events, log even more info
+    const streamCompleteDebug = (data: any) => {
+      console.log('STREAM COMPLETE EVENT RECEIVED:', data);
+      console.log('Current response:', currentResponse?.substring(0, 50) + (currentResponse && currentResponse.length > 50 ? '...' : ''));
+      console.log('Current thinking:', currentThinking?.substring(0, 50) + (currentThinking && currentThinking.length > 50 ? '...' : ''));
+    };
+    
+    websocketService.addListener('stream_complete', streamCompleteDebug);
+    websocketService.addListener('message_event_debug', debugHandler);
+    
+    return () => {
+      websocketService.removeListener('stream_complete', streamCompleteDebug);
+      websocketService.removeListener('message_event_debug', debugHandler);
+    };
+  }, [sessionState.messages, currentResponse, currentThinking]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden font-mono" style={{ 
       height: '100%', 
       maxHeight: '100vh'
     }}>
-      {/* Header with terminal-style presentation */}
+      {/* Header */}
       <div className={`px-3 py-2 border-b ${
         isDark ? 'bg-gray-800/70 border-gray-700 text-gray-300' : 'bg-gray-900/90 border-green-800/50 text-green-400'
       }`}>
@@ -701,7 +843,7 @@ const AgentChat: React.FC<AgentChatProps> = ({
         </div>
       </div>
       
-      {/* Using the ScrollableMessageContainer component */}
+      {/* Message Container */}
       <ScrollableMessageContainer
         messages={sessionState.messages.map(msg => ({
           ...msg,
@@ -717,7 +859,7 @@ const AgentChat: React.FC<AgentChatProps> = ({
           'I can help you build, customize, and debug WordPress plugins and themes. Just tell me what you need - no need to select tools or options!'}
         emptyStateExample={sessionState.selectedService?.example || "Create a contact form plugin for WordPress"}
         onExampleClick={handleExampleClick}
-        maxHeight="calc(95vh - 160px)" // Adjusted for the new header
+        maxHeight="calc(95vh - 160px)"
         currentResponse={currentResponse ? prepareContentForDisplay(currentResponse) : null}
         isTyping={isTyping}
         currentThinking={currentThinking}
@@ -740,12 +882,12 @@ const AgentChat: React.FC<AgentChatProps> = ({
         </div>
       )}
       
-      {/* Enhanced input box with terminal style */}
+      {/* Input area */}
       <div className={`p-2 sm:p-4 transition-all flex-shrink-0 ${
         isDark ? 'bg-gray-900' : 'bg-black'
       }`}
       style={{ 
-        maxHeight: '180px', // Increased from 140px to accommodate taller textarea
+        maxHeight: '180px',
         borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,128,0,0.2)'}`
       }}
       >
@@ -787,7 +929,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
               isDark ? 'bg-gray-800/90' : 'bg-gray-900/90'
             }`}>
               <div className="flex space-x-1">
-                {/* Indicator showing when specific actions are processing */}
                 {processingIndicator && (
                   <div className="flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium text-blue-500">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -801,7 +942,7 @@ const AgentChat: React.FC<AgentChatProps> = ({
                 className={`px-3 py-1.5 rounded-md ${
                   !message.trim() || sessionState.isProcessing || isTyping
                     ? 'opacity-50 cursor-not-allowed'
-                    : isDark
+                    : isDark 
                       ? 'bg-blue-700/80 text-white hover:bg-blue-700/90'
                       : 'bg-green-800/80 text-white hover:bg-green-800/90'
                 } transition-colors duration-200 flex items-center justify-center`}
@@ -818,7 +959,7 @@ const AgentChat: React.FC<AgentChatProps> = ({
         </div>
       </div>
 
-      {/* Add improved custom scrollbar styles */}
+      {/* Styles */}
       <style jsx global>{`
         .custom-scrollbar-improved::-webkit-scrollbar {
           width: 4px;
@@ -840,7 +981,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
           background: ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,128,0,0.5)'};
         }
         
-        /* Terminal-inspired text cursor effect for input */
         @keyframes cursor-blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
@@ -857,7 +997,6 @@ const AgentChat: React.FC<AgentChatProps> = ({
           vertical-align: middle;
         }
         
-        /* Message display animation */
         @keyframes message-appear {
           from { opacity: 0.7; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }

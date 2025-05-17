@@ -2,7 +2,22 @@ import React, { useRef, useEffect, useState } from 'react';
 import { User, Bot, Code, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import MessageContent from './MessageContent';
-import { AgentMessage, CodeBlock } from '../../types';
+
+// Define the correct types locally instead of importing from a file with different definitions
+interface AgentMessage {
+  id?: string;
+  role: string;
+  content: string;
+  timestamp: Date | string;
+  codeBlocks?: any[];
+  thinking?: string | null;
+  status?: string;
+}
+
+interface CodeBlock {
+  language: string;
+  code: string;
+}
 
 interface ScrollableMessageContainerProps {
   messages: AgentMessage[];
@@ -45,6 +60,10 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
   
   // Filter out system messages for display
   const displayMessages = messages.filter(msg => msg.role !== 'system');
+  
+  // Identify error messages separately
+  const errorMessages = displayMessages.filter(msg => msg.role === 'error');
+  const nonErrorMessages = displayMessages.filter(msg => msg.role !== 'error');
   
   // Force scroll to bottom
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -114,17 +133,34 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
   // Group messages into conversation pairs
   const groupConversations = () => {
     const groups: { user: AgentMessage, ai: AgentMessage | null, isLatest: boolean }[] = [];
+    const standaloneAiMessages: AgentMessage[] = [];
     
-    for (let i = 0; i < displayMessages.length; i++) {
-      if (displayMessages[i].role === 'user') {
+    // First collect any standalone AI messages (not following a user message)
+    for (let i = 0; i < nonErrorMessages.length; i++) {
+      // Add any leading assistant messages as standalone
+      if (i === 0 && nonErrorMessages[i].role === 'assistant') {
+        standaloneAiMessages.push(nonErrorMessages[i]);
+        continue;
+      }
+      
+      // If we find an assistant message that doesn't follow a user message
+      if (nonErrorMessages[i].role === 'assistant' && 
+          (i === 0 || nonErrorMessages[i-1].role !== 'user')) {
+        standaloneAiMessages.push(nonErrorMessages[i]);
+      }
+    }
+    
+    // Then create conversation pairs
+    for (let i = 0; i < nonErrorMessages.length; i++) {
+      if (nonErrorMessages[i].role === 'user') {
         // Find AI response that follows
-        const aiResponse = (i + 1 < displayMessages.length && displayMessages[i + 1].role === 'assistant') 
-          ? displayMessages[i + 1] 
+        const aiResponse = (i + 1 < nonErrorMessages.length && nonErrorMessages[i + 1].role === 'assistant') 
+          ? nonErrorMessages[i + 1] 
           : null;
         
         // Check if this is the latest conversation
-        const isLatest = i === displayMessages.length - 1 || 
-                        (aiResponse !== null && i + 1 === displayMessages.length - 1);
+        const isLatest = i === nonErrorMessages.length - 1 || 
+                        (aiResponse !== null && i + 1 === nonErrorMessages.length - 1);
         
         // If this is the latest message and we have currentThinking, add it to the AI response
         if (isLatest && aiResponse && currentThinking) {
@@ -132,7 +168,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         }
         
         groups.push({
-          user: displayMessages[i],
+          user: nonErrorMessages[i],
           ai: aiResponse,
           isLatest
         });
@@ -142,10 +178,16 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
       }
     }
     
-    return groups;
+    console.log('Message grouping:', { 
+      groups: groups.length,
+      standalone: standaloneAiMessages.length,
+      total: nonErrorMessages.length
+    });
+    
+    return { groups, standaloneAiMessages };
   };
 
-  const conversationGroups = groupConversations();
+  const { groups: conversationGroups, standaloneAiMessages } = groupConversations();
   const hasCurrentResponse = currentResponse !== null && 
                          messages.length > 0 && 
                          messages[messages.length - 1].role === 'user';
@@ -166,6 +208,97 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         }
       }
     }, 100);
+  };
+
+  // Render thinking block
+  const renderThinking = (messageId: string | undefined, thinking: string | null, isExpanded: boolean) => {
+    if (!thinking || !messageId) return null;
+    
+    return (
+      <div 
+        key={`thinking-${messageId}`}
+        data-thinking-id={messageId} 
+        data-thinking-expanded={isExpanded}
+        className={`mt-2 rounded-md overflow-hidden bg-opacity-60 transition-all duration-200 ${
+          isDark ? 'bg-gray-800' : 'bg-gray-900/50 text-emerald-300'
+        }`}
+      >
+        <div className="flex items-center gap-1 p-1.5 cursor-pointer" onClick={() => toggleThinkingExpansion(messageId)}>
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+          <Zap className="h-3.5 w-3.5 mr-1" />
+          <span className="text-xs">Thinking</span>
+        </div>
+        
+        {isExpanded && (
+          <div className={`p-2 ${isDark ? 'bg-gray-800' : 'bg-gray-900'} text-xs`}>
+            <pre className="whitespace-pre-wrap font-mono">
+              {thinking}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render standalone AI message
+  const renderAiMessage = (message: AgentMessage, isStandalone = false) => {
+    return (
+      <div className="flex justify-start">
+        <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
+          isDark
+            ? 'bg-gray-800/50 text-gray-200'
+            : 'bg-gray-900/80 text-green-400'
+        } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+          {/* Terminal-style header */}
+          <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
+            isDark ? 'text-gray-400' : 'text-green-500'
+          }`}>
+            {isDark ? '┌─' : '┌─'} {isStandalone ? 'Initial Response' : 'Assistant Response'}
+          </div>
+        
+          {/* Message header */}
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+              isDark ? 'bg-gray-700' : 'bg-green-900'
+            }`}>
+              <Bot className={`w-3.5 h-3.5 ${isDark ? '' : 'text-green-400'}`} />
+            </div>
+            <span className="text-xs font-medium">WordPress Assistant</span>
+            <span className="text-xs opacity-70 ml-auto">
+              {formatDistanceToNow(new Date(message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp)), { addSuffix: true })}
+            </span>
+          </div>
+          
+          {/* Display thinking content if available */}
+          {message.thinking && message.thinking.trim().length > 0 && 
+           renderThinking(message.id, message.thinking, expandedThinkingIds[message.id || ''] || false)
+          }
+          
+          {/* Message content */}
+          <div className={`prose prose-sm max-w-none overflow-hidden ${
+            isDark ? 'prose-invert' : 'prose-green'
+          } ${isMobile ? 'text-sm leading-snug' : ''}`}>
+            <MessageContent 
+              content={message.content}
+              isComplete={true}
+              containerRef={containerRef}
+              hideCodeInMessages={hideCodeInMessages}
+            />
+          </div>
+          
+          {/* Terminal-style footer */}
+          <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
+            isDark ? 'text-gray-400' : 'text-green-500'
+          }`}>
+            {isDark ? '└─' : '└─'} End of response
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -208,9 +341,21 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
         <div className={`space-y-6 pb-4 overflow-y-auto h-full ${
           isDark ? 'bg-gray-900' : 'bg-black'
         }`}>
+          {/* Render standalone AI messages first */}
+          {standaloneAiMessages.length > 0 && (
+            <div className="mt-4 space-y-6">
+              {standaloneAiMessages.map((message, idx) => (
+                <div key={`standalone-${message.id || idx}`} className="message-block">
+                  {renderAiMessage(message, true)}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Then render regular conversation pairs */}
           {conversationGroups.map((group, index) => (
             <div 
-              key={group.user.id}
+              key={`conversation-${group.user.id}-${index}`}
               className={`message-block ${group.isLatest ? 'current-block' : 'completed-block'}`}
             >
               <div className="block-content">
@@ -260,154 +405,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                 
                 {/* AI message or streaming response */}
                 {group.ai ? (
-                  <div className="flex justify-start mt-4">
-                    <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
-                      isDark
-                        ? 'bg-gray-800/50 text-gray-200'
-                        : 'bg-gray-900/80 text-green-400'
-                    } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
-                      {/* Terminal-style header */}
-                      <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
-                        isDark ? 'text-gray-400' : 'text-green-500'
-                      }`}>
-                        {isDark ? '┌─' : '┌─'} Assistant Response
-                      </div>
-                    
-                      {/* Message header */}
-                      <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          isDark ? 'bg-gray-700' : 'bg-green-900'
-                        }`}>
-                          <Bot className={`w-3.5 h-3.5 ${isDark ? '' : 'text-green-400'}`} />
-                        </div>
-                        <span className="text-xs font-medium">WordPress Assistant</span>
-                        <span className="text-xs opacity-70 ml-auto">
-                          {formatDistanceToNow(new Date(group.ai.timestamp instanceof Date ? group.ai.timestamp : new Date(group.ai.timestamp)), { addSuffix: true })}
-                        </span>
-                      </div>
-                      
-                      {/* Display thinking content if available - Moved to appear before message content */}
-                      {group.ai && group.ai.thinking && group.ai.thinking.trim().length > 0 && (
-                        <div 
-                          className={`mb-3 p-3 rounded-md transition-all duration-300 ${
-                            isDark 
-                              ? 'bg-indigo-900/10 text-gray-300' 
-                              : 'bg-gray-800/70 text-green-300'
-                          }`}
-                          data-message-id={group.ai.id}
-                          data-thinking-id={group.ai.id}
-                          data-thinking-expanded={expandedThinkingIds[group.ai.id] ? 'true' : 'false'}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Zap className={`h-4 w-4 ${isDark ? 'text-indigo-500' : 'text-green-500'}`} />
-                              <span className="text-xs font-medium">Thinking Process</span>
-                            </div>
-                            <button 
-                              onClick={() => group.ai && toggleThinkingExpansion(group.ai.id)}
-                              className="p-1 rounded-full hover:bg-gray-700/30 dark:hover:bg-gray-700 transition-colors"
-                              aria-label={group.ai && expandedThinkingIds[group.ai.id] ? "Collapse thinking process" : "Expand thinking process"}
-                            >
-                              {group.ai && expandedThinkingIds[group.ai.id] ? (
-                                <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              )}
-                            </button>
-                          </div>
-                          
-                          <div 
-                            className={`text-xs whitespace-pre-wrap font-mono overflow-auto transition-all duration-300 ${
-                              group.ai && expandedThinkingIds[group.ai.id] 
-                                ? 'thinking-expanded max-h-[500vh]' 
-                                : 'thinking-collapsed max-h-20 overflow-hidden relative'
-                            } custom-scrollbar-improved ${
-                              isDark 
-                                ? 'bg-indigo-900/10 p-2 rounded' 
-                                : 'bg-gray-900/70 p-2 rounded'
-                            }`}
-                            style={{ 
-                              // Ensure no text truncation within the container
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                              // Add additional styles when expanded
-                              ...(group.ai && expandedThinkingIds[group.ai.id] 
-                                ? { maxHeight: '10000px', overflowY: 'auto' } 
-                                : {})
-                            }}
-                          >
-                            {group.ai.thinking}
-                            {group.ai && !expandedThinkingIds[group.ai.id] && (
-                              <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${
-                                isDark ? 'from-indigo-900/30 to-transparent' : 'from-gray-800/70 to-transparent'
-                              }`}></div>
-                            )}
-                          </div>
-                          
-                          {group.ai && !expandedThinkingIds[group.ai.id] && (
-                            <button 
-                              onClick={() => group.ai && toggleThinkingExpansion(group.ai.id)}
-                              className={`thinking-toggle text-xs w-full mt-1 py-2 text-center rounded ${
-                                isDark 
-                                  ? 'text-indigo-300 bg-indigo-900/30 hover:bg-indigo-800/40' 
-                                  : 'text-green-400 bg-green-900/20 hover:bg-green-900/30'
-                              } font-medium flex items-center justify-center gap-1 transition-colors`}
-                            >
-                              <span>Show full thinking process</span>
-                              <ChevronDown className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Message content */}
-                      <div className={`prose prose-sm max-w-none overflow-hidden ${
-                        isDark ? 'prose-invert' : 'prose-green'
-                      } ${isMobile ? 'text-sm leading-snug' : ''}`}>
-                        <MessageContent 
-                          content={group.ai.content}
-                          isComplete={true}
-                          containerRef={containerRef}
-                          hideCodeInMessages={hideCodeInMessages}
-                        />
-                      </div>
-                      
-                      {/* Code blocks attached to the message */}
-                      {group.ai.codeBlocks && group.ai.codeBlocks.length > 0 && (
-                        <div className="mt-3 space-y-3">
-                          {group.ai.codeBlocks.map((block) => (
-                            <div 
-                              key={block.id}
-                              className={`rounded-md overflow-hidden ${
-                                isDark ? 'bg-gray-800/80' : 'bg-gray-900/90'
-                              }`}
-                            >
-                              <div className={`flex items-center justify-between px-4 py-2 text-xs ${
-                                isDark ? 'bg-gray-700/80 text-gray-300' : 'bg-gray-800/90 text-green-300'
-                              }`}>
-                                <span className="font-medium">{block.language || 'code'}</span>
-                                <button className={`hover:text-${isDark ? 'blue' : 'green'}-500 p-1 rounded-md hover:bg-opacity-20 hover:bg-gray-500`} title="Copy code">
-                                  <Code className="w-4 h-4" />
-                                </button>
-                              </div>
-                              <pre className="p-3 sm:p-4 text-xs sm:text-sm overflow-x-auto custom-scrollbar-improved">
-                                <code className={`language-${block.language}`}>
-                                  {block.code}
-                                </code>
-                              </pre>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Terminal-style footer */}
-                      <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
-                        isDark ? 'text-gray-400' : 'text-green-500'
-                      }`}>
-                        {isDark ? '└─' : '└─'} End of response
-                      </div>
-                    </div>
-                  </div>
+                  renderAiMessage(group.ai)
                 ) : (
                   // Show streaming AI response if this is the latest conversation and we have text to stream
                   group.isLatest && hasCurrentResponse && (
@@ -446,88 +444,9 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                         </div>
                         
                         {/* Display thinking content if available for streaming response */}
-                        {isTyping && (
-                          <div 
-                            className={`mb-3 p-3 rounded-md transition-all duration-300 ${
-                              isDark 
-                                ? 'bg-indigo-900/10 text-gray-300' 
-                                : 'bg-gray-800/70 text-green-300'
-                            }`}
-                            data-thinking-id="streaming"
-                            data-thinking-expanded={expandedThinkingIds['streaming'] ? 'true' : 'false'}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <Zap className={`h-4 w-4 ${isDark ? 'text-indigo-500' : 'text-green-500'}`} />
-                                <span className="text-xs font-medium">Thinking Process</span>
-                              </div>
-                              {currentThinking && (
-                                <button 
-                                  onClick={() => toggleThinkingExpansion('streaming')}
-                                  className="p-1 rounded-full hover:bg-gray-700/30 dark:hover:bg-gray-700 transition-colors"
-                                  aria-label={expandedThinkingIds['streaming'] ? "Collapse thinking process" : "Expand thinking process"}
-                                >
-                                  {expandedThinkingIds['streaming'] ? (
-                                    <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            
-                            <div 
-                              className={`text-xs whitespace-pre-wrap font-mono overflow-auto transition-all duration-300 ${
-                                expandedThinkingIds['streaming'] || !currentThinking
-                                  ? 'thinking-expanded max-h-[500vh]' 
-                                  : 'thinking-collapsed max-h-20 overflow-hidden relative'
-                              } custom-scrollbar-improved ${
-                                isDark 
-                                  ? 'bg-indigo-900/10 p-2 rounded' 
-                                  : 'bg-gray-900/70 p-2 rounded'
-                              }`}
-                              style={{ 
-                                // Ensure no text truncation within the container
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                // Add additional styles when expanded
-                                ...(expandedThinkingIds['streaming'] 
-                                  ? { maxHeight: '10000px', overflowY: 'auto' } 
-                                  : {})
-                              }}
-                            >
-                              {currentThinking ? (
-                                <>
-                                  {currentThinking}
-                                  {!expandedThinkingIds['streaming'] && (
-                                    <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${
-                                      isDark ? 'from-indigo-900/30 to-transparent' : 'from-gray-800/70 to-transparent'
-                                    }`}></div>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="inline-block">
-                                  Analyzing your request...
-                                  <span className="animate-pulse">▌</span>
-                                </span>
-                              )}
-                            </div>
-                            
-                            {currentThinking && !expandedThinkingIds['streaming'] && (
-                              <button 
-                                onClick={() => toggleThinkingExpansion('streaming')}
-                                className={`thinking-toggle text-xs w-full mt-1 py-2 text-center rounded ${
-                                  isDark 
-                                    ? 'text-indigo-300 bg-indigo-900/30 hover:bg-indigo-800/40' 
-                                    : 'text-green-400 bg-green-900/20 hover:bg-green-900/30'
-                                } font-medium flex items-center justify-center gap-1 transition-colors`}
-                              >
-                                <span>Show full thinking process</span>
-                                <ChevronDown className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {isTyping && 
+                         renderThinking('streaming', currentThinking, expandedThinkingIds['streaming'] || false)
+                        }
                         
                         {/* Message content */}
                         <div className={`prose prose-sm max-w-none overflow-hidden ${
@@ -555,6 +474,46 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
               </div>
             </div>
           ))}
+          
+          {/* Render error messages */}
+          {errorMessages.map((errorMsg) => (
+            <div key={`error-${errorMsg.id || errorMsg.timestamp}`} className="flex justify-start mt-4">
+              <div className={`max-w-[95%] sm:max-w-[85%] message-appear 
+                bg-red-900/80 text-white rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
+                {/* Terminal-style header */}
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-1 text-xs text-red-300">
+                  {isDark ? '┌─' : '┌─'} Error Message
+                </div>
+                
+                {/* Message header */}
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center bg-red-800">
+                    <Zap className="w-3.5 h-3.5 text-red-200" />
+                  </div>
+                  <span className="text-xs font-medium">System Error</span>
+                  <span className="text-xs opacity-70 ml-auto">
+                    {formatDistanceToNow(new Date(errorMsg.timestamp instanceof Date ? errorMsg.timestamp : new Date(errorMsg.timestamp)), { addSuffix: true })}
+                  </span>
+                </div>
+                
+                {/* Error content */}
+                <div className="prose prose-sm max-w-none overflow-hidden prose-invert text-red-100">
+                  <MessageContent 
+                    content={errorMsg.content}
+                    isComplete={true}
+                    containerRef={containerRef}
+                    hideCodeInMessages={false}
+                  />
+                </div>
+                
+                {/* Terminal-style footer */}
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-1 text-xs text-red-300">
+                  {isDark ? '└─' : '└─'} End of error
+                </div>
+              </div>
+            </div>
+          ))}
+          
           <div ref={messagesEndRef} className="h-4 mt-4 clear-both" /> {/* Extra space to ensure scrolling works properly */}
         </div>
       )}

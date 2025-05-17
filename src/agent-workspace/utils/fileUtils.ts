@@ -510,20 +510,8 @@ export const extractTextTreeFormat = (content: string): Record<string, FileNode>
  * Extract formatted structure from chat content
  */
 export const extractFormattedStructureFromChat = (content: string): Record<string, FileNode> => {
-  // Try JSON structure first
-  const jsonStructure = extractJSONStructureFromContent(content);
-  if (jsonStructure) return jsonStructure;
-  
-  // Try project structure tags
-  const tagStructure = extractFilesFromMessage(content);
-  if (Object.keys(tagStructure).length > 0) return tagStructure;
-  
-  // Try text tree format
-  const treeStructure = extractTextTreeFormat(content);
-  if (treeStructure) return treeStructure;
-  
-  // Return empty structure if nothing found
-  return {};
+  // Use our comprehensive parser for consistency
+  return extractProjectFilesFromResponse(content);
 };
 
 /**
@@ -741,7 +729,6 @@ export const parseDirectoryTree = (
   const isUnixStyle = /[├└─│]/.test(treeContent);
   
   let rootFolderName = '';
-  let currentIndentLevel = 0;
   let lastPath: string[] = [];
   
   // Extract paths from the tree structure
@@ -832,6 +819,103 @@ export const parseDirectoryTree = (
   return result;
 };
 
+/**
+ * Comprehensive parser to extract project files from AI responses
+ * Handles various formats and maintains consistent structure
+ */
+export const extractProjectFilesFromResponse = (
+  response: string,
+  existingFiles?: Record<string, FileNode>
+): Record<string, FileNode> => {
+  // Start with existing files or create a new structure
+  let result: Record<string, FileNode> = existingFiles ? { ...existingFiles } : {};
+  
+  // Try all extraction methods in sequence, collecting files from each
+  try {
+    // 1. Try extracting tagged files (<PROJECT_STRUCTURE> and <FILE>)
+    const taggedFiles = extractFilesFromMessage(response, result);
+    result = { ...result, ...taggedFiles };
+    
+    // 2. Try extracting WordPress plugin specific formats
+    const pluginFiles = extractWordPressPlugin(response, result);
+    result = { ...result, ...pluginFiles };
+    
+    // 3. Try extracting file trees from code blocks
+    const treeFiles = extractFileTreeFromContent(response, result);
+    result = { ...result, ...treeFiles };
+    
+    // 4. Try extracting JSON file structures
+    const jsonStructure = extractJSONStructureFromContent(response);
+    if (jsonStructure) {
+      result = { ...result, ...jsonStructure };
+    }
+    
+    // 5. Try extracting text-based tree formats
+    const textTreeStructure = extractTextTreeFormat(response);
+    if (textTreeStructure) {
+      result = { ...result, ...textTreeStructure };
+    }
+    
+    // 6. Try extracting file content from code blocks with file path comments
+    // This regex looks for code blocks with filename indicators in comments
+    const codeBlockRegex = /```(\w+)?\s*(?:\/\/|#|\/\*)\s*(?:filename|file|path):\s*([^\s\n]+)(?:[^\n]*)?\n([\s\S]*?)```/gi;
+    let codeMatch;
+    
+    while ((codeMatch = codeBlockRegex.exec(response)) !== null) {
+      const language = codeMatch[1] || '';
+      const filePath = codeMatch[2].trim();
+      const content = codeMatch[3].trim();
+      
+      if (filePath && content) {
+        addFileToStructure(result, filePath, content, language);
+      }
+    }
+    
+    // 7. Extract files from format like "filename.ext" followed by code block
+    const fileNameCodeBlockRegex = /\b([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)\s*\n```(\w+)?\s*([\s\S]*?)```/g;
+    let fileNameMatch;
+    
+    while ((fileNameMatch = fileNameCodeBlockRegex.exec(response)) !== null) {
+      const filePath = fileNameMatch[1].trim();
+      const language = fileNameMatch[2] || '';
+      const content = fileNameMatch[3].trim();
+      
+      if (filePath && content) {
+        addFileToStructure(result, filePath, content, language);
+      }
+    }
+    
+    // 8. Extract file content from "tool output" sections
+    const toolOutputRegex = /Tool output:([\s\S]*?)(?=Tool output:|$)/gi;
+    let toolMatch;
+    
+    while ((toolMatch = toolOutputRegex.exec(response)) !== null) {
+      const toolOutput = toolMatch[1].trim();
+      
+      // Look for file creation patterns in tool output
+      if (toolOutput.includes('Creating file') || toolOutput.includes('Writing to file')) {
+        const filePathRegex = /(?:Creating file|Writing to file)[:\s]+([^\s\n]+)/i;
+        const filePathMatch = toolOutput.match(filePathRegex);
+        
+        if (filePathMatch && filePathMatch[1]) {
+          const filePath = filePathMatch[1].trim();
+          
+          // Extract content after the file path line
+          const contentMatch = toolOutput.match(new RegExp(`${filePath}[:\\s]+([\\s\\S]+)`, 'i'));
+          if (contentMatch && contentMatch[1]) {
+            const content = contentMatch[1].trim();
+            addFileToStructure(result, filePath, content);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error extracting project files:', error);
+  }
+  
+  return result;
+};
+
 export default {
   extractFilesFromMessage,
   addFileToStructure,
@@ -850,5 +934,6 @@ export default {
   extractWordPressPlugin,
   extractFileTreeFromContent,
   parseDirectoryTree,
-  updateFileInStructure
+  updateFileInStructure,
+  extractProjectFilesFromResponse
 };

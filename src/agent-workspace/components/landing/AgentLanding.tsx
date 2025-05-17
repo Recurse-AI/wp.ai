@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeProvider';
-import { AIService } from '../../types';
 import { AGENT_SERVICES } from '../../constants';
 import { Send } from 'lucide-react';
 
@@ -28,7 +27,7 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
     }
   }, []);
 
-  const handleServiceSelect = (service: AIService) => {
+  const handleServiceSelect = (service: any) => {
     setSelectedService(service);
     // Update the placeholder text with the example from the selected service
     if (service.example) {

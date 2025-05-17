@@ -46,7 +46,7 @@ export const FileOperationsProvider: React.FC<FileOperationsProviderProps> = ({ 
 
   // Listen for WebSocket file-related events
   useEffect(() => {
-    const handleFileUpdate = (data: any) => {
+    const handleFileUpdate = (data: { file: { path: string } }) => {
       if (data.file && data.file.path) {
         const pathParts = data.file.path.split('/');
         const fileName = pathParts[pathParts.length - 1];

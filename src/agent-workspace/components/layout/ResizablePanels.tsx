@@ -69,23 +69,30 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   isDark,
   children
 }) => {
+  // Set default values that work for both SSR and client
+  const isDesktop = windowWidth >= desktopBreakpoint;
+  
   return (
     <ResizablePanel
       size={{ 
-        width: windowWidth < desktopBreakpoint ? '100%' : `${chatSize}%`, 
-        height: windowWidth < desktopBreakpoint ? '45%' : "100%" 
+        width: isDesktop ? `${chatSize}%` : '100%', 
+        height: isDesktop ? "100%" : '45%'
       }}
-      minWidth={windowWidth < desktopBreakpoint ? '100%' : "20%"}
-      maxWidth={windowWidth < desktopBreakpoint ? '100%' : "50%"}
-      minHeight={windowWidth < desktopBreakpoint ? '30%' : "100%"}
-      maxHeight={windowWidth < desktopBreakpoint ? '60%' : "100%"}
+      minWidth={isDesktop ? "20%" : '100%'}
+      maxWidth={isDesktop ? "50%" : '100%'}
+      minHeight={isDesktop ? "100%" : '30%'}
+      maxHeight={isDesktop ? "100%" : '60%'}
       enable={{ 
-        right: windowWidth >= desktopBreakpoint, 
-        bottom: windowWidth < desktopBreakpoint,
+        right: isDesktop, 
+        bottom: !isDesktop,
         left: false
       }}
       onResizeStop={(e, direction, ref, d) => onChatResize(direction, d, ref)}
-      className={`chat-panel ${windowWidth < desktopBreakpoint ? '' : 'border-r'} ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200 overflow-hidden`}
+      className={`chat-panel ${isDesktop ? 'border-r' : ''} ${
+        isDark ? 'border-gray-700' : 'border-gray-200'
+      } transition-all duration-200 overflow-hidden ${
+        !isDesktop ? 'hidden lg:block' : ''
+      }`}
     >
       <div className="h-full overflow-hidden flex flex-col">
         {children}
@@ -113,22 +120,25 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   isDark,
   children
 }) => {
+  // Set default values that work for both SSR and client
+  const isTablet = windowWidth >= tabletBreakpoint;
+  
   return (
     <ResizablePanel
       size={{ 
-        width: windowWidth < tabletBreakpoint ? '100%' : `${explorerSize}%`, 
-        height: windowWidth < tabletBreakpoint ? '40%' : "100%"
+        width: isTablet ? `${explorerSize}%` : '100%', 
+        height: isTablet ? "100%" : '40%'
       }}
-      minWidth={windowWidth < tabletBreakpoint ? '100%' : "15%"}
-      maxWidth={windowWidth < tabletBreakpoint ? '100%' : "35%"}
-      minHeight={windowWidth < tabletBreakpoint ? '25%' : "100%"}
-      maxHeight={windowWidth < tabletBreakpoint ? '60%' : "100%"}
+      minWidth={isTablet ? "15%" : '100%'}
+      maxWidth={isTablet ? "35%" : '100%'}
+      minHeight={isTablet ? "100%" : '25%'}
+      maxHeight={isTablet ? "100%" : '60%'}
       enable={{ 
-        right: windowWidth >= tabletBreakpoint,
-        bottom: windowWidth < tabletBreakpoint
+        right: isTablet,
+        bottom: !isTablet
       }}
       onResizeStop={(e, direction, ref, d) => {
-        if (windowWidth < tabletBreakpoint) {
+        if (!isTablet) {
           // Handle height resize on small screens
           const containerHeight = ref.parentElement?.clientHeight || 0;
           if (containerHeight > 0) {
@@ -149,9 +159,7 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           }
         }
       }}
-      className={`explorer-panel ${isDark ? 'bg-gray-800' : 'bg-gray-50'} ${
-        windowWidth < tabletBreakpoint ? 'border-b' : 'border-r'
-      } ${isDark ? 'border-gray-700' : 'border-gray-200'} transition-all duration-200 overflow-hidden`}
+      className="explorer-panel"
     >
       <div className="h-full overflow-auto">
         {children}
