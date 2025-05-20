@@ -13,35 +13,34 @@ export enum WebSocketEventType {
   THINKING_UPDATE = "thinking_update",
   TEXT_UPDATE = "text_update",
   AI_ERROR = "ai_error",
-  FILE_UPDATE = "file_update", 
-  FILE_EDIT_NOTIFICATION = "file_edit_notification",
-  USER_ACTIVITY_NOTIFICATION = "user_activity_notification",
   AGENT_RESPONSE = "agent_response",
   TOOL_RESULT = "tool_result",
   TOOL_STATUS_UPDATE = "tool_status_update",
-  WORKSPACE_HISTORY = "workspace_history",
-  AVAILABLE_TOOLS = "available_tools",
-  WORKSPACE_CREATED = "workspace_created",
-  MESSAGE_UPDATE = "message_update",
   STREAM_COMPLETE = "stream_complete",
   
-  // Additional events from the backend that need to be handled
-  ERROR_UPDATE = "error_update",
-  QUERY_AGENT = "query_agent",
+  // Anthropic specific events
+  BLOCK_START = "block_start",
+  BLOCK_STOP = "block_stop",
+  THINKING = "thinking",
+  TEXT = "text",
+  COMPLETE = "complete",
+  
+  // Backend status events
   MESSAGE_STATUS = "message_status",
-  USER_MESSAGE = "user_message",
-  MESSAGE_RECEIVED = "message_received",
-  ASSISTANT_RESPONSE = "assistant_response",
+  NEW_MESSAGE = "new_message",
+  ERROR = "error",
+  
+  // Tool related events
   TOOL_CALL = "tool_call",
   TOOL_COMPLETE = "tool_complete",
   TOOL_ERROR = "tool_error",
-  TOOL_REQUEST = "tool_request",
-  BLOCK_START = "block_start",
-  BLOCK_STOP = "block_stop",
-  COMPLETE = "complete",
-  THINKING = "thinking",
-  TEXT = "text",
-  ERROR = "error"
+  
+  // Additional events used in the codebase
+  ERROR_UPDATE = "error_update",
+  ASSISTANT_RESPONSE = "assistant_response",
+  MESSAGE_UPDATE = "message_update",
+  USER_MESSAGE = "user_message",
+  FILE_UPDATE = "file_update"
 }
 
 export enum ToolStatus {
@@ -55,28 +54,11 @@ export interface WebSocketMessage {
   type: WebSocketEventType | string;
   workspace_id?: string;
   status?: string;
-  user_id?: string;
   message_id?: string;
   thinking?: string;
   text?: string;
   error?: {
     message: string;
-    details?: any;
-  };
-  file?: {
-    id: string;
-    path: string;
-    content?: string;
-  };
-  edit?: {
-    file_id: string;
-    path: string;
-    edit_type: "create" | "update" | "delete";
-    user_id: string;
-  };
-  activity?: {
-    user_id: string;
-    action: string;
     details?: any;
   };
   tool_name?: string;
@@ -85,27 +67,18 @@ export interface WebSocketMessage {
   result?: any;
   query?: string;
   response?: string;
-  mode?: string;
-  history?: any[];
-  tools?: any[];
-  workspace?: {
-    id: string;
-    name: string;
-    created_at?: string;
-  };
-  role?: string;
   content?: string;
   content_type?: string;
-  operation_id?: string;
-  timestamp?: string;
   sender?: string;
   is_processing?: boolean;
+  timestamp?: string;
+  operation_id?: string;
 }
 
 // Constants
-const CONNECTION_TIMEOUT_MS = 10000;
-const OPERATION_TIMEOUT_MS = 30000;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds connection timeout
+const OPERATION_TIMEOUT_MS = 300000; // 5 minutes operation timeout (matching backend)
+const MAX_RECONNECT_ATTEMPTS = 10; // More reconnection attempts for better resilience
 
 // Define a better type for the message stream data
 interface MessageStreamData {
@@ -199,6 +172,9 @@ export class WebSocketService extends EventEmitter {
   connect(workspaceId: string): Promise<void> {
     // First check if we're already connected to this workspace
     if (this.isConnected && this.workspaceId === workspaceId && this.socket?.readyState === WebSocket.OPEN) {
+      // We're already connected, update connection status to be sure
+      this.connectionStatus = 'connected';
+      this.emit('connection_status_change', { status: this.connectionStatus });
       return Promise.resolve();
     }
     
@@ -218,11 +194,14 @@ export class WebSocketService extends EventEmitter {
           details: { workspaceId },
           timestamp: new Date().toISOString()
         };
+        this.connectionStatus = 'error';
+        this.emit('connection_status_change', { status: this.connectionStatus });
         this.connectingPromise = null;
         reject(error);
         return;
       }
       
+      // Disconnect previous connection, but preserve workspaceId
       this.disconnect(false);
       this.workspaceId = workspaceId;
       
@@ -242,6 +221,8 @@ export class WebSocketService extends EventEmitter {
               details: { workspaceId },
               timestamp: new Date().toISOString()
             };
+            this.connectionStatus = 'error';
+            this.emit('connection_status_change', { status: this.connectionStatus });
             this.disconnect(false);
             this.connectingPromise = null;
             reject(timeoutError);
@@ -258,8 +239,10 @@ export class WebSocketService extends EventEmitter {
           authUrl = `${url}?token=${encodeURIComponent(token)}`;
         }
         
+        // Create new websocket connection
         this.socket = new WebSocket(authUrl);
         
+        // Setup connection event handlers
         this.socket.onopen = () => {
           this.isConnected = true;
           this.reconnectAttempts = 0;
@@ -291,382 +274,41 @@ export class WebSocketService extends EventEmitter {
           this.connectingPromise = null;
           this.forcedReconnect = false;
           
+          // Send an immediate heartbeat to verify connection
+          this.sendHeartbeat();
+          
           resolve();
         };
         
-        this.socket.onmessage = (event) => {
-          try {
-            this.lastMessageReceived = Date.now();
-            console.log('Received message:', event.data);
-            
-           
-            const data: WebSocketMessage = JSON.parse(event.data);
-            
-            this.reconnectAttempts = 0;
-            
-            // Handle tool status updates
-            if (data.type === WebSocketEventType.TOOL_RESULT && data.tool_id) {
-              this.updateToolStatus(data.tool_id, ToolStatus.COMPLETED);
-            }
-            
-            // Special handling for processing status updates
-            if (data.type === WebSocketEventType.PROCESSING_STATUS || 
-                data.type === 'processing_status' || 
-                data.type === 'message_status') {
-              console.log('Processing status update:', data);
-              
-              // Extract the processing state
-              const isProcessing = data.status === 'processing' || data.is_processing === true;
-              
-              // Emit processing status event
-              this.emit('processing_status', {
-                ...data,
-                type: WebSocketEventType.PROCESSING_STATUS,
-                is_processing: isProcessing
-              });
-              
-              // If processing is completed, also emit a complete event to ensure response is shown
-              if (!isProcessing && data.status === 'completed') {
-                this.emit('complete', {
-                  type: 'complete',
-                  content: 'Process completed with all tool calls'
-                });
-              }
-              
-              // Also emit the original message
-              this.emit(data.type, data);
-              this.emit('message', data);
-              
-              return;
-            }
-            
-            // Special handling for new_message events
-            if (data.type === 'new_message') {
-              console.log('Received new_message:', data);
-              
-              // For all new_message events, make sure to forward them to listeners
-              this.emit(data.type, data);
-              this.emit('message', data);
-              
-              // Additional handling for assistant messages
-              if (data.sender === 'assistant') {
-                const responseData = {
-                  ...data,
-                  type: WebSocketEventType.AGENT_RESPONSE,
-                  content: data.text,
-                };
-                this.emit(WebSocketEventType.AGENT_RESPONSE, responseData);
-              }
-              
-              // Mark the operation as complete
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              
-              return;
-            }
-            
-            // Special handling for Anthropic message types
-            if (data.type === 'block_start') {
-              console.log('Received block_start:', data);
-              
-              // Add workspace_id to the block_start events if not present
-              const blockStartData = {
-                ...data,
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Transform to appropriate format for the frontend
-              if (data.content_type === 'thinking') {
-                // Start a new thinking block
-                this.emit('thinking_start', blockStartData);
-              } else if (data.content_type === 'text') {
-                // Start a new text response block
-                this.emit('text_start', blockStartData);
-              }
-              
-              // Emit the original event too
-              this.emit(data.type, blockStartData);
-              this.emit('message', blockStartData);
-              
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            if (data.type === 'block_stop') {
-              console.log('Received block_stop:', data);
-              
-              // Add workspace_id to the block_stop events if not present
-              const blockStopData = {
-                ...data,
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Check for accumulated thinking stream if this is the end of a thinking block
-              const thinkingStreamId = `thinking_${this.workspaceId}`;
-              const thinkingStream = this.messageStreams.get(thinkingStreamId);
-              
-              if (thinkingStream && thinkingStream.content) {
-                // Emit a complete thinking content event
-                const completeThinkingEvent = {
-                  type: WebSocketEventType.STREAM_COMPLETE,
-                  message_id: thinkingStream.messageId || uuidv4(),
-                  content: thinkingStream.content,
-                  content_type: 'thinking',
-                  workspace_id: blockStopData.workspace_id,
-                  timestamp: new Date().toISOString()
-                };
-                
-                console.log('Emitting stream_complete for thinking:', completeThinkingEvent);
-                this.emit(WebSocketEventType.STREAM_COMPLETE, completeThinkingEvent);
-                
-                // Clear the thinking stream
-                this.messageStreams.delete(thinkingStreamId);
-              }
-              
-              // Check for accumulated text stream
-              const textStreamId = `text_${this.workspaceId}`;
-              const textStream = this.messageStreams.get(textStreamId);
-              
-              if (textStream && textStream.content) {
-                // For text streams, we wait for the complete event to emit the full text
-                console.log('Text stream exists and will be emitted on complete event');
-              }
-              
-              // Emit the block_stop event
-              this.emit(data.type, blockStopData);
-              this.emit('message', blockStopData);
-              
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            if (data.type === 'thinking') {
-              console.log('Received thinking:', data);
-              
-              // Add workspace_id to the thinking content if not present
-              const thinkingData = {
-                ...data,
-                type: WebSocketEventType.THINKING_UPDATE,
-                thinking: data.content || '',
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Accumulate the thinking content
-              const streamId = `thinking_${this.workspaceId}`;
-              const currentStream = this.messageStreams.get(streamId) || {
-                content: '',
-                workspaceId: thinkingData.workspace_id
-              };
-              currentStream.content += thinkingData.content || '';
-              
-              // Store the message ID for later use
-              if (data.message_id && !currentStream.messageId) {
-                currentStream.messageId = data.message_id;
-              }
-              
-              // Update the stream
-              this.messageStreams.set(streamId, currentStream as MessageStreamData);
-              
-              // Emit both the original thinking event and the converted update event
-              this.emit(data.type, thinkingData);
-              this.emit(WebSocketEventType.THINKING_UPDATE, thinkingData);
-              this.emit('message', thinkingData);
-              
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            if (data.type === 'text') {
-              console.log('Received text:', data);
-              
-              // Add workspace_id to the text content if not present
-              const textData = {
-                ...data,
-                type: WebSocketEventType.TEXT_UPDATE,
-                text: data.content || '',
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Accumulate the text content with proper typing
-              const streamId = `text_${this.workspaceId}`;
-              const currentStream = this.messageStreams.get(streamId) || { 
-                content: '', 
-                workspaceId: textData.workspace_id
-              };
-              
-              // Update the content
-              currentStream.content += textData.content || '';
-              
-              // Store the message ID for later use (with proper type check)
-              if (data.message_id && !currentStream.messageId) {
-                currentStream.messageId = data.message_id;
-              }
-              
-              // Update the stream with the correct type
-              this.messageStreams.set(streamId, currentStream as MessageStreamData);
-              
-              // Still emit the individual events for other listeners
-              this.emit(data.type, textData);
-              this.emit(WebSocketEventType.TEXT_UPDATE, textData);
-              this.emit('message', textData);
-              
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            if (data.type === 'complete') {
-              console.log('Received complete:', data);
-              
-              // Add workspace_id to the complete event if not present
-              const completeData = {
-                ...data,
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Get the current active text stream
-              const streamId = `text_${this.workspaceId}`;
-              const currentStream = this.messageStreams.get(streamId);
-              
-              if (currentStream && currentStream.content) {
-                // Emit a complete text content event with the accumulated content
-                const completeTextEvent = {
-                  type: WebSocketEventType.STREAM_COMPLETE,
-                  message_id: currentStream.messageId || uuidv4(),
-                  content: currentStream.content,
-                  content_type: 'text',
-                  workspace_id: completeData.workspace_id,
-                  timestamp: new Date().toISOString()
-                };
-                
-                console.log('Emitting stream_complete for text:', completeTextEvent);
-                this.emit(WebSocketEventType.STREAM_COMPLETE, completeTextEvent);
-                
-                // Clear the stream
-                this.messageStreams.delete(streamId);
-              }
-              
-              // Emit the complete event
-              this.emit(data.type, completeData);
-              this.emit('message', completeData);
-              
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            // Special handling for thinking updates - convert to regular message type
-            // This will prevent errors on the backend when it tries to handle thinking_update
-            if (data.type === WebSocketEventType.THINKING_UPDATE) {
-              // Convert to text_update for internal processing
-              const thinkingData = {
-                ...data,
-                type: WebSocketEventType.TEXT_UPDATE,
-                text: data.thinking || '',
-                role: 'thinking',
-                workspace_id: data.workspace_id || this.workspaceId || null
-              };
-              
-              // Emit both the original thinking event and the converted text event
-              this.emit(WebSocketEventType.THINKING_UPDATE, data);
-              this.emit(WebSocketEventType.TEXT_UPDATE, thinkingData);
-              this.emit('message', thinkingData);
-              
-              // Skip default emit for thinking_update since we handled it specially
-              if (data.operation_id) {
-                this.completeOperation(data.operation_id);
-              }
-              return;
-            }
-            
-            if (data.operation_id) {
-              this.completeOperation(data.operation_id);
-            }
-            
-            // Default event emission for anything we didn't handle specially
-            this.emit(data.type, data);
-            this.emit('message', data);
-          } catch (err) {
-            console.error('Error processing WebSocket message:', err);
-          }
-        };
-        
-        this.socket.onerror = (error) => {
-          const detailedError = {
-            message: 'WebSocket connection error',
-            url: authUrl.replace(/token=([^&]+)/, 'token=REDACTED'),
-            details: error,
-            timestamp: new Date().toISOString()
-          };
-          
-          // Set connection status to disconnected on error
-          this.connectionStatus = 'disconnected';
+        // Setup error handler
+        this.socket.onerror = (event) => {
+          console.error(`WebSocket error for workspace ${workspaceId}:`, event);
+          this.connectionStatus = 'error';
           this.emit('connection_status_change', { status: this.connectionStatus });
           
-          if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-            this.connectionTimeout = null;
-          }
-          
-          if (!this.isConnected) {
+          // Only reject if we're still connecting
+          if (this.connectingPromise) {
             this.connectingPromise = null;
-            reject(detailedError);
+            reject(new Error('WebSocket connection error'));
           }
         };
         
+        // Setup close handler
         this.socket.onclose = (event) => {
-          const wasConnected = this.isConnected;
+          console.log(`WebSocket closed for workspace ${workspaceId}:`, event);
           this.isConnected = false;
-          
-          // Update connection status to disconnected
           this.connectionStatus = 'disconnected';
           this.emit('connection_status_change', { status: this.connectionStatus });
           
-          this.connectingPromise = null;
-          
-          if (wasConnected) {
-            this.emit('disconnect', {
-              type: 'disconnect',
-              reason: event.reason || 'WebSocket closed',
-              code: event.code,
-              timestamp: new Date().toISOString()
-            });
+          // Only reject if we're still connecting
+          if (this.connectingPromise) {
+            this.connectingPromise = null;
+            reject(new Error('WebSocket connection closed'));
           }
           
-          // If we're forcing a reconnect, don't emit reconnect_failed
-          if (this.forcedReconnect) {
-            return;
-          }
-          
-          const cleanDisconnect = event.code === 1000 || event.code === 1001;
-          
-          if (!cleanDisconnect && wasConnected && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          // Schedule reconnect if not deliberately closed
+          if (!event.wasClean) {
             this.scheduleReconnect();
-          } else if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && !cleanDisconnect) {
-            this.emit('reconnect_failed', { 
-              type: 'reconnect_failed',
-              timestamp: new Date().toISOString(),
-              details: {
-                attempts: this.reconnectAttempts,
-                workspace_id: this.workspaceId,
-                closeEvent: {
-                  code: event.code,
-                  reason: event.reason,
-                  wasClean: event.wasClean
-                }
-              }
-            });
-            
-            this.clearAllPendingOperations();
           }
         };
       } catch (err) {
@@ -732,16 +374,12 @@ export class WebSocketService extends EventEmitter {
   }
   
   isConnectedToWorkspace(workspaceId: string): boolean {
-    if (!workspaceId || workspaceId === 'undefined' || workspaceId === 'null') {
-      return false;
-    }
-    
-    const basicCheck = this.isConnected && 
-                      this.socket?.readyState === WebSocket.OPEN;
-    
-    const workspaceMatch = this.workspaceId === workspaceId;
-    
-    return basicCheck && workspaceMatch;
+    return (
+      this.isConnected && 
+      this.workspaceId === workspaceId && 
+      this.socket?.readyState === WebSocket.OPEN &&
+      this.connectionStatus === 'connected'
+    );
   }
   
   cleanWorkspace(workspaceId: string): void {
@@ -793,6 +431,10 @@ export class WebSocketService extends EventEmitter {
         type: 'reconnect_failed',
         timestamp: new Date().toISOString()
       });
+      
+      // If we've hit the maximum number of reconnect attempts, clear processing state
+      this.forceResetOperations();
+      
       return;
     }
     
@@ -814,6 +456,11 @@ export class WebSocketService extends EventEmitter {
         this.reconnectAttempts = 0;
       } catch (error) {
         this.scheduleReconnect();
+        
+        // After repeated connection failures, reset operations
+        if (this.reconnectAttempts > 3) {
+          this.forceResetOperations();
+        }
       }
     }, delayMs);
   }
@@ -946,11 +593,30 @@ export class WebSocketService extends EventEmitter {
     const count = this.pendingOperations.size;
     this.clearAllPendingOperations();
     
+    // Reset processing state and notify clients
     this.emit('processing_status', {
       type: 'processing_status',
       is_processing: false,
       timestamp: new Date().toISOString()
     });
+    
+    // Also send an error notification for better user feedback
+    this.emit('error', {
+      type: 'error',
+      message: 'Connection lost or timeout occurred. Processing has been reset.',
+      timestamp: new Date().toISOString()
+    });
+    
+    // Send a message status update to reset UI state
+    if (this.workspaceId) {
+      this.emit('message_status', {
+        type: 'message_status',
+        workspace_id: this.workspaceId,
+        status: 'complete', // Mark as complete to reset UI state
+        message: 'Connection timeout, processing stopped',
+        timestamp: new Date().toISOString()
+      });
+    }
   }
   
   // Message queue methods
@@ -1050,15 +716,41 @@ export class WebSocketService extends EventEmitter {
    * Send a heartbeat message to check connection status
    */
   sendHeartbeat(): boolean {
-    console.log('Sending heartbeat message to server');
+    if (!this.isConnected || !this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      // Connection is not open, update status appropriately
+      this.connectionStatus = 'disconnected';
+      this.emit('connection_status_change', { status: this.connectionStatus });
+      return false;
+    }
     
+    // Send a heartbeat message to verify connection
     const heartbeatMessage = {
       type: 'heartbeat',
       workspace_id: this.workspaceId,
       timestamp: new Date().toISOString()
     };
     
-    return this.send(heartbeatMessage);
+    try {
+      this.socket.send(JSON.stringify(heartbeatMessage));
+      
+      // Update connection status to connected
+      if (this.connectionStatus !== 'connected') {
+        this.connectionStatus = 'connected';
+        this.emit('connection_status_change', { status: this.connectionStatus });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending heartbeat:', error);
+      
+      // Failed to send heartbeat, update connection status
+      this.connectionStatus = 'error';
+      this.emit('connection_status_change', { status: this.connectionStatus });
+      
+      // Try to reconnect
+      this.scheduleReconnect();
+      return false;
+    }
   }
 }
 

@@ -1,6 +1,8 @@
 import AgentWorkspace from './components/AgentWorkspace';
 import AgentLanding from './components/landing/AgentLanding';
 import { WordPressWorkspace } from './components/file-explorer';
+import WorkspaceStateProvider, { useWorkspaceState } from './context/WorkspaceStateManager';
+import StreamingResponse from './components/StreamingResponse';
 
 // Add custom scrollbar styles
 if (typeof document !== 'undefined') {
@@ -108,12 +110,13 @@ if (typeof document !== 'undefined') {
 }
 
 // Export components
-export { AgentWorkspace, AgentLanding, WordPressWorkspace };
+export { AgentWorkspace, AgentLanding, WordPressWorkspace, StreamingResponse };
 // Export WordPress components
 export * from './components/file-explorer';
 
 // Export hooks
 export { default as useFileExtractor } from './hooks/useFileExtractor';
+export { default as useStreamingResponse } from './hooks/useStreamingResponse';
 
 // Export services
 export { agentAPI } from './utils/apiService';
@@ -130,3 +133,6 @@ export * from './components/file-explorer';
 
 // Export file utils
 export * from './utils/fileUtils'; 
+
+// Export state management
+export { WorkspaceStateProvider, useWorkspaceState }; 

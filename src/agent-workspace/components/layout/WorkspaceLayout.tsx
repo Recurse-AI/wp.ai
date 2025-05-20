@@ -111,6 +111,7 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
   
   // Render the editor panel based on current layout
   const renderEditorContent = () => {
+    // Basic editor panel for editor mode or when preview is off
     if (layout === PanelLayout.Editor || !showPreview) {
       return activeFile ? (
         <AgentEditor
@@ -118,7 +119,10 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
           onChange={onFileContentChange}
         />
       ) : renderEmptyEditor();
-    } else if (layout === PanelLayout.Preview) {
+    } 
+    
+    // Pure preview mode
+    else if (layout === PanelLayout.Preview) {
       return (
         <div className="h-full bg-card flex flex-col">
           <div className="flex-grow overflow-auto">
@@ -130,7 +134,10 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
           </div>
         </div>
       );
-    } else if (layout === PanelLayout.Split && windowWidth >= tabletBreakpoint) {
+    } 
+    
+    // Split mode on desktop
+    else if (layout === PanelLayout.Split && windowWidth >= tabletBreakpoint) {
       return (
         <div className="flex h-full">
           <EditorPanel
@@ -154,7 +161,10 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
           </div>
         </div>
       );
-    } else if (layout === PanelLayout.Split && windowWidth < tabletBreakpoint) {
+    } 
+    
+    // Split mode on mobile/tablet
+    else if (layout === PanelLayout.Split && windowWidth < tabletBreakpoint) {
       // On small screens, stack editor and preview instead of side by side
       const isLandscape = typeof window !== 'undefined' && window.matchMedia && 
                          window.matchMedia('(orientation: landscape)').matches;
@@ -181,7 +191,10 @@ const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
           </div>
         </div>
       );
-    } else {
+    } 
+    
+    // Fallback to editor only
+    else {
       return activeFile ? (
         <AgentEditor
           file={activeFile}

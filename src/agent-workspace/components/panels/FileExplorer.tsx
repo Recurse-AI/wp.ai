@@ -171,7 +171,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     return processingFilePath === path || processingFilePath.startsWith(`${path}/`);
   };
 
-  // Add the useEffect here, after isFileProcessing is defined
   // Auto-expand folders when files are added or updated
   useEffect(() => {
     // Check if we have files to process
@@ -220,6 +219,159 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       }
     }
   }, [files, processingFilePath, isFileProcessing]);
+
+  // Listen for file updates from other components
+  useEffect(() => {
+    const handleFilesUpdated = (event: CustomEvent) => {
+      const { workspaceId, filesCount } = event.detail;
+      
+      console.log(`FileExplorer: Detected ${filesCount} files updated`);
+      
+      // Update parent component
+      if (onFilesChange) {
+        // Attempt to load files from localStorage
+        try {
+          const key = `workspace_files_${workspaceId}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const updatedFiles = JSON.parse(stored);
+            onFilesChange(updatedFiles);
+          }
+        } catch (error) {
+          console.error('Error loading updated files:', error);
+        }
+      }
+    };
+
+    // New handler for PROJECT_STRUCTURE events from AI responses
+    const handleProjectStructure = (event: CustomEvent) => {
+      if (!event.detail || !event.detail.structure) return;
+      
+      const structure = event.detail.structure;
+      console.log('Received project structure:', structure);
+      
+      // Build file structure from the project structure data
+      if (onFilesChange) {
+        try {
+          // Create a new files object based on existing files
+          const newFiles = { ...files };
+          
+          // Parse the structure into a hierarchical format
+          const parsedStructure = parseProjectStructure(structure);
+          
+          // Merge with existing files
+          const mergedFiles = { ...newFiles, ...parsedStructure };
+          
+          // Update files
+          onFilesChange(mergedFiles);
+          
+          // Auto-expand root folders
+          const rootFolders = Object.keys(parsedStructure);
+          const newExpandedFolders = { ...expandedFolders };
+          rootFolders.forEach(folder => {
+            newExpandedFolders[folder] = true;
+          });
+          setExpandedFolders(newExpandedFolders);
+          
+          console.log('Created file structure from project structure:', parsedStructure);
+        } catch (error) {
+          console.error('Error processing project structure:', error);
+        }
+      }
+    };
+    
+    // Function to parse project structure into file nodes
+    const parseProjectStructure = (structure: string): Record<string, FileNode> => {
+      const result: Record<string, FileNode> = {};
+      
+      // Split by lines and parse
+      const lines = structure.split('\n').filter(line => line.trim());
+      
+      // Track the current path and hierarchy
+      const pathStack: { path: string; node: Record<string, FileNode> }[] = [{ path: '', node: result }];
+      
+      lines.forEach(line => {
+        // Skip empty lines and PROJECT_STRUCTURE tags
+        if (!line.trim() || line.includes('<PROJECT_STRUCTURE>') || line.includes('</PROJECT_STRUCTURE>')) {
+          return;
+        }
+        
+        // Clean the line and determine depth
+        const trimmedLine = line.trim();
+        const indent = line.search(/\S|$/);
+        const depth = Math.floor(indent / 2);
+        
+        // Pop stack until we're at the right depth
+        while (pathStack.length > depth + 1) {
+          pathStack.pop();
+        }
+        
+        // Get the parent node
+        const parent = pathStack[pathStack.length - 1];
+        
+        // Parse the line to get the name and type
+        let name = trimmedLine;
+        let isDir = false;
+        
+        // Handle different formats that might appear in the structure
+        if (name.includes('📂')) {
+          name = name.replace('📂', '').trim();
+          isDir = true;
+        } else if (name.includes('📄')) {
+          name = name.replace('📄', '').trim();
+          isDir = false;
+        } else if (name.endsWith('/')) {
+          name = name.slice(0, -1);
+          isDir = true;
+        } else if (name.match(/^[├└]─\s/)) {
+          name = name.replace(/^[├└]─\s/, '');
+          isDir = name.endsWith('/');
+          if (isDir) name = name.slice(0, -1);
+        }
+        
+        // Create the node
+        if (isDir) {
+          parent.node[name] = {
+            type: 'folder',
+            children: {}
+          };
+          
+          // Add to stack for children
+          pathStack.push({
+            path: parent.path ? `${parent.path}/${name}` : name,
+            node: parent.node[name].children as Record<string, FileNode>
+          });
+        } else {
+          // Detect file language based on extension
+          const ext = name.split('.').pop()?.toLowerCase();
+          let language = 'text';
+          
+          if (ext === 'php') language = 'php';
+          else if (ext === 'js') language = 'javascript';
+          else if (ext === 'css') language = 'css';
+          else if (ext === 'html') language = 'html';
+          
+          parent.node[name] = {
+            type: 'file',
+            content: '',
+            language
+          };
+        }
+      });
+      
+      return result;
+    };
+
+    // Add event listeners
+    window.addEventListener('workspace_files_updated', handleFilesUpdated as EventListener);
+    window.addEventListener('project_structure_received', handleProjectStructure as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('workspace_files_updated', handleFilesUpdated as EventListener);
+      window.removeEventListener('project_structure_received', handleProjectStructure as EventListener);
+    };
+  }, [files, onFilesChange, expandedFolders]);
 
   // Count total files and folders
   const countFilesAndFolders = (fileObj: Record<string, FileNode>): { files: number, folders: number } => {
@@ -479,8 +631,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   // The isDark variable should be computed when component renders, not inside JSX
   const containerBgClass = isDark ? 'bg-gray-900 text-gray-200' : 'bg-black text-green-400';
   const headerBgClass = isDark ? 'bg-gray-800' : 'bg-gray-900';
-  const fileTreeConnectorClass = isDark ? 'bg-gray-700' : 'bg-green-900/50';
-  const emptyContentClass = isDark ? 'text-gray-500' : 'text-green-500/70';
   
   return (
     <div className={`jsx-3993940779 h-full p-2 font-mono overflow-auto ${containerBgClass}`}>

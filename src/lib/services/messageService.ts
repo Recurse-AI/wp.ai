@@ -1,5 +1,4 @@
 import { MessageOptions, MessageResponse } from '@/lib/types/messageTypes';
-import TokenManager from '@/lib/tokenManager'; 
 
 // Base message service for common functionality
 export const baseMessageService = {
