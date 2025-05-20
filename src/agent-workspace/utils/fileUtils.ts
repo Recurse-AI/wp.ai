@@ -413,22 +413,34 @@ export const messageToFileStructure = (content: string): Record<string, FileNode
 };
 
 /**
- * Save files to localStorage for a given workspace ID
+ * Save files to local storage for the workspace
  */
-export const saveFilesToLocalStorage = (
-  workspaceId: string, 
-  files: Record<string, FileNode>
-): void => {
-  if (typeof window === 'undefined') return;
-  
+export function saveFilesToLocalStorage(workspaceId: string, files: Record<string, any>) {
   try {
-    const key = `workspace-code`;
-    localStorage.setItem(key, JSON.stringify(files));
-    console.log(`Saved files to localStorage with key: ${key}`);
+    if (!workspaceId) {
+      console.error('Cannot save files: No workspace ID provided');
+      return;
+    }
+    
+    // Store files in localStorage
+    localStorage.setItem(`workspace_files_${workspaceId}`, JSON.stringify(files));
+    
+    // Dispatch a custom event to notify other components that files have been updated
+    const event = new CustomEvent('workspace_files_updated', {
+      detail: { 
+        workspaceId,
+        filesCount: Object.keys(files).length 
+      }
+    });
+    window.dispatchEvent(event);
+    
+    console.log(`Saved ${Object.keys(files).length} files to workspace ${workspaceId}`);
+    return true;
   } catch (error) {
     console.error('Error saving files to localStorage:', error);
+    return false;
   }
-};
+}
 
 /**
  * Load files from localStorage for a given workspace ID
@@ -916,6 +928,71 @@ export const extractProjectFilesFromResponse = (
   return result;
 };
 
+// Add a function to extract files from HTML-like content with FILE path markers
+
+/**
+ * Extract files from HTML-like content with FILE path markers
+ * This handles formats like:
+ * <FILE path="path/to/file.js">
+ * ```js
+ * // file content
+ * ```
+ * </FILE>
+ */
+export function extractFilesFromHTMLLike(content: string): Record<string, any> {
+  if (!content) return {};
+
+  const extractedFiles: Record<string, any> = {};
+  
+  // Regex to match <FILE path="..."> ... </FILE> blocks
+  const fileBlockRegex = /<FILE\s+path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/FILE>/gi;
+  let match;
+  
+  // Extract each file block
+  while ((match = fileBlockRegex.exec(content)) !== null) {
+    try {
+      const filePath = match[1].trim();
+      let fileContent = match[2].trim();
+      
+      // If content has code blocks, extract only the code content
+      if (fileContent.includes('```')) {
+        const codeBlockMatch = fileContent.match(/```(?:\w+)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch && codeBlockMatch[1]) {
+          fileContent = codeBlockMatch[1].trim();
+        }
+      }
+      
+      if (filePath && fileContent) {
+        // Determine file language based on extension
+        const extension = filePath.split('.').pop()?.toLowerCase() || '';
+        const language = 
+          extension === 'js' ? 'javascript' :
+          extension === 'ts' ? 'typescript' :
+          extension === 'jsx' ? 'jsx' :
+          extension === 'tsx' ? 'tsx' :
+          extension === 'css' ? 'css' :
+          extension === 'html' ? 'html' :
+          extension === 'php' ? 'php' :
+          extension === 'json' ? 'json' :
+          'text';
+        
+        // Create file node
+        extractedFiles[filePath] = {
+          type: 'file',
+          content: fileContent,
+          language
+        };
+        
+        console.log(`Extracted file from HTML-like content: ${filePath}`);
+      }
+    } catch (error) {
+      console.error('Error extracting file from HTML-like content:', error);
+    }
+  }
+  
+  return extractedFiles;
+}
+
 export default {
   extractFilesFromMessage,
   addFileToStructure,
@@ -935,5 +1012,6 @@ export default {
   extractFileTreeFromContent,
   parseDirectoryTree,
   updateFileInStructure,
-  extractProjectFilesFromResponse
+  extractProjectFilesFromResponse,
+  extractFilesFromHTMLLike
 };

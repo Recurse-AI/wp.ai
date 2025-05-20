@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download, Wifi, WifiOff, AlertTriangle, History } from 'lucide-react';
+import { Save, Upload, LayoutGrid, Columns, Monitor, Loader2, Sidebar, Eye, EyeOff, Terminal, Home, ChevronDown, HelpCircle, Bot, RefreshCw, Download, Wifi, WifiOff, AlertTriangle, History, ExternalLink, TerminalSquare, FolderOpenDot } from 'lucide-react';
 import { PanelLayout, AgentToolbarProps } from '../../types';
 import { useTheme } from '@/context/ThemeProvider';
 import Link from 'next/link';
@@ -185,9 +185,10 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
   };
 
   return (
-    <div className={`flex items-center justify-between px-2 sm:px-4 py-2 border-b ${
-      isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
+    <>
+      <div className={`flex items-center justify-between px-2 sm:px-4 py-2 border-b ${
+        isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
       {/* Workspace name and home button */}
       <div className="flex items-center space-x-2 sm:space-x-4">
         <Link href="/" className={`p-1.5 rounded ${
@@ -496,6 +497,8 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
             <span className={`ml-1 text-sm ${screenSize === 'mobile' ? 'hidden' : 'inline'}`}>History</span>
           </button>
         )}
+        
+
 
         {/* Save button - always visible but more compact on mobile */}
         <button
@@ -522,6 +525,7 @@ const AgentToolbar: React.FC<AgentToolbarProps> = ({
         }
       `}</style>
     </div>
+    </>
   );
 };
 

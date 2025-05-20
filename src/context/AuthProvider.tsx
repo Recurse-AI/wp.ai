@@ -55,14 +55,10 @@ export const useAuthContext = () => {
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   // Use the useAuth hook directly
   const auth = useAuth();
-  
+
   // Memoize the auth value to prevent unnecessary rerenders
-  const memoizedAuth = useMemo(() => auth, [
-    auth.user,
-    auth.loading,
-    auth.isAuthenticated,
-    auth.error
-  ]);
+  const memoizedAuth = useMemo(() => auth, [auth]);
+
   
   return (
     <AuthContext.Provider value={memoizedAuth}>

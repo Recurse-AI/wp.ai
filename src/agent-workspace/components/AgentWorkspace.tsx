@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {  PanelLayout, FileNode } from '../types';
 import AgentToolbar from './toolbar/AgentToolbar';
 import { useRouter } from 'next/navigation';
@@ -11,22 +11,23 @@ import { useTheme } from '@/context/ThemeProvider';
 import AgentChat from './panels/AgentChat';
 import AgentLanding from './landing/AgentLanding';
 import AgentHistoryModal from './modals/AgentHistoryModal';
-import { AGENT_SERVICES } from '../constants';
 import { saveFilesToLocalStorage } from '../utils/fileUtils';
 import FileOperationsProvider from '../context/FileOperationsContext';
 import { FileOperationsTracker } from './trackers';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { useWorkspaceOperations } from '../hooks/useWorkspaceOperations';
-import { downloadSourceCode } from '../utils/zipUtils';
 import WorkspaceLayout from './layout/WorkspaceLayout';
 import { ChatPanel } from './layout/ResizablePanels';
 import WorkspaceStyles from './layout/WorkspaceStyles';
 import { getSocketService, WebSocketEventType } from '../utils/websocketService';
+import { useWorkspaceHistory } from '../hooks/useWorkspaceHistory';
 import { v4 as uuidv4 } from 'uuid';
+import WorkspaceStateProvider from '../context/WorkspaceStateManager';
 
 interface AgentWorkspaceProps {
   preloadedService: string;
   workspaceId: string;
+  preloadedHistory?: any;
 }
 
 // Define proper types for messages and session state
@@ -47,6 +48,7 @@ interface SessionState {
 const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   preloadedService,
   workspaceId = '',
+  preloadedHistory
 }) => {
   const router = useRouter();
   const { theme } = useTheme();
@@ -60,6 +62,13 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     isProcessing: false
   });
 
+  // Initialize workspace history hook
+  const { 
+    history, 
+    loading: historyLoading, 
+    error: historyError, 
+    fetchWorkspaceHistory 
+  } = useWorkspaceHistory(workspaceId);
   
   // Initialize responsive layout hooks
   const {
@@ -77,9 +86,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     setExplorerSize,
     setEditorSize,
     setTerminalSize,
-    setShowExplorer,
-    setShowPreview,
-    setShowTerminal,
     applyLayoutChange,
     toggleExplorer,
     togglePreview,
@@ -87,14 +93,66 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     desktopBreakpoint,
     tabletBreakpoint,
     mobileBreakpoint,
-    isMobile,
-    isTablet
   } = useResponsiveLayout();
   
   // History modal state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [selectedService, setSelectedService] = useState(preloadedService || '');
 
+  // Initialize with preloaded history if available
+  useEffect(() => {
+    if (preloadedHistory?.messages?.length > 0) {
+      // Convert message format from API to our local format
+      const formattedMessages = preloadedHistory.messages.map((msg: any) => ({
+        id: msg.id,
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text,
+        timestamp: msg.timestamp
+      }));
+
+      // Update session state with the retrieved messages
+      setSessionState(prev => ({
+        ...prev,
+        messages: formattedMessages
+      }));
+
+      // Also update workspace name if available
+      if (preloadedHistory.workspace_name) {
+        setWorkspaceName(preloadedHistory.workspace_name);
+      }
+    }
+  }, [preloadedHistory]);
+
+  // Load workspace history when component mounts
+  useEffect(() => {
+    if (workspaceId) {
+      // Fetch workspace data
+      fetchWorkspaceHistory(workspaceId);
+    }
+  }, [workspaceId, fetchWorkspaceHistory]);
+
+  // Update session state with messages from history
+  useEffect(() => {
+    if (history?.messages && history.messages.length > 0) {
+      // Convert the API message format to our session state format
+      const formattedMessages = history.messages.map(msg => ({
+        id: msg.id,
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text,
+        timestamp: msg.timestamp
+      }));
+
+      // Update session state with the retrieved messages
+      setSessionState(prev => ({
+        ...prev,
+        messages: formattedMessages
+      }));
+
+      // Also update workspace name if available
+      if (history.workspace_name) {
+        setWorkspaceName(history.workspace_name);
+      }
+    }
+  }, [history]);
 
   // Send message to the websocket
   const sendMessage = useCallback(async (message: string): Promise<boolean> => {
@@ -142,7 +200,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       return false;
     }
   }, [workspaceId, socketService, setSessionState]);
-  
+
   // Reconnect to websocket
   const reconnect = useCallback(async (): Promise<boolean> => {
     if (!workspaceId) {
@@ -182,24 +240,59 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     setShowHistoryModal(prev => !prev);
   }, []);
 
-  // Run a command in the terminal
-  const handleRunCommand = useCallback(async (command: string) => {
-    // This is a placeholder - in a real app, you would have a backend service
-    // that would run the command and return the result
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network latency
-    
-    if (command.startsWith('wp ')) {
-      return `Running WordPress CLI: ${command}\nSuccess: Operation completed.`;
-    } else if (command.startsWith('git ')) {
-      return `Running Git command: ${command}\nSuccess: Git operation completed.`;
-    } else if (command.startsWith('npm ')) {
-      return `Running NPM command: ${command}\nSuccess: Package operation completed.`;
-    } else if (command.startsWith('ls')) {
-      return `index.php\nwp-config.php\nwp-content/\n  plugins/\n    hello-dolly/\n    akismet/\n  themes/\n    twentytwentythree/\n    custom-theme/`;
-    } else {
-      return `Command not recognized: ${command}\nTry 'help' for available commands.`;
-    }
+  // Create async run command handler
+  const handleRunCommand = useCallback(async (command: string): Promise<string> => {
+    // This will be handled by WorkspaceStateManager
+    return Promise.resolve(`Command executed: ${command}`);
   }, []);
+
+  // Helper function to handle file action broadcasts
+  const handleFileActionBroadcast = useCallback((data: any) => {
+    console.log('File action broadcast received:', data);
+    
+    // Handle file action based on type (create, update, delete, etc.)
+    if (data.action === 'create' || data.action === 'update') {
+      // Request file content if needed
+      if (data.path && !sessionState.files[data.path]) {
+        console.log(`Requesting content for new file: ${data.path}`);
+        // Implementation would depend on how you fetch file content
+        // This is a placeholder
+      }
+    } else if (data.action === 'delete') {
+      // Remove file from state
+      if (data.path) {
+        setSessionState(prev => {
+          const updatedFiles = {...prev.files};
+          delete updatedFiles[data.path];
+          return {
+            ...prev,
+            files: updatedFiles
+          };
+        });
+      }
+    }
+  }, [sessionState.files]);
+
+  // Helper function to send tool responses back to the server
+  const sendToolResponse = useCallback((toolId: string, response: any) => {
+    if (!workspaceId) {
+      console.error("Cannot send tool response: No workspace ID");
+      return false;
+    }
+    
+    try {
+      return socketService.send({
+        type: 'tool_response',
+        tool_id: toolId,
+        data: response,
+        workspace_id: workspaceId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error sending tool response:", error);
+      return false;
+    }
+  }, [workspaceId, socketService]);
 
   // Setup WebSocket event listeners
   useEffect(() => {
@@ -226,6 +319,13 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     // Set up message handlers for different WebSocket events
     const messageHandler = (data: any) => {
       console.log('WebSocket message received:', data);
+      
+      // Special handling for text and thinking streaming updates
+      if (data.type === 'text' || data.type === 'thinking') {
+        // Let the AgentChat component handle the streaming updates directly
+        // Don't add individual chunks to the messages array
+        return;
+      }
       
       // Handle new_message type explicitly - this is how the backend responds to query_agent
       if (data.type === 'new_message') {
@@ -539,302 +639,116 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           break;
           
         default:
-          console.warn(`Unhandled tool request: ${data.tool_name}`);
+          console.warn(`Unknown tool request: ${data.tool_name}`);
           sendToolResponse(data.tool_id, {
-            error: `Tool not implemented: ${data.tool_name}`
+            error: `Unsupported tool: ${data.tool_name}`
           });
       }
     };
     
-    // Helper function to send tool response back to the server
-    const sendToolResponse = (toolId: string, result: any) => {
-      socketService.sendToolResponse(toolId, result);
-    };
-    
-    // Handle file action broadcasts
-    const handleFileActionBroadcast = (data: any) => {
-      console.log('File action broadcast received:', data);
-      
-      const actionType = data.action_type;
-      const path = data.path;
-      
-      if (!path) return;
-      
-      switch (actionType) {
-        case 'create':
-        case 'update':
-          // Request file content if we don't have it
-          socketService.send({
-            type: 'request_file_content',
-            workspace_id: workspaceId,
-            path: path,
-            timestamp: new Date().toISOString()
-          });
-          break;
-          
-        case 'delete':
-          // Remove file from our state
-          setSessionState(prev => {
-            const updatedFiles = {...prev.files};
-            delete updatedFiles[path];
-            return {
-              ...prev,
-              files: updatedFiles
-            };
-          });
-          break;
-      }
-    };
-
-    // Register event listeners
+    // Subscribe to socket events
     socketService.on('message', messageHandler);
     
-    // Connect to the workspace if not already connected
-    if (!socketService.isConnectedToWorkspace(workspaceId)) {
-      console.log(`Connecting to workspace ${workspaceId} on component mount`);
-      socketService.connect(workspaceId)
-        .then(() => {
-          console.log('Successfully connected to workspace, sending heartbeat');
-          // Send a heartbeat to ensure the connection is active
-          socketService.sendHeartbeat();
-        })
-        .catch(console.error);
-    } else {
-      // Connection already exists, send heartbeat to ensure it's still active
-      socketService.sendHeartbeat();
-    }
-    
-    // Clean up event listeners when component unmounts
+    // Clean up on unmount
     return () => {
-      socketService.removeListener('message', messageHandler);
+      socketService.off('message', messageHandler);
     };
-  }, [workspaceId, socketService, sessionState.files]);
+  }, [workspaceId, sessionState.files, sendToolResponse, handleFileActionBroadcast, socketService]);
 
-  // Initialize workspace from service if provided
-  useEffect(() => {
-    if (preloadedService && !workspaceId) {
-      // Find the corresponding service in AGENT_SERVICES
-      const service = AGENT_SERVICES.find(s => 
-        s.id.toLowerCase() === preloadedService.toLowerCase() || 
-        s.title.toLowerCase().includes(preloadedService.toLowerCase())
-      );
-      
-      if (service) {
-        setWorkspaceName(`${service.title} Project`);
-      } else {
-        // Default service message if no match found
-        setWorkspaceName(`${preloadedService} Project`);
-      }
-    }
-  }, [preloadedService, workspaceId]);
-  
-
-
-  // Handle chat panel resize with proper types
-  const handleChatResize = useCallback((direction: string, delta: { width: number; height: number }, elementRef: HTMLElement) => {
-    if (windowWidth < desktopBreakpoint) {
-      // Handle vertical resize on mobile/tablet
-      const containerHeight = elementRef.parentElement?.clientHeight || 0;
-      if (containerHeight > 0) {
-        const newHeight = 50 + (delta.height / containerHeight * 100);
-        const clampedHeight = Math.max(30, Math.min(70, newHeight));
-        // Save mobile height
-        localStorage.setItem('wp-agent-chat-height-mobile', clampedHeight.toString());
-      }
-    } else {
-      // Handle horizontal resize on desktop
-      const parentWidth = elementRef.parentElement?.clientWidth || windowWidth;
-      if (parentWidth > 0) {
-        // For left side panel, the width increases directly with delta.width
-        const newWidth = chatSize + (delta.width / parentWidth * 100);
-        const clampedWidth = Math.max(20, Math.min(50, newWidth));
-        setChatSize(clampedWidth);
-        // Save immediately
-        localStorage.setItem('wp-agent-chat-size', clampedWidth.toString());
-      }
-    }
-  }, [chatSize, windowWidth, desktopBreakpoint, setChatSize]);
-
-  // Set up event listener for download source code
-  useEffect(() => {
-    const handleDownloadEvent = () => {
-      // downloadSourceCode(sessionState.files, workspaceName);
-    };
-    
-    const handleReconnectEvent = () => {
-      socketService.connect(workspaceId).catch(console.error);
-    };
-    
-    const handleResetProcessingEvent = () => {
-      resetProcessingState();
-    };
-    
-    document.addEventListener('download-source-code', handleDownloadEvent);
-    document.addEventListener('reconnect-agent', handleReconnectEvent);
-    document.addEventListener('reset-processing', handleResetProcessingEvent);
-    
-    return () => {
-      document.removeEventListener('download-source-code', handleDownloadEvent);
-      document.removeEventListener('reconnect-agent', handleReconnectEvent);
-      document.removeEventListener('reset-processing', handleResetProcessingEvent);
-    };
-  }, [workspaceName, resetProcessingState, socketService, workspaceId]);
-
-  // Handle orientation change
-  useEffect(() => {
-    const handleOrientationChange = () => {
-      // Force a layout update when orientation changes
-      setTimeout(() => {
-        // Re-apply current layout to trigger resizing logic
-        applyLayoutChange(layout);
-        
-        // On rotation to landscape, may want to enable more panels
-        if (window.innerWidth > window.innerHeight && !showExplorer) {
-          // Consider showing explorer when rotating to landscape
-          if (window.innerWidth >= tabletBreakpoint) {
-            setShowExplorer(true);
-          }
-        }
-      }, 150); // Give browser time to complete the rotation
-    };
-    
-    window.addEventListener('orientationchange', handleOrientationChange);
-    return () => window.removeEventListener('orientationchange', handleOrientationChange);
-  }, [applyLayoutChange, layout, showExplorer, setShowExplorer, tabletBreakpoint]);
-
-  // Render workspace based on screen size
-  const renderWorkspace = () => {
-    // Make sure connectionStatus is never undefined
-    const connectionStatus = socketService.getConnectionStatus() || 'connecting';
-    
-    return (
-      <FileOperationsProvider>
-        <div className={`flex flex-col h-full w-full overflow-hidden ${
-          isDark ? 'bg-gray-900' : 'bg-white'
-          }`}>
-          
-          {/* Add FileOperationTracker for monitoring operations */}
-          <FileOperationsTracker files={sessionState.files} />
-          
-          {/* Toolbar */}
-          <AgentToolbar
+  // Render the component
+  return (
+    <FileOperationsProvider>
+      <WorkspaceStateProvider>
+        <WorkspaceStyles />
+        <div className="flex flex-col h-screen overflow-hidden">
+          <AgentToolbar 
             workspaceName={workspaceName}
-            layout={layout}
-            onLayoutChange={applyLayoutChange}
-            isProcessing={false}
             onSaveWorkspace={handleSaveWorkspace}
+            onToggleHistory={toggleHistory}
+            layout={layout as PanelLayout}
+            onLayoutChange={applyLayoutChange}
             onToggleExplorer={toggleExplorer}
             onTogglePreview={togglePreview}
             onToggleTerminal={toggleTerminal}
-            onToggleHistory={toggleHistory}
+            isProcessing={false} // Will be read from WorkspaceStateManager in the component
             showExplorer={showExplorer}
             showPreview={showPreview}
             showTerminal={showTerminal}
-            connectionStatus={connectionStatus}
+            connectionStatus="connected"
           />
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col lg:flex-row h-[calc(100%-48px)] overflow-hidden relative">
-            {/* Main layout with panels */}
-            <div className={`flex-1 flex ${
-              windowWidth >= desktopBreakpoint ? 'flex-row' : 'flex-col'
-            } h-full`}>
-              
-              {/* Chat panel - always render it but conditionally style/position */}
+          
+          <div className="flex-grow overflow-hidden">
+            {/* We'll replace the check for messages.length with a LandingScreen component */}
+            <div className="flex h-full">
+              {/* Chat Panel */}
               <ChatPanel
                 screenMode={screenMode}
                 windowWidth={windowWidth}
                 desktopBreakpoint={desktopBreakpoint}
                 chatSize={chatSize}
-                onChatResize={handleChatResize}
+                onChatResize={(direction, delta, elementRef) => {
+                  const parentWidth = elementRef.parentElement?.clientWidth || windowWidth;
+                  if (parentWidth > 0) {
+                    const newWidth = chatSize + (delta.width / parentWidth * 100);
+                    const clampedWidth = Math.max(20, Math.min(50, newWidth));
+                    setChatSize(clampedWidth);
+                  }
+                }}
                 isDark={isDark}
               >
-                <AgentChat
-                  sessionState={sessionState}
-                  onSendMessage={handleSendMessage}
-                  processingFilePath={undefined}
+                <AgentChat 
                   hideCodeInMessages={true}
-                  setSessionState={setSessionState}
+                  processingFilePath={undefined}
                 />
               </ChatPanel>
-            
-              {/* Workspace layout - resizable panels */}
-              <div className="flex-1 flex flex-col h-full overflow-hidden">
+              
+              {/* Main Workspace */}
+              <div className="flex-1 h-full">
                 <WorkspaceLayout
                   screenMode={screenMode}
                   windowWidth={windowWidth}
-                  layout={layout}
+                  layout={layout as PanelLayout}
                   showExplorer={showExplorer}
                   showPreview={showPreview}
                   showTerminal={showTerminal}
                   isDark={isDark}
-                  chatSize={chatSize}
                   explorerSize={explorerSize}
                   editorSize={editorSize}
                   terminalSize={terminalSize}
-                  setChatSize={setChatSize}
+                  chatSize={chatSize}
                   setExplorerSize={setExplorerSize}
                   setEditorSize={setEditorSize}
                   setTerminalSize={setTerminalSize}
+                  setChatSize={setChatSize}
                   onFileSelect={() => {}}
                   onFileContentChange={() => {}}
                   onFilesChange={() => {}}
                   onRunCommand={handleRunCommand}
                   onToggleTerminal={toggleTerminal}
-                  activeFile={sessionState.activeFile || undefined}
-                  files={sessionState.files}
-                  currentService={selectedService}
-                  processingFilePath={undefined}
+                  files={{}}  // Files will be managed by WorkspaceStateManager
+                  activeFile={undefined} // ActiveFile will be managed by WorkspaceStateManager
                   desktopBreakpoint={desktopBreakpoint}
                   tabletBreakpoint={tabletBreakpoint}
                   mobileBreakpoint={mobileBreakpoint}
                 />
               </div>
-              
-              {/* Mobile/tablet chat panel at bottom - remove conditional rendering for hydration consistency */}
-              <div className="w-full border-t border-gray-200 dark:border-gray-700 lg:hidden flex-shrink-0" 
-                   style={{ 
-                     maxHeight: '45%', 
-                     minHeight: '300px',
-                     display: windowWidth < desktopBreakpoint ? 'block' : 'none' 
-                   }}>
-                <AgentChat
-                  sessionState={sessionState}
-                  onSendMessage={handleSendMessage}
-                  processingFilePath={undefined}
-                  hideCodeInMessages={true}
-                />
-              </div>
             </div>
           </div>
           
-          {/* History modal */}
           {showHistoryModal && (
             <AgentHistoryModal
               isOpen={showHistoryModal}
               onClose={toggleHistory}
-              sessionId={workspaceId}
+              activeWorkspaceId={workspaceId}
             />
           )}
           
-          {/* Add global CSS for responsive workspace */}
-          <WorkspaceStyles />
+          {/* Pass empty object for files since they'll be handled by the WorkspaceStateManager */}
+          <FileOperationsTracker files={{}} />
         </div>
-      </FileOperationsProvider>
-    );
-  };
-  
-  if (!workspaceId) {
-    return (
-      <div className="flex-1 h-full">
-        <AgentLanding
-          onFirstPrompt={handleFirstPrompt}
-        />
-      </div>
-    );
-  }
-  
-  return renderWorkspace();
+      </WorkspaceStateProvider>
+    </FileOperationsProvider>
+  );
 };
 
 export default AgentWorkspace; 

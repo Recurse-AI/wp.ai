@@ -1,251 +1,147 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { User, Bot, Code, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '@/context/ThemeProvider';
 import { formatDistanceToNow } from 'date-fns';
-import MessageContent from './MessageContent';
-
-// Define the correct types locally instead of importing from a file with different definitions
-interface AgentMessage {
-  id?: string;
-  role: string;
-  content: string;
-  timestamp: Date | string;
-  codeBlocks?: any[];
-  thinking?: string | null;
-  status?: string;
-}
-
-interface CodeBlock {
-  language: string;
-  code: string;
-}
+import { Bot } from 'lucide-react';
+import { useWorkspaceState } from '../../context/WorkspaceStateManager';
+import MessageContent from '../message/MessageContent';
 
 interface ScrollableMessageContainerProps {
-  messages: AgentMessage[];
-  isDark: boolean;
-  isMobile?: boolean;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
-  emptyStateExample?: string;   
-  onExampleClick?: (example: string) => void;
+  emptyStateExample?: string;
+  onExampleClick?: (exampleText: string) => void;
   maxHeight?: string;
-  currentResponse?: string | null;
-  isTyping?: boolean;
-  currentThinking?: string | null;
-  processingIndicator?: string | null;
-  className?: string;
   hideCodeInMessages?: boolean;
+  className?: string;
+  processingIndicator?: string | null;
+  isMobile?: boolean;
 }
 
-const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
-  messages,
-  isDark,
-  isMobile = false,
+export const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
   emptyStateTitle = 'WordPress AI Assistant',
-  emptyStateDescription = 'I can help you build, customize, and debug WordPress plugins and themes. Ask me anything about WordPress development!',
-  emptyStateExample,
+  emptyStateDescription = 'I can help you build, customize, and debug WordPress plugins and themes.',
+  emptyStateExample = 'Create a contact form plugin for WordPress',
   onExampleClick,
-  maxHeight = '100%',
-  currentResponse = null,
-  isTyping = false,
-  currentThinking = null,
-  processingIndicator = null,
-  className,
+  maxHeight = 'calc(100vh - 160px)',
   hideCodeInMessages = false,
+  className = '',
+  processingIndicator = null,
+  isMobile = false,
 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [userScroll, setUserScroll] = useState(false);
-  const [justScrolled, setJustScrolled] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const [expandedThinkingIds, setExpandedThinkingIds] = useState<Record<string, boolean>>({});
   
-  // Filter out system messages for display
-  const displayMessages = messages.filter(msg => msg.role !== 'system');
-  
-  // Identify error messages separately
-  const errorMessages = displayMessages.filter(msg => msg.role === 'error');
-  const nonErrorMessages = displayMessages.filter(msg => msg.role !== 'error');
-  
-  // Force scroll to bottom
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
-    }
-    
-    // Get the messages container (the div with overflow-y-auto)
-    if (containerRef.current) {
-      const messagesContainer = containerRef.current.querySelector('.overflow-y-auto');
-      if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }
-    }
-  };
+  // Get the workspace state from context
+  const { state } = useWorkspaceState();
+  const { messages, streaming, thinking } = state;
 
-  // Handle scroll events to detect manual scrolling
+  // Handle auto-scrolling when new messages arrive
+  useEffect(() => {
+    if (autoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, streaming.content, autoScroll]);
+
+  // Handle scroll events to determine auto-scroll state
   const handleScroll = () => {
-    if (justScrolled) return;
+    if (!containerRef.current) return;
     
-    if (containerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      // Using a smaller threshold of 20 pixels to ensure we detect when very close to bottom
-      const isNearBottom = scrollHeight - scrollTop - clientHeight <= 20;
-      setUserScroll(!isNearBottom);
-    }
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const atBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 100;
+    setAutoScroll(atBottom);
   };
 
-  // Auto-scroll on message changes or streaming content
-  useEffect(() => {
-    // Add a slight delay to ensure DOM has updated
-    const scrollTimer = setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-    
-    return () => clearTimeout(scrollTimer);
-  }, [messages.length, currentResponse, currentThinking]);
-
-  // Reset the justScrolled flag after a delay
-  useEffect(() => {
-    if (justScrolled) {
-      const timer = setTimeout(() => setJustScrolled(false), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [justScrolled]);
-
-  // Listen for the thinking-completed event
-  useEffect(() => {
-    const handleThinkingCompleted = (event: CustomEvent) => {
-      const { messageId } = event.detail;
-      
-      if (messageId && expandedThinkingIds[messageId]) {
-        // Keep thinking expanded instead of auto-collapsing
-        // Remove this auto-collapse behavior to fix the issue
-      }
-    };
-    
-    // Add event listener
-    window.addEventListener('thinking-completed', handleThinkingCompleted as EventListener);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('thinking-completed', handleThinkingCompleted as EventListener);
-    };
-  }, [expandedThinkingIds]);
-
-  // Group messages into conversation pairs
-  const groupConversations = () => {
-    const groups: { user: AgentMessage, ai: AgentMessage | null, isLatest: boolean }[] = [];
-    const standaloneAiMessages: AgentMessage[] = [];
-    
-    // First collect any standalone AI messages (not following a user message)
-    for (let i = 0; i < nonErrorMessages.length; i++) {
-      // Add any leading assistant messages as standalone
-      if (i === 0 && nonErrorMessages[i].role === 'assistant') {
-        standaloneAiMessages.push(nonErrorMessages[i]);
-        continue;
-      }
-      
-      // If we find an assistant message that doesn't follow a user message
-      if (nonErrorMessages[i].role === 'assistant' && 
-          (i === 0 || nonErrorMessages[i-1].role !== 'user')) {
-        standaloneAiMessages.push(nonErrorMessages[i]);
-      }
-    }
-    
-    // Then create conversation pairs
-    for (let i = 0; i < nonErrorMessages.length; i++) {
-      if (nonErrorMessages[i].role === 'user') {
-        // Find AI response that follows
-        const aiResponse = (i + 1 < nonErrorMessages.length && nonErrorMessages[i + 1].role === 'assistant') 
-          ? nonErrorMessages[i + 1] 
-          : null;
-        
-        // Check if this is the latest conversation
-        const isLatest = i === nonErrorMessages.length - 1 || 
-                        (aiResponse !== null && i + 1 === nonErrorMessages.length - 1);
-        
-        // If this is the latest message and we have currentThinking, add it to the AI response
-        if (isLatest && aiResponse && currentThinking) {
-          aiResponse.thinking = currentThinking;
-        }
-        
-        groups.push({
-          user: nonErrorMessages[i],
-          ai: aiResponse,
-          isLatest
-        });
-        
-        // Skip the AI message in next iteration if it exists
-        if (aiResponse) i++;
-      }
-    }
-    
-    console.log('Message grouping:', { 
-      groups: groups.length,
-      standalone: standaloneAiMessages.length,
-      total: nonErrorMessages.length
-    });
-    
-    return { groups, standaloneAiMessages };
-  };
-
-  const { groups: conversationGroups, standaloneAiMessages } = groupConversations();
-  const hasCurrentResponse = currentResponse !== null && 
-                         messages.length > 0 && 
-                         messages[messages.length - 1].role === 'user';
-
-  // Toggle thinking section expansion
-  const toggleThinkingExpansion = (id: string) => {
+  // Toggle thinking content expansion
+  const toggleThinkingExpansion = (messageId: string) => {
     setExpandedThinkingIds(prev => ({
       ...prev,
-      [id]: !prev[id]
+      [messageId]: !prev[messageId]
     }));
-    
-    // After toggling, ensure scrolling is updated
-    setTimeout(() => {
-      if (containerRef.current) {
-        const expandedThinking = containerRef.current.querySelector(`[data-thinking-id="${id}"][data-thinking-expanded="true"]`);
-        if (expandedThinking) {
-          expandedThinking.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }
-    }, 100);
   };
 
-  // Render thinking block
-  const renderThinking = (messageId: string | undefined, thinking: string | null, isExpanded: boolean) => {
-    if (!thinking || !messageId) return null;
-    
+  // Render thinking content
+  const renderThinking = (messageId: string, content: string, isExpanded: boolean) => {
     return (
-      <div 
-        key={`thinking-${messageId}`}
-        data-thinking-id={messageId} 
-        data-thinking-expanded={isExpanded}
-        className={`mt-2 rounded-md overflow-hidden bg-opacity-60 transition-all duration-200 ${
-          isDark ? 'bg-gray-800' : 'bg-gray-900/50 text-emerald-300'
-        }`}
-      >
-        <div className="flex items-center gap-1 p-1.5 cursor-pointer" onClick={() => toggleThinkingExpansion(messageId)}>
-          {isExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-          <Zap className="h-3.5 w-3.5 mr-1" />
-          <span className="text-xs">Thinking</span>
+      <div className={`mt-2 mb-4 ${isDark ? 'text-gray-400' : 'text-green-300'}`}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleThinkingExpansion(messageId)}>
+          <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+            isDark ? 'bg-gray-700' : 'bg-green-900'
+          }`}>
+            <span className="text-xs">💭</span>
+          </div>
+          <span className="text-xs font-medium">Thinking Process</span>
+          <span className="text-xs">{isExpanded ? '▼' : '►'}</span>
         </div>
         
         {isExpanded && (
-          <div className={`p-2 ${isDark ? 'bg-gray-800' : 'bg-gray-900'} text-xs`}>
-            <pre className="whitespace-pre-wrap font-mono">
-              {thinking}
-            </pre>
+          <div className={`mt-2 p-2 rounded text-xs font-mono overflow-auto max-h-48 ${
+            isDark ? 'bg-gray-850 text-gray-300' : 'bg-gray-900 text-green-300'
+          } custom-scrollbar-improved`}>
+            <pre className="whitespace-pre-wrap break-words">{content}</pre>
           </div>
         )}
       </div>
     );
   };
 
+  // Group messages into conversation pairs
+  const groupMessages = () => {
+    // Filter out standalone AI messages (those without a preceding user message)
+    const standaloneAiMessages = messages.filter((msg, index, arr) => {
+      if (msg.sender !== 'assistant') return false;
+      
+      // Check if there's a user message before this one
+      const prevIndex = index - 1;
+      return prevIndex < 0 || arr[prevIndex].sender !== 'user';
+    });
+    
+    // Create conversation groups (user message + AI response)
+    const groups: { 
+      user: typeof messages[0], 
+      ai?: typeof messages[0], 
+      isLatest: boolean 
+    }[] = [];
+    
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      
+      // Skip standalone AI messages as they're handled separately
+      if (msg.sender === 'assistant' && (i === 0 || messages[i-1].sender !== 'user')) {
+        continue;
+      }
+      
+      // For user messages, try to pair with following AI response
+      if (msg.sender === 'user') {
+        const nextMsg = i < messages.length - 1 && messages[i+1].sender === 'assistant' 
+          ? messages[i+1] 
+          : undefined;
+          
+        // Add the conversation group
+        groups.push({
+          user: msg,
+          ai: nextMsg,
+          isLatest: i === messages.length - 1 || 
+                   (i === messages.length - 2 && messages[i+1].sender === 'assistant')
+        });
+        
+        // Skip the next message if it was an AI response we just paired
+        if (nextMsg) i++;
+      }
+    }
+    
+    return { standaloneAiMessages, conversationGroups: groups };
+  };
+  
+  const { standaloneAiMessages, conversationGroups } = groupMessages();
+
   // Render standalone AI message
-  const renderAiMessage = (message: AgentMessage, isStandalone = false) => {
+  const renderAiMessage = (message: any, isStandalone = false) => {
     return (
       <div className="flex justify-start">
         <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
@@ -338,7 +234,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
           )}
         </div>
       ) : (
-        <div className={`space-y-6 pb-4 overflow-y-auto h-full ${
+        <div className={`space-y-6 pb-4 overflow-y-auto h-full custom-scrollbar-improved ${
           isDark ? 'bg-gray-900' : 'bg-black'
         }`}>
           {/* Render standalone AI messages first */}
@@ -366,39 +262,14 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                       ? 'bg-blue-900/50 text-white'
                       : 'bg-blue-900/50 text-white'
                   } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
-                    {/* Terminal-style header */}
-                    <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
-                      isDark ? 'text-blue-200' : 'text-blue-100'
-                    }`}>
-                      {isDark ? '┌─' : '┌─'} User Message
-                    </div>
-                    
-                    {/* Message header */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center bg-blue-700`}>
-                        <User className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <span className="text-xs font-medium">You</span>
-                      <span className="text-xs opacity-70 ml-auto">
-                        {formatDistanceToNow(new Date(group.user.timestamp instanceof Date ? group.user.timestamp : new Date(group.user.timestamp)), { addSuffix: true })}
-                      </span>
-                    </div>
-                    
-                    {/* Message content */}
-                    <div className={`prose prose-sm max-w-none overflow-hidden prose-invert ${isMobile ? 'text-sm leading-snug' : ''}`}>
+                    {/* Content for user message */}
+                    <div className="prose prose-sm max-w-none overflow-hidden prose-invert">
                       <MessageContent 
                         content={group.user.content}
                         isComplete={true}
                         containerRef={containerRef}
                         hideCodeInMessages={hideCodeInMessages}
                       />
-                    </div>
-                    
-                    {/* Terminal-style footer */}
-                    <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
-                      isDark ? 'text-blue-200' : 'text-blue-100'
-                    }`}>
-                      {isDark ? '└─' : '└─'} End of message
                     </div>
                   </div>
                 </div>
@@ -407,22 +278,20 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                 {group.ai ? (
                   renderAiMessage(group.ai)
                 ) : (
-                  // Show streaming AI response if this is the latest conversation and we have text to stream
-                  group.isLatest && hasCurrentResponse && (
-                    <div className="flex justify-start mt-4">
+                  group.isLatest && streaming.isStreaming && (
+                    <div className="flex justify-start mt-4 streaming-response-container">
+                      {/* Streaming response content */}
                       <div className={`max-w-[95%] sm:max-w-[85%] message-appear ${
                         isDark
                           ? 'bg-gray-800/50 text-gray-200'
                           : 'bg-gray-900/80 text-green-400'
-                      } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
-                        {/* Terminal-style header */}
+                      } rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words live-response-box`}>
                         <div className={`flex items-center gap-1.5 sm:gap-2 mb-1 text-xs ${
                           isDark ? 'text-gray-400' : 'text-green-500'
                         }`}>
                           {isDark ? '┌─' : '┌─'} Live Response
                         </div>
                         
-                        {/* Message header */}
                         <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
                             isDark ? 'bg-gray-700' : 'bg-green-900'
@@ -430,42 +299,24 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
                             <Bot className={`w-3.5 h-3.5 ${isDark ? '' : 'text-green-400'}`} />
                           </div>
                           <span className="text-xs font-medium">WordPress Assistant</span>
-                          <span className="text-xs opacity-70 ml-auto">
-                            {formatDistanceToNow(new Date(), { addSuffix: true })}
+                          <span className={`text-xs ml-auto flex items-center gap-1 ${
+                            isDark ? 'text-blue-400' : 'text-green-400'
+                          } animate-pulse`}>
+                            <span className="w-2 h-2 bg-current rounded-full"></span>
+                            Typing...
                           </span>
                         </div>
-
-                        {/* Show loader for streaming response inside the container */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`}></div>
-                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`} style={{ animationDelay: '0.2s' }}></div>
-                          <div className={`w-2 h-2 ${isDark ? 'bg-blue-500' : 'bg-green-500'} rounded-full animate-pulse`} style={{ animationDelay: '0.4s' }}></div>
-                          <span className={`text-xs ${isDark ? 'text-blue-500' : 'text-green-500'} font-medium`}>Generating response...</span>
-                        </div>
                         
-                        {/* Display thinking content if available for streaming response */}
-                        {isTyping && 
-                         renderThinking('streaming', currentThinking, expandedThinkingIds['streaming'] || false)
-                        }
-                        
-                        {/* Message content */}
                         <div className={`prose prose-sm max-w-none overflow-hidden ${
                           isDark ? 'prose-invert' : 'prose-green'
-                        } ${isMobile ? 'text-sm leading-snug' : ''}`}>
+                        } streaming-content`}>
                           <MessageContent 
-                            content={currentResponse || ''}
+                            content={streaming.content}
                             isStreaming={true}
                             isComplete={false}
                             containerRef={containerRef}
                             hideCodeInMessages={hideCodeInMessages}
                           />
-                        </div>
-                        
-                        {/* Streaming indicator as footer */}
-                        <div className={`flex items-center gap-1.5 sm:gap-2 mt-1 text-xs ${
-                          isDark ? 'text-gray-400' : 'text-green-500'
-                        }`}>
-                          {isDark ? '└─' : '└─'} <span className="terminal-cursor">Typing</span>
                         </div>
                       </div>
                     </div>
@@ -475,46 +326,7 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
             </div>
           ))}
           
-          {/* Render error messages */}
-          {errorMessages.map((errorMsg) => (
-            <div key={`error-${errorMsg.id || errorMsg.timestamp}`} className="flex justify-start mt-4">
-              <div className={`max-w-[95%] sm:max-w-[85%] message-appear 
-                bg-red-900/80 text-white rounded-md p-3 sm:p-4 shadow-sm overflow-hidden break-words`}>
-                {/* Terminal-style header */}
-                <div className="flex items-center gap-1.5 sm:gap-2 mb-1 text-xs text-red-300">
-                  {isDark ? '┌─' : '┌─'} Error Message
-                </div>
-                
-                {/* Message header */}
-                <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center bg-red-800">
-                    <Zap className="w-3.5 h-3.5 text-red-200" />
-                  </div>
-                  <span className="text-xs font-medium">System Error</span>
-                  <span className="text-xs opacity-70 ml-auto">
-                    {formatDistanceToNow(new Date(errorMsg.timestamp instanceof Date ? errorMsg.timestamp : new Date(errorMsg.timestamp)), { addSuffix: true })}
-                  </span>
-                </div>
-                
-                {/* Error content */}
-                <div className="prose prose-sm max-w-none overflow-hidden prose-invert text-red-100">
-                  <MessageContent 
-                    content={errorMsg.content}
-                    isComplete={true}
-                    containerRef={containerRef}
-                    hideCodeInMessages={false}
-                  />
-                </div>
-                
-                {/* Terminal-style footer */}
-                <div className="flex items-center gap-1.5 sm:gap-2 mt-1 text-xs text-red-300">
-                  {isDark ? '└─' : '└─'} End of error
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          <div ref={messagesEndRef} className="h-4 mt-4 clear-both" /> {/* Extra space to ensure scrolling works properly */}
+          <div ref={messagesEndRef} className="h-4 mt-4 clear-both" />
         </div>
       )}
       
@@ -523,68 +335,59 @@ const ScrollableMessageContainer: React.FC<ScrollableMessageContainerProps> = ({
           display: flex;
           flex-direction: column;
           width: 100%;
-          background-color: transparent;
           padding: 5px 10px;
-          border-radius: 0;
           margin-bottom: 10px;
         }
         
-        .block-content {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          height: 100%;
-          justify-content: flex-start;
+        .streaming-response-container {
+          position: relative;
+          animation: fadeInResponse 0.3s ease-out;
         }
         
-        .completed-block {
-          min-height: auto;
-          height: auto;
+        .live-response-box {
+          border-left: 3px solid ${isDark ? '#3b82f6' : '#10b981'};
+          position: relative;
         }
         
-        .current-block {
-          /* Reduced min-height to prevent scrolling issues */
-          min-height: auto;
-          display: flex;
-          flex-direction: column;
+        @keyframes fadeInResponse {
+          from { opacity: 0.6; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         
-        .current-block .block-content {
-          align-items: stretch;
-          justify-content: flex-start;
-        }
-        
-        /* Fix for expanded thinking process to ensure it shows full content */
-        .thinking-expanded {
-          max-height: 10000px !important; /* Very large value to ensure all content is shown */
-          overflow-y: auto !important;
-          height: auto !important;
-          transition: max-height 0.5s ease-in-out;
-        }
-        
-        .thinking-collapsed {
-          transition: max-height 0.3s ease-in-out;
-        }
-        
-        /* Terminal cursor blink */
-        @keyframes cursor-blink {
+        @keyframes pulse-subtle {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
+          50% { opacity: 0.9; }
         }
         
-        .terminal-cursor::after {
-          content: '';
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s ease-in-out infinite;
+        }
+        
+        .streaming-content {
+          position: relative;
+        }
+        
+        /* Improved scrollbar */
+        .custom-scrollbar-improved::-webkit-scrollbar {
           width: 6px;
-          height: 14px;
-          background: ${isDark ? '#93c5fd' : '#4ade80'};
-          display: inline-block;
-          animation: cursor-blink 1.2s infinite;
-          margin-left: 4px;
-          vertical-align: middle;
+          height: 6px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-thumb {
+          background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,128,0,0.3)'};
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar-improved::-webkit-scrollbar-thumb:hover {
+          background: ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,128,0,0.5)'};
         }
       `}</style>
     </div>
   );
 };
-
-export default ScrollableMessageContainer; 
