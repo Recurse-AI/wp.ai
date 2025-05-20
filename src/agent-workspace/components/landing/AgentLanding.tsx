@@ -53,23 +53,23 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
   };
 
   return (
-    <div className={`flex flex-col h-screen min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-8">
+    <div className={`flex flex-col h-screen min-h-screen overflow-hidden ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="flex-1 overflow-y-auto no-scrollbar py-4">
         <div className="max-w-4xl mx-auto px-4 flex flex-col h-full">
-          <div className="text-center mb-14 pt-4">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">Welcome to WP.AI Workspace</h1>
-            <p className="text-xl font-medium text-gray-700 dark:text-gray-200 mt-3">Your intelligent WordPress development assistant</p>
+          <div className="text-center mb-8 pt-2">
+            <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">Welcome to WP.AI Workspace</h1>
+            <p className="text-xl font-medium text-gray-700 dark:text-gray-200 mt-2">Your intelligent WordPress development assistant</p>
           </div>
 
           {/* Services Section - Horizontally Scrollable */}
-          <div className="mb-10">
+          <div className="mb-6">
             <h2 className="text-xl font-semibold mb-5 flex items-center">
               <span className="mr-2">🚀</span>
               Choose a Task Type
               <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(Optional - helps provide context)</span>
             </h2>
             
-            <div className="overflow-x-auto py-2 custom-scrollbar-x">
+            <div className="overflow-x-auto py-2 no-scrollbar">
               <div className="flex space-x-4 pb-1">
                 {AGENT_SERVICES.map((service) => {
                   // Dynamically create the icon element
@@ -104,7 +104,7 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
           </div>
 
           {/* Input Form */}
-          <form onSubmit={handleSubmit} className="mb-10">
+          <form onSubmit={handleSubmit} className="mb-6">
             <div>
               <label htmlFor="prompt" className="block text-xl font-medium mb-2 flex items-center">
                 <span className="mr-2">💬</span>
@@ -136,7 +136,7 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
               
                   
               
-              <div className={`mt-6 flex ${selectedService ? 'justify-between' : 'justify-end'} items-center`}>
+              <div className={`mt-4 flex ${selectedService ? 'justify-between' : 'justify-end'} items-center mb-4`}>
                 {selectedService && (
                   <div className={`rounded-lg p-3 ${isDark ? 'bg-blue-900/20 text-blue-200' : 'bg-blue-50 text-blue-800'}`}>
                     <p className="text-sm">
@@ -166,50 +166,10 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
           </form>
       </div>
 
-      <div className="text-center mt-auto mb-4">  
-        <p className={`text-sm italic ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          "Building WordPress solutions with the power of AI"
-        </p>
-        </div>
+      
       </div>
       
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: ${isDark ? '#1f2937' : '#f3f4f6'};
-          border-radius: 10px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: ${isDark ? '#4b5563' : '#cbd5e1'};
-          border-radius: 10px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: ${isDark ? '#6b7280' : '#94a3b8'};
-        }
-        
-        .custom-scrollbar-x::-webkit-scrollbar {
-          height: 6px;
-        }
-        
-        .custom-scrollbar-x::-webkit-scrollbar-track {
-          background: ${isDark ? '#1f2937' : '#f3f4f6'};
-          border-radius: 10px;
-        }
-        
-        .custom-scrollbar-x::-webkit-scrollbar-thumb {
-          background: ${isDark ? '#4b5563' : '#cbd5e1'};
-          border-radius: 10px;
-        }
-        
-        .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
-          background: ${isDark ? '#6b7280' : '#94a3b8'};
-        }
-        
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }
@@ -217,6 +177,12 @@ const AgentLanding: React.FC<AgentLandingProps> = ({ onFirstPrompt }) => {
         .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
+          scroll-behavior: smooth;
+        }
+        
+        .custom-scrollbar-x {
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
         }
       `}</style>
       
