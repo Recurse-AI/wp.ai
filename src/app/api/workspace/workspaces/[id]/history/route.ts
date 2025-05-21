@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge'; 
 
 // API endpoint to get workspace history
 export async function GET(

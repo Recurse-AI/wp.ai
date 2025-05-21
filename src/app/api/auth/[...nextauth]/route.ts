@@ -4,6 +4,10 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import WordPressProvider from "next-auth/providers/wordpress";
 
+// export const runtime = 'nodejs'; 
+
+export const runtime = 'edge';
+
 export interface GoogleProfile {
   email: string;
   email_verified: boolean;

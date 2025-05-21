@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * API route for verifying email tokens
  * This route handles the verification of email tokens sent to users
  */
+export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   try {
     // Get the token from the URL query parameters
