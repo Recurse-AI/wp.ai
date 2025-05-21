@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * API route for resending verification emails
  */
+export const runtime = 'edge';
 export async function POST(request: NextRequest) {
   try {
     // Parse request body

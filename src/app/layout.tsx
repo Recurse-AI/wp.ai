@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const runtime = 'edge';
+
 export const metadata: Metadata = {
   title: "WordPress Agent",
   description: "WordPress Agent for AI-assisted WordPress development"

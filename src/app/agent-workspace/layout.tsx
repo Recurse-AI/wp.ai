@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description: 'Create and edit WordPress plugins and themes with AI assistance',
 };
 
+export const runtime = 'edge';
 export default function AgentWorkspaceLayout({
   children,
 }: {
