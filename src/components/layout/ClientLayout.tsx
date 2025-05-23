@@ -16,7 +16,6 @@ const OptimizedNavLink = dynamic(
 
 // Critical routes to preload for better navigation
 const CRITICAL_ROUTES = [
-  '/agent-workspace',
   '/chat',
   '/',
   '/signin',

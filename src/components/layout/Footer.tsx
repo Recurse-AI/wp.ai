@@ -11,7 +11,7 @@ const Footer = ({ excludedPaths }: { excludedPaths: string[] }) => {
   const { theme } = useTheme();
   const currentYear = new Date().getFullYear();
   const pathname = usePathname();
-  const isExcludedPath = excludedPaths.includes(pathname) || pathname?.startsWith('/agent-workspace/') || pathname?.startsWith('/chat/');
+  const isExcludedPath = excludedPaths.includes(pathname) || pathname?.startsWith('/chat/');
 
   if (isExcludedPath) {
     return null;

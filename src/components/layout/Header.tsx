@@ -24,9 +24,7 @@ const Header: React.FC<HeaderProps> = ({
     "/reset-password",
     "/forgot-password",
     "/chat",
-    "/agent-workspace",
     "/chat/*",
-    "/agent-workspace/*",
   ],
 }) => {
   const { theme, setTheme } = useTheme();
@@ -121,7 +119,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
 
-  if (excludedPaths.includes(pathname || "") || pathname?.startsWith('/agent-workspace/') || pathname?.startsWith('/chat/')) {
+  if (excludedPaths.includes(pathname || "") || pathname?.startsWith('/chat/')) {
     return null;
   }
 

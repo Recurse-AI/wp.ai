@@ -45,7 +45,7 @@ const nodes: NodeType[] = [
     color: "from-blue-600 to-indigo-600",
     children: ["content-optimization", "seo-analysis", "plugin-development", "theme-development", "page-development"],
     link: {
-      url: "/agent-workspace",
+      url: "/",
       label: "Open Agent Workspace"
     },
     category: "core"
@@ -216,39 +216,7 @@ const Tooltip: React.FC<{
   );
 };
 
-// Particle effect for connection lines
-const ParticleEffect: React.FC<{
-  path: string;
-  color: string;
-  isVisible: boolean;
-}> = ({ path, color, isVisible }) => {
-  return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.circle
-          r={3}
-          fill={color}
-          filter="url(#glow)"
-          initial={{ offsetDistance: "0%" }}
-          animate={{ 
-            offsetDistance: "100%",
-            transition: { 
-              duration: 3, 
-              repeat: Infinity,
-              ease: "linear" 
-            }
-          }}
-          style={{ 
-            offsetPath: `path("${path}")`,
-            offsetRotate: "auto"
-          }}
-        />
-      )}
-    </AnimatePresence>
-  );
-};
-
-// Node component with animation and interactivity
+// Simplified Node component
 const Node: React.FC<{ 
   node: NodeType; 
   index: number; 
@@ -278,31 +246,18 @@ const Node: React.FC<{
 
   const opacity = !isActive ? 0.4 : isHighlighted ? 1 : 0.85;
   
-  // Store node reference for position calculations
   useEffect(() => {
     if (ref.current) {
       nodeRefs.current[node.id] = ref.current;
     }
   }, [node.id, nodeRefs]);
   
-  // Trigger animations when in view
   useEffect(() => {
     if (isInView) {
       controls.start("visible");
     }
   }, [controls, isInView]);
 
-  // Scroll node into view if highlighted
-  useEffect(() => {
-    if (isHighlighted && ref.current) {
-      ref.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }
-  }, [isHighlighted]);
-  
-  // Define variants for initial animation
   const variants = {
     hidden: { 
       opacity: 0, 
@@ -317,16 +272,9 @@ const Node: React.FC<{
         type: "spring",
         stiffness: 100,
         damping: 15,
-        delay: index * 0.2 
+        delay: index * 0.1 
       }
     }
-  };
-  
-  // Additional animation for highlights
-  const highlightAnimation = {
-    scale: isHighlighted ? 1.05 : 1,
-    opacity,
-    transition: { duration: 0.3 }
   };
 
   return (
@@ -336,44 +284,26 @@ const Node: React.FC<{
       animate={controls}
       variants={variants}
       whileHover={{ scale: 1.02 }}
-      className={`relative flex flex-col items-center mb-20 md:mb-24 ${
+      className={`relative flex flex-col items-center mb-16 md:mb-20 ${
         position === 'left' 
           ? 'md:flex-row md:self-start md:text-left md:items-start' 
           : position === 'right' 
             ? 'md:flex-row-reverse md:self-end md:text-right md:items-start'
-            : 'items-center text-center' // center position
+            : 'items-center text-center'
       } cursor-pointer transition-all`}
       data-id={node.id}
       onClick={() => onNodeClick(node.id)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        opacity: highlightAnimation.opacity,
-        scale: highlightAnimation.scale
+        opacity: opacity,
+        scale: isHighlighted ? 1.05 : 1
       }}
     >
-      {/* Tooltip on hover */}
-      <Tooltip 
-        isVisible={isHovered && !isExpanded} 
-        content={`Click to ${isExpanded ? 'collapse' : 'expand'} details`}
-        position={position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'}
-      />
-      
-      {/* Highlight effect for active nodes */}
-      {isHighlighted && (
-        <motion.div 
-          className="absolute inset-0 rounded-xl -m-2 z-0"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 0.15, scale: 1.05 }}
-          exit={{ opacity: 0, scale: 1.1 }}
-          style={{ background: `radial-gradient(circle, ${node.color.split(' ')[0].replace('from-', '')} 0%, transparent 70%)` }}
-        />
-      )}
-      
       <div 
-        className={`relative z-10 w-16 h-16 rounded-full bg-gradient-to-br ${node.color} flex items-center justify-center shadow-lg mb-4 md:mb-0 ${
-          position !== 'center' ? 'md:mx-6' : ''
-        } transition-transform duration-300 ${isHighlighted ? 'scale-110 ring-2 ring-white dark:ring-gray-800 ring-offset-2' : ''}`}
+        className={`relative z-10 w-14 h-14 rounded-full bg-gradient-to-br ${node.color} flex items-center justify-center shadow-md mb-4 md:mb-0 ${
+          position !== 'center' ? 'md:mx-4' : ''
+        }`}
       >
         <div className="text-white">{node.icon}</div>
       </div>
@@ -382,14 +312,13 @@ const Node: React.FC<{
         <h3 className="text-xl font-bold mb-2">{node.title}</h3>
         <p className="text-muted-foreground text-sm">{node.description}</p>
         
-        {/* Expanded details section */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="overflow-hidden mt-4"
             >
               <p className="text-sm text-muted-foreground mb-4">{node.details}</p>
@@ -397,7 +326,7 @@ const Node: React.FC<{
               {node.link && (
                 <a 
                   href={node.link.url}
-                  className="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                  className="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                 >
                   {node.link.label}
                   <ExternalLink size={14} className="ml-1" />
@@ -409,7 +338,7 @@ const Node: React.FC<{
                   e.stopPropagation();
                   onNodeClick(node.id);
                 }}
-                className="flex items-center justify-center w-6 h-6 mt-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors mx-auto"
+                className="flex items-center justify-center w-6 h-6 mt-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 mx-auto"
               >
                 <ChevronUp size={14} />
               </button>
@@ -417,135 +346,27 @@ const Node: React.FC<{
           )}
         </AnimatePresence>
         
-        {/* Expand button when collapsed */}
         {!isExpanded && (
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onNodeClick(node.id);
             }}
-            className="flex items-center justify-center w-6 h-6 mt-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors mx-auto"
+            className="flex items-center justify-center w-6 h-6 mt-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 mx-auto"
           >
             <ChevronDown size={14} />
           </button>
         )}
       </div>
-      
-      {/* Node connector dot - for timeline visualization */}
-      <div 
-        className={`absolute ${
-          position === 'left'
-            ? 'right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 md:hidden'
-            : position === 'right'
-              ? 'left-0 top-1/2 transform -translate-x-1/2 -translate-y-1/2 md:hidden'
-              : 'bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2'
-        } w-3 h-3 rounded-full bg-gradient-to-br ${node.color} shadow-lg z-10`} 
-      />
     </motion.div>
   );
 };
 
-// Timeline marker component that appears during scroll
-const TimelineMarker: React.FC<{
-  nodeId: string;
-  isVisible: boolean;
-  position: number;
-  delay: number;
-  color: string;
-}> = ({ nodeId, isVisible, position, delay, color }) => {
-  return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={isVisible ? {
-        scale: 1,
-        opacity: 1,
-        transition: { 
-          duration: 0.4, 
-          delay,
-          type: "spring",
-          stiffness: 500,
-          damping: 30
-        }
-      } : {
-        scale: 0,
-        opacity: 0
-      }}
-      className="absolute left-1/2 transform -translate-x-1/2 z-10 pointer-events-none"
-      style={{ top: `${position}%` }}
-    >
-      <div 
-        className="w-3 h-3 rounded-full shadow-md"
-        style={{ background: `linear-gradient(45deg, ${color}, ${color}AA)` }}
-      />
-      <div 
-        className="absolute top-0 left-0 w-3 h-3 rounded-full animate-ping opacity-75"
-        style={{ background: color }}
-      />
-    </motion.div>
-  );
-};
-
-// Improved Timeline-to-node connector component
-const TimelineNodeConnector: React.FC<{
-  nodeId: string;
-  nodePositions: {[key: string]: DOMRect | null};
-  position: 'left' | 'right' | 'center';
-  isVisible: boolean;
-  color: string;
-  index: number;
-}> = ({ nodeId, nodePositions, position, isVisible, color, index }) => {
-  const nodePosition = nodePositions[nodeId];
-  const [timelineX, setTimelineX] = useState(0);
-  
-  useEffect(() => {
-    setTimelineX(window.innerWidth / 2);
-  }, []);
-  
-  if (!nodePosition || !timelineX) {
-    return null;
-  }
-  
-  // Calculate connector path points with improved positioning
-  const nodeX = nodePosition.left + nodePosition.width / 2;
-  const nodeY = nodePosition.top + nodePosition.height / 2;
-  
-  // Adjust connector paths based on position with better spacing
-  const path = position === 'center' 
-    ? `M${timelineX},${nodeY - 40} L${nodeX},${nodeY - 40}` // Top connection for center
-    : position === 'left'
-    ? `M${timelineX},${nodeY} L${nodeX + 40},${nodeY}` // Left-side connection with more space
-    : `M${timelineX},${nodeY} L${nodeX - 40},${nodeY}`; // Right-side connection with more space
-  
-  return (
-    <motion.path
-      d={path}
-      stroke={`url(#gradient-${nodeId})`}
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      fill="none"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={isVisible ? {
-        pathLength: 1, 
-        opacity: 1,
-        transition: { 
-          duration: 0.8, 
-          delay: 0.3 + (index * 0.1),
-          ease: "easeOut"
-        }
-      } : {
-        pathLength: 0,
-        opacity: 0
-      }}
-    />
-  );
-};
-
-// ZigzagConnection component for drawing paths between nodes
-const ZigzagConnection: React.FC<{
+// Simplified connection component
+const Connection: React.FC<{
   startNode: string;
   endNode: string;
   nodePositions: {[key: string]: DOMRect | null};
-  index: number;
   isVisible: boolean;
   highlightedConnection: boolean;
   onConnectionHover: (start: string, end: string, isHovering: boolean) => void;
@@ -554,138 +375,40 @@ const ZigzagConnection: React.FC<{
   startNode, 
   endNode, 
   nodePositions, 
-  index, 
   isVisible, 
   highlightedConnection,
   onConnectionHover,
   direction = 'down'
 }) => {
-  // Default fallback positions
   const startPosition = nodePositions[startNode];
   const endPosition = nodePositions[endNode];
   
-  if (!startPosition || !endPosition) {
-    return null;
-  }
+  if (!startPosition || !endPosition) return null;
   
-  // Calculate start and end points with improved positioning
   const startX = startPosition.left + startPosition.width / 2;
   const startY = startPosition.top + startPosition.height / 2;
   const endX = endPosition.left + endPosition.width / 2;
   const endY = direction === 'down' ? endPosition.top : endPosition.bottom;
   
-  // Calculate zigzag control points with better spacing
-  const midY = startY + (endY - startY) / 2;
-  const offset = Math.min(100, Math.abs(endX - startX) * 0.4) * (index % 2 === 0 ? 1 : -1);
-  
-  // Create a smoother zigzag path with multiple control points
-  const path = direction === 'down' 
-    ? `
-      M${startX},${startY} 
-      C${startX},${startY + 50} ${startX + offset},${midY - 50} ${startX + offset},${midY}
-      S${endX - offset},${midY + 50} ${endX - offset},${midY + 100}
-      S${endX},${endY - 50} ${endX},${endY}
-    `
-    : `
-      M${startX},${startY} 
-      C${startX},${startY - 50} ${startX + offset},${midY + 50} ${startX + offset},${midY}
-      S${endX - offset},${midY - 50} ${endX - offset},${midY - 100}
-      S${endX},${endY + 50} ${endX},${endY}
-    `;
-  
-  // Colors for the nodes to extract gradient colors
-  const startNodeData = nodes.find(n => n.id === startNode);
-  const gradientColor = startNodeData?.color.split(' ')[0].replace('from-', '') || '#8B5CF6';
-  
-  // Determine animation properties based on visibility and highlight state
-  const pathAnimation = isVisible 
-    ? {
-        pathLength: 1, 
-        opacity: highlightedConnection ? 1 : 0.7,
-        transition: { 
-          duration: 1.2, 
-          delay: index * 0.2,
-          ease: "easeInOut"
-        }
-      } 
-    : {
-        pathLength: 0,
-        opacity: 0
-      };
+  const path = `M${startX},${startY} C${startX},${(startY + endY) / 2} ${endX},${(startY + endY) / 2} ${endX},${endY}`;
   
   return (
-    <>
-      <motion.path
-        d={path}
-        stroke={highlightedConnection ? "url(#highlightGradient)" : "url(#gradient)"}
-        strokeWidth={highlightedConnection ? "3" : "2"}
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray="8 4"
-        filter={highlightedConnection ? "url(#glow)" : undefined}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={pathAnimation}
-        onMouseEnter={() => onConnectionHover(startNode, endNode, true)}
-        onMouseLeave={() => onConnectionHover(startNode, endNode, false)}
-        style={{ cursor: 'pointer' }}
-      />
-      
-      {/* Animated particles along the path */}
-      {isVisible && (
-        <>
-          <ParticleEffect path={path} color={gradientColor} isVisible={highlightedConnection} />
-          {highlightedConnection && (
-            <>
-              <ParticleEffect 
-                path={path} 
-                color={gradientColor} 
-                isVisible={highlightedConnection} 
-              />
-              <ParticleEffect 
-                path={path} 
-                color={gradientColor} 
-                isVisible={highlightedConnection} 
-              />
-            </>
-          )}
-        </>
-      )}
-    </>
-  );
-};
-
-// Animated pulse effect on connection lines
-const ConnectionNode: React.FC<{
-  x: number;
-  y: number;
-  delay: number;
-  isVisible: boolean;
-  color: string;
-  isHighlighted: boolean;
-}> = ({ x, y, delay, isVisible, color, isHighlighted }) => {
-  const size = isHighlighted ? 6 : 4;
-  
-  return (
-    <motion.circle
-      cx={x}
-      cy={y}
-      r={size}
-      fill={color}
-      filter={isHighlighted ? "url(#glow)" : undefined}
-      initial={{ scale: 0, opacity: 0 }}
-      animate={isVisible ? {
-        scale: [0, 1.5, 0],
-        opacity: [0, isHighlighted ? 1 : 0.8, 0],
-        transition: {
-          duration: isHighlighted ? 1.5 : 2,
-          delay,
-          repeat: Infinity,
-          repeatDelay: isHighlighted ? 0.3 : 0.5
-        }
-      } : {
-        scale: 0,
-        opacity: 0
+    <motion.path
+      d={path}
+      stroke={highlightedConnection ? "#60A5FA" : "#8B5CF6"}
+      strokeWidth={highlightedConnection ? "2.5" : "1.5"}
+      strokeOpacity={highlightedConnection ? 1 : 0.6}
+      fill="none"
+      strokeLinecap="round"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{ 
+        pathLength: isVisible ? 1 : 0, 
+        opacity: isVisible ? 1 : 0 
       }}
+      transition={{ duration: 0.8 }}
+      onMouseEnter={() => onConnectionHover(startNode, endNode, true)}
+      onMouseLeave={() => onConnectionHover(startNode, endNode, false)}
+      style={{ cursor: 'pointer' }}
     />
   );
 };
@@ -713,36 +436,6 @@ const FilterButton: React.FC<{
     >
       {label}
     </motion.button>
-  );
-};
-
-// Network background pattern component
-const NetworkPattern: React.FC<{
-  isVisible: boolean;
-}> = ({ isVisible }) => {
-  return (
-    <motion.div
-      className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: isVisible ? 0.7 : 0 }}
-      transition={{ duration: 1 }}
-    >
-      <svg width="100%" height="100%" className="absolute inset-0">
-        <defs>
-          <pattern id="networkGrid" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
-            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(99, 102, 241, 0.2)" strokeWidth="1" />
-          </pattern>
-          <radialGradient id="networkFade" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
-            <stop offset="0%" stopColor="white" stopOpacity="1" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </radialGradient>
-          <mask id="networkMask">
-            <rect width="100%" height="100%" fill="url(#networkFade)" />
-          </mask>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#networkGrid)" mask="url(#networkMask)" />
-      </svg>
-    </motion.div>
   );
 };
 
@@ -785,7 +478,6 @@ const TreeNavigator: React.FC = () => {
   const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
   const [highlightedConnections, setHighlightedConnections] = useState<{start: string, end: string}[]>([]);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [isMounted, setIsMounted] = useState(false);
   
   // Define connections between nodes
@@ -808,15 +500,11 @@ const TreeNavigator: React.FC = () => {
     if (isInView && isMounted) {
       const calculatePositions = () => {
         const positions: {[key: string]: DOMRect | null} = {};
-        
-        // For each node ref, get its position
         Object.keys(nodeRefs.current).forEach(nodeId => {
           const el = nodeRefs.current[nodeId];
           if (el) {
             const rect = el.getBoundingClientRect();
             const scrollY = window.scrollY;
-            
-            // Adjust for scroll position to get absolute positions
             positions[nodeId] = new DOMRect(
               rect.left,
               rect.top + scrollY,
@@ -825,17 +513,11 @@ const TreeNavigator: React.FC = () => {
             );
           }
         });
-        
         setNodePositions(positions);
       };
-      
-      // Calculate initial positions
-      setTimeout(calculatePositions, 500);
-      
-      // Recalculate on resize and scroll
+      setTimeout(calculatePositions, 300);
       window.addEventListener('resize', calculatePositions);
       window.addEventListener('scroll', calculatePositions);
-      
       return () => {
         window.removeEventListener('resize', calculatePositions);
         window.removeEventListener('scroll', calculatePositions);
@@ -845,13 +527,13 @@ const TreeNavigator: React.FC = () => {
 
   // Handle node click for expanding/collapsing details
   const handleNodeClick = useCallback((nodeId: string) => {
-    setExpandedNodes(prev => 
-      prev.includes(nodeId) 
-        ? prev.filter(id => id !== nodeId) 
+    setExpandedNodes(prev =>
+      prev.includes(nodeId)
+        ? prev.filter(id => id !== nodeId)
         : [...prev, nodeId]
     );
   }, []);
-  
+
   // Handle connection hover to highlight connected nodes
   const handleConnectionHover = useCallback((start: string, end: string, isHovering: boolean) => {
     if (isHovering) {
@@ -862,72 +544,26 @@ const TreeNavigator: React.FC = () => {
       setHighlightedConnections([]);
     }
   }, []);
-  
+
   // Handle category filter
   const handleFilterChange = useCallback((category: string) => {
     setActiveFilter(prev => prev === category ? null : category);
-    
-    // Auto-expand nodes of the selected category
     if (category !== 'all' && category !== null) {
       const categoryNodes = nodes
         .filter(node => node.category === category)
         .map(node => node.id);
-      
       setExpandedNodes(categoryNodes);
     } else if (category === 'all') {
-      // When "All" is selected, collapse all nodes
       setExpandedNodes([]);
     }
   }, []);
-  
-  // Add scroll progress tracking
-  useEffect(() => {
-    if (!isMounted) return;
 
-    const handleScroll = () => {
-      if (containerRef.current) {
-        const container = containerRef.current;
-        const rect = container.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        // Calculate how much of the container is visible
-        const visibleHeight = Math.min(rect.bottom, windowHeight) - Math.max(rect.top, 0);
-        const containerHeight = rect.height;
-        
-        // Calculate scroll progress (0 to 1)
-        let progress = 0;
-        if (rect.top <= 0) {
-          progress = Math.min(Math.abs(rect.top) / (containerHeight - windowHeight), 1);
-        }
-        
-        setScrollProgress(progress);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initialize
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [isMounted]);
-  
-  // Define additional upward connections for the zigzag pattern
-  const upwardConnections: ConnectionType[] = [
-    { start: "wordpress-agent", end: "plugin-development", direction: "up" as const },
-    { start: "wordpress-agent", end: "theme-development", direction: "up" as const },
-    { start: "content-optimization", end: "wordpress-agent", direction: "up" as const },
-    { start: "page-development", end: "theme-development", direction: "up" as const },
-  ];
-  
-  // All connections combining existing and upward
-  const allConnections = [
-    ...connections,
-    ...upwardConnections
-  ];
-  
   return (
-    <section className="py-20 md:py-32 w-full relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-gray-900 dark:to-gray-950">
+    <section className="relative py-20 md:py-32 w-full overflow-hidden">
+      {/* Decorative background elements for consistency with other sections */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-blue-50/5 dark:to-blue-950/10 -z-10"></div>
+      <div className="absolute top-1/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/10 to-transparent -z-10"></div>
+      <div className="absolute bottom-0 right-0 -mb-16 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl -z-10"></div>
       <Container>
         <div className="text-center mb-12">
           <motion.h2 
@@ -948,8 +584,6 @@ const TreeNavigator: React.FC = () => {
           >
             Our integrated toolset connects AI-powered components to enhance every aspect of your WordPress site
           </motion.p>
-          
-          {/* Category filters */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             <FilterButton 
               category="all" 
@@ -987,8 +621,6 @@ const TreeNavigator: React.FC = () => {
               color="pink"
             />
           </div>
-          
-          {/* Instruction text */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.7 }}
@@ -997,153 +629,56 @@ const TreeNavigator: React.FC = () => {
             Click on nodes to expand details or hover over connections to see relationships
           </motion.p>
         </div>
-        
         <div 
           ref={containerRef}
           className="relative min-h-[600px]"
         >
-          {/* Network background pattern */}
-          <NetworkPattern isVisible={isInView} />
-          
-          {/* Timeline central line with animated markers */}
+          {/* Timeline central line */}
           <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={isInView ? { height: '100%', opacity: 1 } : { height: 0, opacity: 0 }}
-            transition={{ duration: 1 }}
-            className="absolute left-1/2 transform -translate-x-1/2 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full opacity-50 z-0 top-0 bottom-0"
+            initial={{ height: 0 }}
+            animate={isInView ? { height: '100%' } : { height: 0 }}
+            className="absolute left-1/2 transform -translate-x-1/2 w-px bg-gradient-to-b from-blue-500 to-purple-500 opacity-30"
           />
-          
-          {/* Client-side only content */}
-          <ClientOnly>
-            {/* Timeline markers that appear during scroll */}
-            {nodes.map((node, index) => (
-              <TimelineMarker
-                key={`marker-${node.id}`}
-                nodeId={node.id}
-                isVisible={isInView && scrollProgress > index * 0.15}
-                position={(index + 1) * 15}
-                delay={index * 0.2}
-                color={node.color.split(' ')[0].replace('from-', '')}
+          {/* Nodes layout */}
+          <div className="flex flex-col relative z-10 max-w-5xl mx-auto">
+            {timelineNodes.map((node, index) => (
+              <Node 
+                key={node.id} 
+                node={node} 
+                index={index} 
+                position={node.position} 
+                nodeRefs={nodeRefs}
+                activeFilter={activeFilter}
+                onNodeClick={handleNodeClick}
+                expandedNodes={expandedNodes}
+                highlightedNodes={highlightedNodes}
               />
             ))}
-            
-            {/* Staggered Nodes Layout */}
-            <div className="flex flex-col relative z-10 max-w-5xl mx-auto">
-              {timelineNodes.map((node, index) => (
-                <Node 
-                  key={node.id} 
-                  node={node} 
-                  index={index} 
-                  position={node.position as 'left' | 'right' | 'center'} 
-                  nodeRefs={nodeRefs}
-                  activeFilter={activeFilter}
-                  onNodeClick={handleNodeClick}
-                  expandedNodes={expandedNodes}
-                  highlightedNodes={highlightedNodes}
-                />
-              ))}
-            </div>
-            
-            {/* SVG for connection lines */}
-            <svg 
-              ref={svgRef}
-              className="absolute top-0 left-0 w-full h-full z-1 pointer-events-none"
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-            >
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#3B82F6" />
-                  <stop offset="50%" stopColor="#8B5CF6" />
-                  <stop offset="100%" stopColor="#EC4899" />
-                </linearGradient>
-                
-                <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#60A5FA" />
-                  <stop offset="50%" stopColor="#A78BFA" />
-                  <stop offset="100%" stopColor="#F472B6" />
-                </linearGradient>
-                
-                {/* Node-specific gradients for connectors */}
-                {nodes.map(node => (
-                  <linearGradient key={`gradient-${node.id}`} id={`gradient-${node.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={node.color.split(' ')[0].replace('from-', '')} />
-                    <stop offset="100%" stopColor={node.color.split(' ')[1].replace('to-', '')} />
-                  </linearGradient>
-                ))}
-                
-                {/* Glow effect for highlighted elements */}
-                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="2.5" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
-              
-              {/* Timeline to node connectors */}
-              {timelineNodes.map((node, index) => (
-                <TimelineNodeConnector
-                  key={`timeline-connector-${node.id}`}
-                  nodeId={node.id}
-                  nodePositions={nodePositions}
-                  position={node.position as 'left' | 'right' | 'center'}
-                  isVisible={isInView && scrollProgress > index * 0.15}
-                  color={node.color}
-                  index={index}
-                />
-              ))}
-              
-              {/* Connection lines with zigzag paths - now including upward connections */}
-              {allConnections.map((connection, index) => (
-                <ZigzagConnection
-                  key={`${connection.start}-${connection.end}-${connection.direction || 'down'}`}
-                  startNode={connection.start}
-                  endNode={connection.end}
-                  nodePositions={nodePositions}
-                  index={index}
-                  isVisible={isInView}
-                  highlightedConnection={highlightedConnections.some(
-                    conn => conn.start === connection.start && conn.end === connection.end
-                  )}
-                  onConnectionHover={handleConnectionHover}
-                  direction={connection.direction as 'up' | 'down' | undefined}
-                />
-              ))}
-              
-              {/* Connection nodes - animated dots along the connection paths */}
-              {Object.entries(nodePositions).map(([nodeId, position], i) => (
-                position && (
-                  <ConnectionNode
-                    key={`node-${nodeId}`}
-                    x={position.left + position.width / 2}
-                    y={position.top + position.height / 2}
-                    delay={i * 0.4}
-                    isVisible={isInView}
-                    color={nodes.find(n => n.id === nodeId)?.color.split(' ')[0].replace('from-', '') || '#8B5CF6'}
-                    isHighlighted={highlightedNodes.includes(nodeId)}
-                  />
-                )
-              ))}
-            </svg>
-          </ClientOnly>
+          </div>
+          {/* Connections SVG */}
+          <svg 
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          >
+            {connections.map((connection, index) => (
+              <Connection
+                key={`${connection.start}-${connection.end}`}
+                startNode={connection.start}
+                endNode={connection.end}
+                nodePositions={nodePositions}
+                isVisible={isInView}
+                highlightedConnection={highlightedConnections.some(
+                  conn => conn.start === connection.start && conn.end === connection.end
+                )}
+                onConnectionHover={handleConnectionHover}
+                direction={connection.direction}
+              />
+            ))}
+          </svg>
         </div>
       </Container>
-      
-      {/* Background grid pattern */}
-      <div className="absolute inset-0 opacity-70 pointer-events-none">
-        <div className="network-grid"></div>
-      </div>
-
       <style jsx>{`
-        .network-grid {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          background-size: 40px 40px;
-          background-image: 
-            linear-gradient(to right, rgba(99, 102, 241, 0.12) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(99, 102, 241, 0.12) 1px, transparent 1px);
-          mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 70%);
-        }
+        /* No custom grid pattern needed, background handled by decorative elements above */
       `}</style>
     </section>
   );

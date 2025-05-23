@@ -116,7 +116,7 @@ const HeroSection: React.FC = () => {
             {/* Main Action Button */}
             <div className="flex flex-col items-center mb-10">
               <OptimizedNavLink 
-                href="/agent-workspace" 
+                href="/" 
                 className="px-6 py-3 text-lg rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
                 trackPerformance={true}
                 prefetch={true}
@@ -132,7 +132,7 @@ const HeroSection: React.FC = () => {
             {/* Navigation Links */}
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <OptimizedNavLink 
-                href="/agent-workspace" 
+                href="/" 
                 className="group relative flex items-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-gray-800/60 dark:to-gray-900/60 shadow-md hover:shadow-lg transition-all duration-300 border border-cyan-200/20 dark:border-cyan-900/20 hover:border-cyan-200/50 dark:hover:border-cyan-900/50"
                 trackPerformance={true}
                 prefetch={true}

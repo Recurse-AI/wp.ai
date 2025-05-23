@@ -11,8 +11,6 @@ import { Toaster } from "react-hot-toast";
 const excludedPaths = [
   '/chat', 
   '/chat/*',
-  '/agent-workspace',
-  '/agent-workspace/*',
   '/signin', 
   '/signup',
   '/login',
@@ -31,7 +29,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const currentPath = usePathname();
   
   // Set main classes based on current path
-  const mainClasses = currentPath === "/chat" || currentPath === "/agent-workspace" 
+  const mainClasses = currentPath === "/chat" 
     ? "flex-1 relative" 
     : "flex-1";
 
